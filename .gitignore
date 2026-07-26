@@ -152,3 +152,7 @@ parsedmarc/resources/maps/domain_info.tsv
 coverage.json
 junit.xml
 dashboard-screenshots/
+
+# Claude Code agent worktrees — untracked repo snapshots; ignoring them
+# keeps repo-root ruff runs and git status clean
+.claude/worktrees/

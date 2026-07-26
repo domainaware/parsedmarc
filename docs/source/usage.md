@@ -132,6 +132,24 @@ The full set of configuration options are:
       payloads from results
   - `silent` - bool: Set this to `False` to output results to STDOUT
   - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
+  - `archive_directory` - str: Optional. When set, successfully
+      processed report files given as local file/directory path
+      arguments are moved into
+      `<archive_directory>/<year>/<month>/<Aggregate|Failure|SMTP-TLS>/`
+      (year and month come from the report's own begin/arrival date, with
+      the month zero-padded). A successfully parsed report whose archive
+      date can't be determined is left in place with a logged warning.
+      Files that fail to parse as a report are moved to
+      `<archive_directory>/Invalid/`; files that fail for other reasons,
+      such as transient I/O errors, are left in place so a later run can
+      retry them. An existing destination file is never overwritten; a
+      numeric suffix is appended before the extension (e.g.
+      `report-1.xml`). This applies only to direct local file input —
+      reports fetched from mailboxes (IMAP, Microsoft Graph, Gmail API,
+      Maildir) use `[mailbox] archive_folder` instead, and mbox files are
+      never moved. Files already inside `archive_directory` are excluded
+      from processing, so the archive may safely live inside an input
+      directory. A failed move is logged and does not stop the run.
   - `aggregate_json_filename` - str: filename for the aggregate
       JSON output file
   - `failure_json_filename` - str: filename for the failure

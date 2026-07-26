@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import signal
+import stat
 import sys
 import tempfile
 import unittest
@@ -26,7 +27,7 @@ import parsedmarc
 import parsedmarc.cli
 import parsedmarc.elastic
 import parsedmarc.opensearch as opensearch_module
-from parsedmarc.types import AggregateReport
+from parsedmarc.types import AggregateReport, ParsedReport
 
 SAMPLE_AGGREGATE_REPORT_PATH = (
     "samples/aggregate/!example.com!1538204542!1538463818.xml"
@@ -1084,6 +1085,321 @@ class TestDirectoryFilePaths(unittest.TestCase):
         self.assertIn(top_level_id, report_ids)
         self.assertIn(nested_id, report_ids)
         self.assertEqual(report_ids, {top_level_id, nested_id})
+
+
+class TestArchiveDirectory(unittest.TestCase):
+    """End-to-end coverage of issue #570: ``[general] archive_directory``
+    moves successfully processed local report files into a dated
+    ``<year>/<month>/<Aggregate|Failure|SMTP-TLS>/`` tree, and unparseable
+    files into ``<archive_directory>/Invalid/``. Runs the real ``_main()``
+    entry point via ``patch.object(sys, "argv", ...)`` against on-disk
+    sample reports, per AGENTS.md's mock-at-SDK-boundary rule (there is no
+    external SDK boundary in this code path to mock)."""
+
+    AGGREGATE_SAMPLE_1 = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+    AGGREGATE_SAMPLE_2 = (
+        "samples/aggregate/!large-example.com!1711897200!1711983600.xml"
+    )
+    # Not dmarc_ruf_report_linkedin.eml: that sample begins with a
+    # "From dmarc-noreply@linkedin.com ..." mbox envelope line, which is
+    # why Python's mailbox module reads it as a (single-message) mbox
+    # file and is_mbox() classifies it as an mbox — routing it through
+    # _main()'s mbox_paths branch instead of the direct-file archiving
+    # path this test exercises (mbox files are intentionally never
+    # archived — see the archive_directory docs in docs/source/usage.md).
+    # The sharepoint sample below starts with a MIME header instead, so
+    # it isn't mbox-classified.
+    FAILURE_SAMPLE = (
+        "samples/failure/DMARC Failure Report for domain.de "
+        "(mail-from=sharepoint@domain.de, ip=10.10.10.10).eml"
+    )
+    SMTP_TLS_SAMPLE = "samples/smtp_tls/rfc8460.json"
+
+    def setUp(self):
+        # SEEN_AGGREGATE_REPORT_IDS is a module-level ExpiringDict that
+        # dedupes report IDs across parses within one process; clear it so
+        # a report "seen" by an earlier test isn't silently dropped here,
+        # and so tests within this class don't interfere with each other.
+        # Precedent: TestDirectoryFilePaths.setUp above.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        self._env_patcher = patch.dict(
+            os.environ, {"GITHUB_ACTIONS": "true"}, clear=False
+        )
+        self._env_patcher.start()
+        self.addCleanup(self._env_patcher.stop)
+
+    def _copy_sample(self, src_path, dest_dir, dest_basename=None):
+        dest_basename = dest_basename or os.path.basename(src_path)
+        dest_path = os.path.join(dest_dir, dest_basename)
+        with open(src_path, "rb") as src, open(dest_path, "wb") as dst:
+            dst.write(src.read())
+        return dest_path
+
+    def _expected_subdir(self, sample_path):
+        """Parse *sample_path* the same way the CLI does and return the
+        ``<year>/<month>/<type>`` subdirectory ``_archive_subdir_for_result``
+        computes for it. Computed dynamically rather than hardcoded because
+        aggregate ``begin_date`` is local-time, so month buckets are
+        timezone-dependent."""
+        result = parsedmarc.parse_report_file(sample_path, offline=True)
+        subdir = parsedmarc.cli._archive_subdir_for_result(result)
+        assert subdir is not None
+        return subdir
+
+    def _write_config(
+        self, tmp_dir, output_dirname, archive_dirname=None, n_procs=None
+    ):
+        cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
+        output_dir = os.path.join(tmp_dir, output_dirname)
+        config_text = (
+            f"[general]\noffline = True\nsilent = True\noutput = {output_dir}\n"
+        )
+        archive_dir = None
+        if archive_dirname is not None:
+            archive_dir = os.path.join(tmp_dir, archive_dirname)
+            config_text += f"archive_directory = {archive_dir}\n"
+        if n_procs is not None:
+            config_text += f"n_procs = {n_procs}\n"
+        with open(cfg_path, "w") as f:
+            f.write(config_text)
+        return cfg_path, output_dir, archive_dir
+
+    def test_archive_moves_all_three_types(self):
+        """Aggregate, failure, and SMTP TLS report files given as direct
+        ``file_path`` arguments are moved into
+        ``<archive>/<year>/<month>/<Aggregate|Failure|SMTP-TLS>/`` after a
+        successful parse, the source files are gone from the input
+        directory, and the aggregate JSON output is still produced."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_dir = os.path.join(tmp_dir, "input")
+            os.makedirs(input_dir)
+            agg1 = self._copy_sample(self.AGGREGATE_SAMPLE_1, input_dir)
+            agg2 = self._copy_sample(self.AGGREGATE_SAMPLE_2, input_dir)
+            failure = self._copy_sample(self.FAILURE_SAMPLE, input_dir)
+            smtp_tls = self._copy_sample(self.SMTP_TLS_SAMPLE, input_dir)
+
+            cfg_path, output_dir, archive_dir = self._write_config(
+                tmp_dir, "output", archive_dirname="archive"
+            )
+            assert archive_dir is not None
+
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, input_dir]):
+                parsedmarc.cli._main()
+
+            for src, sample_path in (
+                (agg1, self.AGGREGATE_SAMPLE_1),
+                (agg2, self.AGGREGATE_SAMPLE_2),
+                (failure, self.FAILURE_SAMPLE),
+                (smtp_tls, self.SMTP_TLS_SAMPLE),
+            ):
+                subdir = self._expected_subdir(sample_path)
+                dest = os.path.join(archive_dir, subdir, os.path.basename(src))
+                self.assertTrue(os.path.isfile(dest), f"missing {dest}")
+                self.assertFalse(os.path.isfile(src))
+
+            self.assertTrue(os.path.isfile(os.path.join(output_dir, "aggregate.json")))
+
+    def test_failed_parse_moved_to_invalid(self):
+        """A file that fails to parse (garbage content) is moved to
+        ``<archive_directory>/Invalid/`` rather than left in place, and
+        the run completes without raising."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_dir = os.path.join(tmp_dir, "input")
+            os.makedirs(input_dir)
+            garbage_path = os.path.join(input_dir, "garbage.xml")
+            with open(garbage_path, "wb") as f:
+                f.write(b"not a report")
+
+            cfg_path, output_dir, archive_dir = self._write_config(
+                tmp_dir, "output", archive_dirname="archive"
+            )
+            assert archive_dir is not None
+
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, input_dir]):
+                parsedmarc.cli._main()
+
+            dest = os.path.join(archive_dir, "Invalid", "garbage.xml")
+            self.assertTrue(os.path.isfile(dest))
+            self.assertFalse(os.path.isfile(garbage_path))
+
+    def test_collision_appends_numeric_suffix(self):
+        """A destination file that already exists at the computed archive
+        path is never overwritten: the newly archived file gets a
+        numeric suffix appended before its extension instead, and the
+        pre-existing file's content is untouched."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_dir = os.path.join(tmp_dir, "input")
+            os.makedirs(input_dir)
+            src = self._copy_sample(self.AGGREGATE_SAMPLE_1, input_dir)
+
+            cfg_path, output_dir, archive_dir = self._write_config(
+                tmp_dir, "output", archive_dirname="archive"
+            )
+            assert archive_dir is not None
+
+            subdir = self._expected_subdir(self.AGGREGATE_SAMPLE_1)
+            dest_dir = os.path.join(archive_dir, subdir)
+            os.makedirs(dest_dir)
+            basename = os.path.basename(src)
+            preexisting_path = os.path.join(dest_dir, basename)
+            with open(preexisting_path, "wb") as f:
+                f.write(b"PREEXISTING DUMMY CONTENT")
+
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, input_dir]):
+                parsedmarc.cli._main()
+
+            with open(preexisting_path, "rb") as f:
+                self.assertEqual(f.read(), b"PREEXISTING DUMMY CONTENT")
+
+            base, ext = os.path.splitext(basename)
+            suffixed_path = os.path.join(dest_dir, f"{base}-1{ext}")
+            self.assertTrue(os.path.isfile(suffixed_path))
+            self.assertFalse(os.path.isfile(src))
+
+    def test_second_run_skips_archived_files(self):
+        """Files already inside ``archive_directory`` are excluded from
+        the next run's ``file_path`` expansion, so the archive may safely
+        live inside an input directory without its own contents being
+        re-parsed and re-archived on a later run. SEEN_AGGREGATE_REPORT_IDS
+        is cleared between runs to prove the exclusion doesn't rely on
+        aggregate-report dedup (the failure/SMTP-TLS samples aren't
+        deduped at all, so they alone would already prove this, but
+        clearing it removes any doubt for the aggregate sample too)."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_dir = os.path.join(tmp_dir, "input")
+            os.makedirs(input_dir)
+            self._copy_sample(self.AGGREGATE_SAMPLE_1, input_dir)
+            self._copy_sample(self.FAILURE_SAMPLE, input_dir)
+            self._copy_sample(self.SMTP_TLS_SAMPLE, input_dir)
+
+            archive_dir = os.path.join(input_dir, "archive")
+            output_dir = os.path.join(tmp_dir, "output")
+            cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
+            config_text = (
+                "[general]\noffline = True\nsilent = True\n"
+                f"output = {output_dir}\narchive_directory = {archive_dir}\n"
+            )
+            with open(cfg_path, "w") as f:
+                f.write(config_text)
+
+            def _archive_tree():
+                tree = {}
+                for root, _dirs, files in os.walk(archive_dir):
+                    for name in files:
+                        path = os.path.join(root, name)
+                        rel = os.path.relpath(path, archive_dir)
+                        with open(path, "rb") as f:
+                            tree[rel] = f.read()
+                return tree
+
+            with patch.object(
+                sys, "argv", ["parsedmarc", "-c", cfg_path, "-r", input_dir]
+            ):
+                parsedmarc.cli._main()
+
+            first_run_tree = _archive_tree()
+            self.assertEqual(len(first_run_tree), 3)
+
+            parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+
+            with patch.object(
+                sys, "argv", ["parsedmarc", "-c", cfg_path, "-r", input_dir]
+            ):
+                parsedmarc.cli._main()
+
+            second_run_tree = _archive_tree()
+            self.assertEqual(first_run_tree, second_run_tree)
+            for rel in second_run_tree:
+                self.assertNotIn("-1", os.path.basename(rel))
+
+    def test_archive_with_n_procs_2(self):
+        """The same archiving behavior as
+        ``test_archive_moves_all_three_types``, but with ``n_procs = 2``
+        so the direct-file parsing path runs through the multiprocessing
+        pool."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_dir = os.path.join(tmp_dir, "input")
+            os.makedirs(input_dir)
+            agg1 = self._copy_sample(self.AGGREGATE_SAMPLE_1, input_dir)
+            agg2 = self._copy_sample(self.AGGREGATE_SAMPLE_2, input_dir)
+            failure = self._copy_sample(self.FAILURE_SAMPLE, input_dir)
+            smtp_tls = self._copy_sample(self.SMTP_TLS_SAMPLE, input_dir)
+
+            cfg_path, output_dir, archive_dir = self._write_config(
+                tmp_dir, "output", archive_dirname="archive", n_procs=2
+            )
+            assert archive_dir is not None
+
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, input_dir]):
+                parsedmarc.cli._main()
+
+            for src, sample_path in (
+                (agg1, self.AGGREGATE_SAMPLE_1),
+                (agg2, self.AGGREGATE_SAMPLE_2),
+                (failure, self.FAILURE_SAMPLE),
+                (smtp_tls, self.SMTP_TLS_SAMPLE),
+            ):
+                subdir = self._expected_subdir(sample_path)
+                dest = os.path.join(archive_dir, subdir, os.path.basename(src))
+                self.assertTrue(os.path.isfile(dest), f"missing {dest}")
+                self.assertFalse(os.path.isfile(src))
+
+            self.assertTrue(os.path.isfile(os.path.join(output_dir, "aggregate.json")))
+
+    def test_no_archive_when_option_unset(self):
+        """Without ``archive_directory`` configured, input files are left
+        in place after processing and no ``archive`` directory is
+        created."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_dir = os.path.join(tmp_dir, "input")
+            os.makedirs(input_dir)
+            agg1 = self._copy_sample(self.AGGREGATE_SAMPLE_1, input_dir)
+
+            cfg_path, output_dir, archive_dir = self._write_config(tmp_dir, "output")
+            self.assertIsNone(archive_dir)
+
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, input_dir]):
+                parsedmarc.cli._main()
+
+            self.assertTrue(os.path.isfile(agg1))
+            self.assertFalse(os.path.isdir(os.path.join(tmp_dir, "archive")))
+
+    def test_duplicate_aggregate_reports_both_archived(self):
+        """The same aggregate report content under two different
+        filenames is deduplicated down to one report in the JSON output,
+        but both source files are archived normally: archiving runs for
+        every file that parsed successfully, independent of the
+        in-process report-ID dedup."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            input_dir = os.path.join(tmp_dir, "input")
+            os.makedirs(input_dir)
+            copy1 = self._copy_sample(
+                self.AGGREGATE_SAMPLE_1, input_dir, dest_basename="copy-a.xml"
+            )
+            copy2 = self._copy_sample(
+                self.AGGREGATE_SAMPLE_1, input_dir, dest_basename="copy-b.xml"
+            )
+
+            cfg_path, output_dir, archive_dir = self._write_config(
+                tmp_dir, "output", archive_dirname="archive"
+            )
+            assert archive_dir is not None
+
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, input_dir]):
+                parsedmarc.cli._main()
+
+            with open(os.path.join(output_dir, "aggregate.json")) as f:
+                reports = json.load(f)
+            self.assertEqual(len(reports), 1)
+
+            subdir = self._expected_subdir(self.AGGREGATE_SAMPLE_1)
+            dest1 = os.path.join(archive_dir, subdir, "copy-a.xml")
+            dest2 = os.path.join(archive_dir, subdir, "copy-b.xml")
+            self.assertTrue(os.path.isfile(dest1))
+            self.assertTrue(os.path.isfile(dest2))
+            self.assertFalse(os.path.isfile(copy1))
+            self.assertFalse(os.path.isfile(copy2))
 
 
 class TestGmailAuthModes(unittest.TestCase):
@@ -3734,6 +4050,398 @@ class TestExpandPath(unittest.TestCase):
         self.assertEqual(_expand_path("relative/path"), "relative/path")
 
 
+class TestArchiveSubdirForResult(unittest.TestCase):
+    """Unit tests for _archive_subdir_for_result (issue #570): maps a
+    parsed report to its ``<year>/<month>/<Aggregate|Failure|SMTP-TLS>``
+    archive subdirectory, using minimal synthetic report dicts rather
+    than full sample parses."""
+
+    def test_aggregate_report_january_zero_pads_month(self):
+        from parsedmarc.cli import _archive_subdir_for_result
+
+        result = cast(
+            ParsedReport,
+            {
+                "report_type": "aggregate",
+                "report": {
+                    "report_metadata": {"begin_date": "2023-01-05 00:00:00"},
+                },
+            },
+        )
+        self.assertEqual(
+            _archive_subdir_for_result(result),
+            os.path.join("2023", "01", "Aggregate"),
+        )
+
+    def test_failure_report_january_zero_pads_month(self):
+        from parsedmarc.cli import _archive_subdir_for_result
+
+        result = cast(
+            ParsedReport,
+            {
+                "report_type": "failure",
+                "report": {"arrival_date_utc": "2023-01-05 12:00:00"},
+            },
+        )
+        self.assertEqual(
+            _archive_subdir_for_result(result),
+            os.path.join("2023", "01", "Failure"),
+        )
+
+    def test_smtp_tls_report_uses_hyphenated_folder_name(self):
+        from parsedmarc.cli import _archive_subdir_for_result
+
+        result = cast(
+            ParsedReport,
+            {
+                "report_type": "smtp_tls",
+                "report": {"begin_date": "2016-04-01T00:00:00Z"},
+            },
+        )
+        self.assertEqual(
+            _archive_subdir_for_result(result),
+            os.path.join("2016", "04", "SMTP-TLS"),
+        )
+
+    def test_missing_date_key_returns_none(self):
+        from parsedmarc.cli import _archive_subdir_for_result
+
+        result = cast(
+            ParsedReport,
+            {
+                "report_type": "aggregate",
+                "report": {"report_metadata": {}},
+            },
+        )
+        self.assertIsNone(_archive_subdir_for_result(result))
+
+    def test_unparseable_date_returns_none(self):
+        from parsedmarc.cli import _archive_subdir_for_result
+
+        result = cast(
+            ParsedReport,
+            {
+                "report_type": "failure",
+                "report": {"arrival_date_utc": "not-a-real-date"},
+            },
+        )
+        self.assertIsNone(_archive_subdir_for_result(result))
+
+    def test_unknown_report_type_returns_none(self):
+        from parsedmarc.cli import _archive_subdir_for_result
+
+        result = cast(ParsedReport, {"report_type": "unknown", "report": {}})
+        self.assertIsNone(_archive_subdir_for_result(result))
+
+
+class TestExcludeArchivedPaths(unittest.TestCase):
+    """Unit tests for _exclude_archived_paths (issue #570): filters out
+    paths already inside the archive directory so a re-run doesn't
+    re-parse and re-archive its own previous output."""
+
+    def test_files_inside_archive_dir_are_excluded(self):
+        from parsedmarc.cli import _exclude_archived_paths
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            archive_dir = os.path.join(tmp_dir, "archive")
+            nested_dir = os.path.join(archive_dir, "2024", "01", "Aggregate")
+            os.makedirs(nested_dir)
+            inside_path = os.path.join(nested_dir, "report.xml")
+            with open(inside_path, "w") as f:
+                f.write("x")
+            outside_path = os.path.join(tmp_dir, "report.xml")
+            with open(outside_path, "w") as f:
+                f.write("x")
+
+            result = _exclude_archived_paths([inside_path, outside_path], archive_dir)
+
+        self.assertEqual(result, [outside_path])
+
+    def test_relative_paths_are_resolved_before_comparison(self):
+        from parsedmarc.cli import _exclude_archived_paths
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            archive_dir = os.path.join(tmp_dir, "archive")
+            os.makedirs(archive_dir)
+            inside_path = os.path.join(archive_dir, "report.xml")
+            with open(inside_path, "w") as f:
+                f.write("x")
+
+            cwd = os.getcwd()
+            try:
+                os.chdir(tmp_dir)
+                result = _exclude_archived_paths(
+                    [os.path.join("archive", "report.xml")], "archive"
+                )
+            finally:
+                os.chdir(cwd)
+
+        self.assertEqual(result, [])
+
+    def test_files_outside_archive_dir_are_kept(self):
+        from parsedmarc.cli import _exclude_archived_paths
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            archive_dir = os.path.join(tmp_dir, "archive")
+            os.makedirs(archive_dir)
+            other_path = os.path.join(tmp_dir, "elsewhere", "report.xml")
+            os.makedirs(os.path.dirname(other_path))
+            with open(other_path, "w") as f:
+                f.write("x")
+
+            result = _exclude_archived_paths([other_path], archive_dir)
+
+        self.assertEqual(result, [other_path])
+
+    def test_symlinked_archive_dir_still_excludes_real_path(self):
+        """A symlink doesn't defeat exclusion: if archive_directory is
+        configured through one spelling (e.g. a ``/data`` symlink) while
+        an input path is discovered through the real mount-point spelling
+        (e.g. ``/mnt/...``), ``os.path.realpath`` resolves both to the
+        same canonical path so the file already inside the archive is
+        still recognized and excluded rather than re-archived forever."""
+        from parsedmarc.cli import _exclude_archived_paths
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            real_archive_dir = os.path.join(tmp_dir, "real_archive")
+            os.makedirs(real_archive_dir)
+            symlinked_archive_dir = os.path.join(tmp_dir, "archive_link")
+            os.symlink(real_archive_dir, symlinked_archive_dir)
+
+            real_file_path = os.path.join(real_archive_dir, "report.xml")
+            with open(real_file_path, "w") as f:
+                f.write("x")
+
+            # archive_directory is configured via the symlinked spelling,
+            # while the file is discovered via the real spelling.
+            result = _exclude_archived_paths([real_file_path], symlinked_archive_dir)
+
+        self.assertEqual(result, [])
+
+    def test_non_comparable_paths_are_kept(self):
+        """Per the Python docs, ``os.path.commonpath`` raises
+        ``ValueError`` when the paths "are on the different drives"
+        (Windows) or mix absolute and relative pathnames
+        (https://docs.python.org/3/library/os.path.html#os.path.commonpath).
+        Both inputs here are realpath()-resolved so the mix can't occur
+        on POSIX, leaving the different-drives case unreachable on Linux
+        CI — hence the simulated raise. A path that can't be compared
+        with the archive root can't be inside it, so it must be kept
+        for parsing, and the ValueError must not propagate."""
+        from parsedmarc.cli import _exclude_archived_paths
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            archive_dir = os.path.join(tmp_dir, "archive")
+            os.makedirs(archive_dir)
+            report_path = os.path.join(tmp_dir, "report.xml")
+            with open(report_path, "w") as f:
+                f.write("x")
+
+            with patch(
+                "parsedmarc.cli.os.path.commonpath",
+                side_effect=ValueError("Paths don't have the same drive"),
+            ):
+                result = _exclude_archived_paths([report_path], archive_dir)
+
+        self.assertEqual(result, [report_path])
+
+
+class TestMoveFileToArchive(unittest.TestCase):
+    """Unit tests for _move_file_to_archive (issue #570): the collision
+    loop that appends a numeric suffix rather than overwriting an
+    existing destination file."""
+
+    def test_no_collision_keeps_original_basename(self):
+        from parsedmarc.cli import _move_file_to_archive
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_dir = os.path.join(tmp_dir, "src")
+            os.makedirs(src_dir)
+            src_path = os.path.join(src_dir, "report.xml")
+            with open(src_path, "w") as f:
+                f.write("content")
+            dest_dir = os.path.join(tmp_dir, "dest")
+
+            dest_path = _move_file_to_archive(src_path, dest_dir)
+
+        self.assertEqual(dest_path, os.path.join(dest_dir, "report.xml"))
+
+    def test_collision_appends_dash_one(self):
+        from parsedmarc.cli import _move_file_to_archive
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_dir = os.path.join(tmp_dir, "src")
+            os.makedirs(src_dir)
+            src_path = os.path.join(src_dir, "report.xml")
+            with open(src_path, "w") as f:
+                f.write("new content")
+            dest_dir = os.path.join(tmp_dir, "dest")
+            os.makedirs(dest_dir)
+            existing_path = os.path.join(dest_dir, "report.xml")
+            with open(existing_path, "w") as f:
+                f.write("original content")
+
+            dest_path = _move_file_to_archive(src_path, dest_dir)
+
+            self.assertEqual(dest_path, os.path.join(dest_dir, "report-1.xml"))
+            with open(existing_path) as f:
+                self.assertEqual(f.read(), "original content")
+            with open(dest_path) as f:
+                self.assertEqual(f.read(), "new content")
+
+    def test_two_collisions_append_dash_two(self):
+        from parsedmarc.cli import _move_file_to_archive
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_dir = os.path.join(tmp_dir, "src")
+            os.makedirs(src_dir)
+            src_path = os.path.join(src_dir, "report.xml")
+            with open(src_path, "w") as f:
+                f.write("newest content")
+            dest_dir = os.path.join(tmp_dir, "dest")
+            os.makedirs(dest_dir)
+            for name in ("report.xml", "report-1.xml"):
+                with open(os.path.join(dest_dir, name), "w") as f:
+                    f.write(f"original {name}")
+
+            dest_path = _move_file_to_archive(src_path, dest_dir)
+
+            self.assertEqual(dest_path, os.path.join(dest_dir, "report-2.xml"))
+            with open(os.path.join(dest_dir, "report.xml")) as f:
+                self.assertEqual(f.read(), "original report.xml")
+            with open(os.path.join(dest_dir, "report-1.xml")) as f:
+                self.assertEqual(f.read(), "original report-1.xml")
+
+    def test_failed_move_reraises_even_when_placeholder_cleanup_fails(self):
+        """When the move fails and removing the placeholder also fails,
+        the move failure still propagates: the OSError from the
+        best-effort cleanup must be swallowed, not allowed to mask the
+        actionable error. The move error is deliberately a non-OSError
+        type so the assertion proves which of the two exceptions
+        escaped; the placeholder is left behind, as expected when its
+        cleanup fails."""
+        from parsedmarc.cli import _move_file_to_archive
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_path = os.path.join(tmp_dir, "report.xml")
+            with open(src_path, "w") as f:
+                f.write("content")
+            dest_dir = os.path.join(tmp_dir, "dest")
+
+            with (
+                patch(
+                    "parsedmarc.cli.shutil.move",
+                    side_effect=RuntimeError("move failed"),
+                ),
+                patch(
+                    "parsedmarc.cli.os.remove",
+                    side_effect=OSError("remove failed"),
+                ),
+            ):
+                with self.assertRaises(RuntimeError):
+                    _move_file_to_archive(src_path, dest_dir)
+
+            # The source file is untouched and the zero-byte placeholder
+            # survives its failed cleanup.
+            self.assertTrue(os.path.isfile(src_path))
+            placeholder = os.path.join(dest_dir, "report.xml")
+            self.assertTrue(os.path.isfile(placeholder))
+            self.assertEqual(os.path.getsize(placeholder), 0)
+            # A leftover placeholder must never be executable or
+            # group/other-accessible: it's created with mode 0o600, not
+            # os.open's 0o777 default. The requested mode is masked by
+            # the process umask, which only clears bits, so asserting on
+            # the owner-exec and group/other bits is umask-independent.
+            placeholder_mode = stat.S_IMODE(os.stat(placeholder).st_mode)
+            self.assertEqual(placeholder_mode & 0o177, 0)
+
+
+class TestArchiveProcessedFile(unittest.TestCase):
+    """Unit tests for _archive_processed_file (issue #570): the
+    orchestrator that routes a processed file to Invalid/ on a parse
+    failure or the dated subdirectory on success, and never lets a move
+    failure abort the run."""
+
+    def test_exception_result_routes_to_invalid(self):
+        from parsedmarc.cli import _archive_processed_file
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_path = os.path.join(tmp_dir, "garbage.xml")
+            with open(src_path, "w") as f:
+                f.write("not a report")
+            archive_dir = os.path.join(tmp_dir, "archive")
+
+            _archive_processed_file(
+                src_path, archive_dir, parsedmarc.ParserError("boom")
+            )
+
+            self.assertTrue(
+                os.path.isfile(os.path.join(archive_dir, "Invalid", "garbage.xml"))
+            )
+
+    def test_move_failure_is_logged_and_does_not_raise(self):
+        """A filesystem error while moving a file into the archive is
+        logged, not raised: the file has already been definitively
+        classified (parsed or failed), so a move error must not abort
+        the run and lose that work."""
+        from parsedmarc.cli import _archive_processed_file
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_path = os.path.join(tmp_dir, "garbage.xml")
+            with open(src_path, "w") as f:
+                f.write("not a report")
+            archive_dir = os.path.join(tmp_dir, "archive")
+
+            with patch("shutil.move", side_effect=OSError("disk full")):
+                with self.assertLogs("parsedmarc.log", level="ERROR") as log_ctx:
+                    _archive_processed_file(
+                        src_path, archive_dir, parsedmarc.ParserError("boom")
+                    )
+
+            self.assertTrue(any("Error moving" in msg for msg in log_ctx.output))
+            # The move never completed, so the source file is untouched.
+            self.assertTrue(os.path.isfile(src_path))
+
+    def test_unresolvable_subdir_leaves_file_in_place(self):
+        """When _archive_subdir_for_result can't determine a destination
+        (unknown report type or unparseable date, already warned about by
+        that helper), the file is left where it is rather than guessed
+        at."""
+        from parsedmarc.cli import _archive_processed_file
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_path = os.path.join(tmp_dir, "report.json")
+            with open(src_path, "w") as f:
+                f.write("{}")
+            archive_dir = os.path.join(tmp_dir, "archive")
+
+            result = cast(ParsedReport, {"report_type": "unknown", "report": {}})
+            _archive_processed_file(src_path, archive_dir, result)
+
+            self.assertTrue(os.path.isfile(src_path))
+
+    def test_non_parser_error_leaves_file_in_place(self):
+        """Only a ParserError (every parse-failure exception, including
+        InvalidSMTPTLSReport, subclasses it) routes to Invalid/. A
+        transient OSError — e.g. from _parse_report_file_job's broad
+        catch, not a report-parsing failure — leaves the file in place
+        so a later run can retry it, and creates no Invalid/ directory
+        at all, since renaming it would permanently sideline a file that
+        was never actually shown to be an invalid report."""
+        from parsedmarc.cli import _archive_processed_file
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_path = os.path.join(tmp_dir, "report.xml")
+            with open(src_path, "w") as f:
+                f.write("<xml></xml>")
+            archive_dir = os.path.join(tmp_dir, "archive")
+
+            _archive_processed_file(src_path, archive_dir, OSError("transient"))
+
+            self.assertTrue(os.path.isfile(src_path))
+            self.assertFalse(os.path.isdir(archive_dir))
+
+
 # ---------------------------------------------------------------------------
 # _parse_config: per-section INI → opts mapping
 #
@@ -3872,6 +4580,33 @@ class TestParseConfigGeneral(unittest.TestCase):
         opts = _opts()
         _parse_config(cp, opts)
         self.assertEqual(opts.normalize_timespan_threshold_hours, 48.0)
+
+    def test_general_archive_directory_expands_env_var(self):
+        """archive_directory goes through _expand_path, so a $VAR
+        reference in the INI value is expanded (issue #570)."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "general", {"archive_directory": "$SOME_ARCHIVE_VAR/reports-archive"}
+        )
+        opts = _opts()
+        with patch.dict(os.environ, {"SOME_ARCHIVE_VAR": "/opt/dmarc"}):
+            _parse_config(cp, opts)
+        self.assertEqual(opts.archive_directory, "/opt/dmarc/reports-archive")
+
+    def test_general_archive_directory_unset_leaves_attribute_absent(self):
+        """When archive_directory is absent from the INI, _parse_config
+        never sets opts.archive_directory at all — asserted here as the
+        attribute staying absent from this test's bare Namespace. (In the
+        real CLI the attribute pre-exists with the Namespace default of
+        None, so _parse_config leaving it untouched is what keeps
+        archiving disabled.)"""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("general", {"silent": "false"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertFalse(hasattr(opts, "archive_directory"))
 
 
 class TestParseConfigElasticsearch(unittest.TestCase):
