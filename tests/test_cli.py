@@ -5704,7 +5704,19 @@ class TestParseConfigGeneral(unittest.TestCase):
         cp = self._index_prefix_domain_map_config("tenant_a: example.co\n")
         with self.assertRaises(ConfigurationError) as ctx:
             _parse_config(cp, _opts())
-        self.assertIn("list of domains", str(ctx.exception))
+        self.assertIn("list of domain names", str(ctx.exception))
+
+    def test_index_prefix_domain_map_rejects_a_non_string_domain(self):
+        """A non-string list item never compares equal to the base domain
+        the save path looks up, so `tenant_a: [42]` would match nothing at
+        all -- the same silent-misbehavior class as a scalar value, and the
+        reason the check covers the list's items and not just its type."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = self._index_prefix_domain_map_config("tenant_a:\n  - 42\n")
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, _opts())
+        self.assertIn("all strings", str(ctx.exception))
 
     def test_index_prefix_domain_map_rejects_a_non_string_key(self):
         """A non-string tenant name cannot be normalized into an index

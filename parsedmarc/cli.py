@@ -664,21 +664,25 @@ def _parse_config(config: ConfigParser, opts):
             with open(_expand_path(general_config["index_prefix_domain_map"])) as f:
                 index_prefix_domain_map = yaml.safe_load(f)
             # An empty file loads as None, which means "unset". Anything else
-            # must be a mapping of tenant name to a list of domains: the save
-            # path iterates the keys as index name prefixes and tests domain
-            # membership against the values, and `in` on a str is a substring
-            # test, so a scalar value silently matches the wrong domains
-            # (e.g. "example.co" in "example.com").
+            # must be a mapping of tenant name to a list of domain names, all
+            # strings: the save path iterates the keys as index name prefixes
+            # and tests `get_base_domain(...).lower() in <value>`. Every other
+            # shape fails silently rather than loudly -- a scalar value makes
+            # that an `in` on a str, which is a substring test, so it matches
+            # the wrong domains ("example.co" in "example.com" is True), and a
+            # non-string list item simply never compares equal to any domain.
             if index_prefix_domain_map is not None and (
                 not isinstance(index_prefix_domain_map, dict)
                 or not all(
-                    isinstance(key, str) and isinstance(value, list)
+                    isinstance(key, str)
+                    and isinstance(value, list)
+                    and all(isinstance(domain, str) for domain in value)
                     for key, value in index_prefix_domain_map.items()
                 )
             ):
                 raise ConfigurationError(
                     "index_prefix_domain_map must be a YAML mapping of tenant "
-                    "name (a string) to a list of domains"
+                    "name to a list of domain names, all strings"
                 )
         if "offline" in general_config:
             opts.offline = bool(general_config.getboolean("offline"))
