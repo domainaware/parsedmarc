@@ -385,11 +385,8 @@ class TestMigrateIndexes(unittest.TestCase):
 
     def test_backfill_submitted_when_old_docs_exist(self):
         with (
-            patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
-            # The legacy fo migration that runs first sees no base index.
-            mock_index_cls.return_value.exists.return_value = False
             mock_client = MagicMock()
             mock_client.count.return_value = {"count": 42}
             mock_get_conn.return_value = mock_client
@@ -416,10 +413,8 @@ class TestMigrateIndexes(unittest.TestCase):
 
     def test_backfill_skipped_when_no_old_docs(self):
         with (
-            patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
-            mock_index_cls.return_value.exists.return_value = False
             mock_client = MagicMock()
             mock_client.count.return_value = {"count": 0}
             mock_get_conn.return_value = mock_client
@@ -436,10 +431,8 @@ class TestMigrateIndexes(unittest.TestCase):
 
     def test_backfill_failure_does_not_raise(self):
         with (
-            patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
-            mock_index_cls.return_value.exists.return_value = False
             mock_client = MagicMock()
             mock_client.count.side_effect = RuntimeError("cluster unreachable")
             mock_get_conn.return_value = mock_client
@@ -456,11 +449,8 @@ class TestMigrateIndexes(unittest.TestCase):
         still not propagate the exception, per its docstring's promise that
         any cluster error is caught and logged."""
         with (
-            patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
-            # The legacy fo migration that runs first sees no base index.
-            mock_index_cls.return_value.exists.return_value = False
             mock_get_conn.side_effect = RuntimeError("no connection")
             with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
                 migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
@@ -475,11 +465,8 @@ class TestMigrateIndexes(unittest.TestCase):
         policies_combined/failure_details_combined backfill (also issue
         #169) is submitted with its own guard query and painless script."""
         with (
-            patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
-            # The legacy fo migration that runs first sees no base index.
-            mock_index_cls.return_value.exists.return_value = False
             mock_client = MagicMock()
             mock_client.count.return_value = {"count": 7}
             mock_get_conn.return_value = mock_client
@@ -506,10 +493,8 @@ class TestMigrateIndexes(unittest.TestCase):
 
     def test_smtp_tls_backfill_skipped_when_no_old_docs(self):
         with (
-            patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
-            mock_index_cls.return_value.exists.return_value = False
             mock_client = MagicMock()
             mock_client.count.return_value = {"count": 0}
             mock_get_conn.return_value = mock_client
@@ -529,10 +514,8 @@ class TestMigrateIndexes(unittest.TestCase):
         error from the cluster during the smtp_tls_indexes loop is caught
         and logged rather than raised."""
         with (
-            patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
         ):
-            mock_index_cls.return_value.exists.return_value = False
             mock_client = MagicMock()
             mock_client.count.side_effect = RuntimeError("cluster unreachable")
             mock_get_conn.return_value = mock_client
@@ -543,13 +526,37 @@ class TestMigrateIndexes(unittest.TestCase):
         mock_client.update_by_query.assert_not_called()
 
 
+def _typeless_fo_mapping(index_name, fo_type):
+    """An indices.get_field_mapping response in the modern, typeless shape.
+
+    OpenSearch has no mapping types, so the field sits directly under
+    ``mappings``. This is the only shape a real cluster returns; the
+    ES 6-era type-keyed shape is covered separately.
+    """
+    return {
+        index_name: {
+            "mappings": {
+                "published_policy.fo": {
+                    "full_name": "published_policy.fo",
+                    "mapping": {"fo": {"type": fo_type}},
+                }
+            }
+        }
+    }
+
+
 class TestMigrateIndexesFoMigration(unittest.TestCase):
-    """The legacy `published_policy.fo` field was mapped as `long` in
-    older indexes. migrate_indexes detects that and rebuilds the index
-    with the text/keyword shape. The branch is gnarly; a regression
-    would silently leave old data un-migrated. Each test stubs the
-    combined-field backfill that now runs afterwards in the same call
-    (count 0 → no-op)."""
+    """parsedmarc releases before 5.0.0 declared published_policy.fo as an
+    integer, so their indexes mapped it as `long`, which cannot hold the
+    multi-value `fo` settings reports carry (`0:1`, `d:s`). migrate_indexes
+    detects that and rebuilds the index with the text/keyword shape.
+
+    These tests drive the modern typeless get_field_mapping response.
+    Until this was fixed, the code read the response in the Elasticsearch
+    6-era mapping-type-keyed shape, which no OpenSearch cluster returns —
+    so the migration could never run against a real cluster even though
+    tests using the old shape passed. Each test stubs the combined-field
+    backfill that runs afterwards in the same call (count 0 → no-op)."""
 
     @staticmethod
     def _noop_backfill_client():
@@ -564,13 +571,13 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
         ):
             mock_get_conn.return_value = self._noop_backfill_client()
             mock_index_cls.return_value.exists.return_value = False
-            migrate_indexes(aggregate_indexes=["missing"])
+            migrate_indexes(legacy_fo_indexes=["missing"])
         # exists() returned False — no field_mapping fetch.
         mock_index_cls.return_value.get_field_mapping.assert_not_called()
 
-    def test_skips_when_doc_mapping_absent(self):
-        """An index that has 'fo' but not under the 'doc' type
-        (e.g., empty index with default mapping) is left alone."""
+    def test_skips_when_field_is_unmapped(self):
+        """An index that does not map published_policy.fo at all (e.g. an
+        empty index with the default mapping) is left alone."""
         with (
             patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
@@ -579,14 +586,16 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
             mock_get_conn.return_value = self._noop_backfill_client()
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
-            idx.get_field_mapping.return_value = {"some_key": {"mappings": {}}}
-            migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
+            idx.get_field_mapping.return_value = {"dmarc_aggregate": {"mappings": {}}}
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
         mock_reindex.assert_not_called()
+        idx.create.assert_not_called()
+        idx.delete.assert_not_called()
 
     def test_migrates_when_fo_is_long(self):
-        """The actual migration path: when fo is mapped as 'long',
-        a v2 index is created with the corrected mapping, data is
-        reindexed, and the old index is deleted."""
+        """The actual migration path: when fo is mapped as 'long', a v2
+        index is created with the corrected text/keyword mapping, data is
+        reindexed into it, and the old index is deleted."""
         with (
             patch("parsedmarc.opensearch.Index") as mock_index_cls,
             patch("parsedmarc.opensearch.reindex") as mock_reindex,
@@ -596,8 +605,49 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
             mock_get_conn.return_value = mock_client
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
+            idx.get_field_mapping.return_value = _typeless_fo_mapping(
+                "dmarc_aggregate", "long"
+            )
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
+
+        # The v2 index was created and given the corrected mapping. The
+        # modern client's put_mapping takes no doc_type; passing one raises
+        # TypeError, which the surrounding except would have swallowed.
+        self.assertIn(call("dmarc_aggregate-v2"), mock_index_cls.call_args_list)
+        idx.create.assert_called_once_with()
+        mapping_kwargs = idx.put_mapping.call_args.kwargs
+        self.assertNotIn("doc_type", mapping_kwargs)
+        self.assertEqual(
+            mapping_kwargs["body"]["properties"]["published_policy.fo"],
+            {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+            },
+        )
+
+        # reindex called old → new (v2), with the connection's client.
+        mock_reindex.assert_called_once_with(
+            mock_client, "dmarc_aggregate", "dmarc_aggregate-v2"
+        )
+        idx.delete.assert_called_once_with()
+
+    def test_migrates_when_fo_is_long_under_a_mapping_type(self):
+        """The Elasticsearch 6-era response nested the field under the
+        mapping type name. No cluster either client can connect to still
+        reports mappings that way, so this covers the fallback branch
+        rather than a reachable deployment -- but the branch is what lets
+        the type check stay a check on the mapped type instead of on the
+        response shape, which is what broke this migration before."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.reindex") as mock_reindex,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
+            idx = mock_index_cls.return_value
+            idx.exists.return_value = True
             idx.get_field_mapping.return_value = {
-                "dmarc_aggregate-2023-01-01": {
+                "dmarc_aggregate": {
                     "mappings": {
                         "doc": {
                             "published_policy.fo": {"mapping": {"fo": {"type": "long"}}}
@@ -605,11 +655,8 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
                     }
                 }
             }
-            migrate_indexes(aggregate_indexes=["dmarc_aggregate-2023-01-01"])
-        # reindex called from old → new (v2) index, with the client from
-        # connections.get_connection().
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
         mock_reindex.assert_called_once()
-        self.assertIs(mock_reindex.call_args.args[0], mock_client)
 
     def test_skips_when_fo_already_text(self):
         with (
@@ -620,17 +667,13 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
             mock_get_conn.return_value = self._noop_backfill_client()
             idx = mock_index_cls.return_value
             idx.exists.return_value = True
-            idx.get_field_mapping.return_value = {
-                "dmarc_aggregate-2024-01-01": {
-                    "mappings": {
-                        "doc": {
-                            "published_policy.fo": {"mapping": {"fo": {"type": "text"}}}
-                        }
-                    }
-                }
-            }
-            migrate_indexes(aggregate_indexes=["dmarc_aggregate-2024-01-01"])
+            idx.get_field_mapping.return_value = _typeless_fo_mapping(
+                "dmarc_aggregate", "text"
+            )
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
         mock_reindex.assert_not_called()
+        idx.create.assert_not_called()
+        idx.delete.assert_not_called()
 
     def test_index_exists_failure_does_not_raise(self):
         """A cluster error inside the per-index fo-migration loop (e.g.
@@ -647,7 +690,10 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
             )
             mock_get_conn.side_effect = RuntimeError("no connection")
             with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
-                migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+                migrate_indexes(
+                    aggregate_indexes=["dmarc_aggregate"],
+                    legacy_fo_indexes=["dmarc_aggregate"],
+                )
 
         self.assertTrue(
             any(
@@ -660,6 +706,18 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
             any("Skipping the dkim_results_combined" in msg for msg in cm.output)
         )
         self.assertTrue(any("no connection" in msg for msg in cm.output))
+
+    def test_no_legacy_indexes_means_no_lookup(self):
+        """The combined-field backfill must not drag the fo migration
+        along: passing only aggregate_indexes leaves the legacy loop
+        untouched, so a modern deployment never probes for it."""
+        with (
+            patch("parsedmarc.opensearch.Index") as mock_index_cls,
+            patch("parsedmarc.opensearch.connections.get_connection") as mock_get_conn,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+        mock_index_cls.return_value.exists.assert_not_called()
 
 
 # ---------------------------------------------------------------------------

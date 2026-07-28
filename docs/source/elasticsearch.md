@@ -247,6 +247,25 @@ OpenSearch. Any error talking to the cluster (for example, no indexes yet
 on a fresh install) is logged as a warning and retried on the next startup,
 rather than aborting parsedmarc.
 
+Which index patterns it targets follows the ones parsedmarc writes to, and
+is logged at debug level on startup:
+
+- With `index_prefix_domain_map` configured in `[general]` and no
+  `index_prefix` set, every tenant prefix in the map gets its own index
+  pattern, alongside the unprefixed one — aggregate and failure reports for
+  a domain that is not in the map are still saved without a prefix. A
+  configuration reload (`SIGHUP`) re-reads the map, so a newly onboarded
+  tenant is covered without a restart.
+- With an `index_prefix` set in `[elasticsearch]`/`[opensearch]`, only that
+  prefix is targeted, and the map is not consulted. That is deliberate: such
+  a deployment writes only under its own prefix, and an `_update_by_query`
+  against a pattern it does not write to could reach another deployment's
+  data on a shared cluster.
+- With an `index_suffix` set, both the suffixed and the unsuffixed pattern
+  are targeted, so documents indexed before the suffix was configured are
+  backfilled too. Note that the unsuffixed pattern also matches any *other*
+  suffix on the same cluster.
+
 If you upgrade the dashboards without pointing the new parsedmarc version
 at the cluster, or you'd rather control when the write load happens, you
 can still run the backfill manually. It is idempotent (documents that
@@ -314,7 +333,10 @@ curl -X POST "http://localhost:9200/dmarc_aggregate*/_update_by_query?conflicts=
 
 `wait_for_completion=false` returns a task ID — check progress with
 `GET _tasks/<task id>`. Adjust the index pattern if you use a custom
-`index_prefix`/`index_suffix`. After backfilling, re-import the updated
+`index_prefix`/`index_suffix`; with `index_prefix_domain_map`, run the
+command once per tenant prefix (`acme_corp_dmarc_aggregate*`) plus once for
+the unprefixed pattern, or widen it to `*dmarc_aggregate*` to cover every
+tenant in one pass. After backfilling, re-import the updated
 dashboards ndjson (the index pattern saved object changed too) per the
 import instructions above.
 

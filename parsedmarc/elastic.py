@@ -20,6 +20,7 @@ from elasticsearch.dsl import (
     Text,
     connections,
 )
+from elasticsearch.helpers import reindex
 
 from parsedmarc import InvalidFailureReport
 from parsedmarc.log import logger
@@ -677,16 +678,61 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
             raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
 
 
+_LEGACY_FO_FIELD = "published_policy.fo"
+
+
+def _legacy_fo_field_type(index: Index) -> str | None:
+    """Return the mapped type of ``published_policy.fo`` in *index*.
+
+    Returns ``None`` when the index does not map the field at all.
+
+    Elasticsearch 6-era clusters keyed field mappings by the mapping type
+    name (``doc``); mapping types are gone from Elasticsearch 8, whose
+    responses put the field directly under ``mappings``. The type-keyed
+    shape is only descended into when such a key is actually present, so
+    this reads either shape.
+
+    Args:
+        index (Index): The index to inspect.
+
+    Returns:
+        str | None: The mapped field type, e.g. ``"long"`` or ``"text"``.
+    """
+    response = index.get_field_mapping(fields=[_LEGACY_FO_FIELD])
+    mappings = response[list(response.keys())[0]]["mappings"]
+    if _LEGACY_FO_FIELD not in mappings:
+        for type_name in ("doc", "_doc"):
+            if type_name in mappings:
+                mappings = mappings[type_name]
+                break
+    field_mapping = mappings.get(_LEGACY_FO_FIELD)
+    if not field_mapping:
+        return None
+    return field_mapping.get("mapping", {}).get("fo", {}).get("type")
+
+
 def migrate_indexes(
     aggregate_indexes: list[str] | None = None,
     failure_indexes: list[str] | None = None,
     smtp_tls_indexes: list[str] | None = None,
+    legacy_fo_indexes: list[str] | None = None,
 ):
     """
-    Backfills the ``dkim_results_combined``/``spf_results_combined`` fields
-    (added for issue #169) on aggregate report documents, and the
-    ``policies_combined``/``failure_details_combined`` fields on SMTP TLS
-    report documents, that were saved before those fields existed.
+    Runs index migrations and backfills.
+
+    First, the legacy ``published_policy.fo`` migration, for each name in
+    ``legacy_fo_indexes``: parsedmarc releases before 5.0.0 declared that
+    field as an integer, so those indexes mapped it as ``long``, which
+    cannot hold the multi-value ``fo`` settings reports carry (``0:1``,
+    ``d:s``). Such an index is rebuilt as a ``-v2`` index with the
+    text/keyword shape, the documents are reindexed into it, and the
+    original is deleted.
+
+    Second, it backfills the ``dkim_results_combined``/
+    ``spf_results_combined`` fields (added for issue #169) on aggregate
+    report documents, and the ``policies_combined``/
+    ``failure_details_combined`` fields on SMTP TLS report documents, that
+    were saved before those fields existed.
 
     For each name in ``aggregate_indexes``/``smtp_tls_indexes``, this
     submits an ``update_by_query`` against the ``f"{name}*"`` index pattern
@@ -706,7 +752,50 @@ def migrate_indexes(
         failure_indexes (list): A list of failure index names
             (accepted for API compatibility; unused)
         smtp_tls_indexes (list): A list of SMTP TLS index names
+        legacy_fo_indexes (list): A list of index names to check for the
+            pre-5.0.0 ``published_policy.fo`` ``long`` mapping. Unlike the
+            backfill arguments these are exact names, not patterns:
+            5.0.0 introduced date-suffixed index names in the same release
+            that fixed the mapping, so an affected index has no date
+            component. It may still be prefixed or suffixed -- both
+            options date back to 4.1.0 -- so callers should pass the
+            names their own ``index_prefix``/``index_suffix``
+            configuration produces.
     """
+    if not aggregate_indexes and not smtp_tls_indexes and not legacy_fo_indexes:
+        return
+
+    version = 2
+    for legacy_index_name in legacy_fo_indexes or []:
+        try:
+            legacy_index = Index(legacy_index_name)
+            if not legacy_index.exists():
+                continue
+            if _legacy_fo_field_type(legacy_index) != "long":
+                continue
+            new_index_name = f"{legacy_index_name}-v{version}"
+            properties = {
+                _LEGACY_FO_FIELD: {
+                    "type": "text",
+                    "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+                }
+            }
+            logger.info(
+                f"Migrating {legacy_index_name} to {new_index_name}: "
+                f"{_LEGACY_FO_FIELD} is mapped as long, as parsedmarc "
+                "releases before 5.0.0 declared it"
+            )
+            Index(new_index_name).create()
+            Index(new_index_name).put_mapping(properties=properties)
+            reindex(connections.get_connection(), legacy_index_name, new_index_name)
+            Index(legacy_index_name).delete()
+        except Exception as e:
+            logger.warning(
+                "Failed the legacy published_policy.fo migration for "
+                f"{legacy_index_name}: {e}. This will be retried at the "
+                "next startup."
+            )
+
     if not aggregate_indexes and not smtp_tls_indexes:
         return
 

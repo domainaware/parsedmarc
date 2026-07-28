@@ -533,6 +533,197 @@ class TestMigrateIndexes(unittest.TestCase):
         mock_client.update_by_query.assert_not_called()
 
 
+def _typeless_fo_mapping(index_name, fo_type):
+    """An indices.get_field_mapping response in the modern, typeless shape.
+
+    Elasticsearch 8 has no mapping types, so the field sits directly under
+    ``mappings``. This is the only shape a supported cluster returns; the
+    ES 6-era type-keyed shape is covered separately.
+    """
+    return {
+        index_name: {
+            "mappings": {
+                "published_policy.fo": {
+                    "full_name": "published_policy.fo",
+                    "mapping": {"fo": {"type": fo_type}},
+                }
+            }
+        }
+    }
+
+
+class TestMigrateIndexesFoMigration(unittest.TestCase):
+    """parsedmarc releases before 5.0.0 declared published_policy.fo as an
+    integer, so their indexes mapped it as `long`, which cannot hold the
+    multi-value `fo` settings reports carry (`0:1`, `d:s`). migrate_indexes
+    detects that and rebuilds the index with the text/keyword shape.
+
+    Elasticsearch 8 refuses to open an index created before 7.0, so an
+    affected index reaches a supported cluster only by being carried
+    forward through a reindex — which keeps the old mapping whenever the
+    destination is pre-created from it, as the standard reindex procedure
+    does. Each test stubs the combined-field backfill that runs afterwards
+    in the same call (count 0 → no-op)."""
+
+    @staticmethod
+    def _noop_backfill_client():
+        client = MagicMock()
+        client.count.return_value = {"count": 0}
+        return client
+
+    def test_skips_non_existent_index(self):
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
+            mock_index_cls.return_value.exists.return_value = False
+            migrate_indexes(legacy_fo_indexes=["missing"])
+        mock_index_cls.return_value.get_field_mapping.assert_not_called()
+
+    def test_skips_when_field_is_unmapped(self):
+        """An index that does not map published_policy.fo at all (e.g. an
+        empty index with the default mapping) is left alone."""
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+            patch("parsedmarc.elastic.reindex") as mock_reindex,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
+            idx = mock_index_cls.return_value
+            idx.exists.return_value = True
+            idx.get_field_mapping.return_value = {"dmarc_aggregate": {"mappings": {}}}
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
+        mock_reindex.assert_not_called()
+        idx.create.assert_not_called()
+        idx.delete.assert_not_called()
+
+    def test_migrates_when_fo_is_long(self):
+        """The actual migration path: when fo is mapped as 'long', a v2
+        index is created with the corrected text/keyword mapping, data is
+        reindexed into it, and the old index is deleted."""
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.reindex") as mock_reindex,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_client = self._noop_backfill_client()
+            mock_get_conn.return_value = mock_client
+            idx = mock_index_cls.return_value
+            idx.exists.return_value = True
+            idx.get_field_mapping.return_value = _typeless_fo_mapping(
+                "dmarc_aggregate", "long"
+            )
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
+
+        # The v2 index was created and given the corrected mapping. The 8.x
+        # client's put_mapping takes `properties`, not a `body` wrapper.
+        self.assertIn(call("dmarc_aggregate-v2"), mock_index_cls.call_args_list)
+        idx.create.assert_called_once_with()
+        mapping_kwargs = idx.put_mapping.call_args.kwargs
+        self.assertNotIn("body", mapping_kwargs)
+        self.assertEqual(
+            mapping_kwargs["properties"]["published_policy.fo"],
+            {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+            },
+        )
+
+        mock_reindex.assert_called_once_with(
+            mock_client, "dmarc_aggregate", "dmarc_aggregate-v2"
+        )
+        idx.delete.assert_called_once_with()
+
+    def test_migrates_when_fo_is_long_under_a_mapping_type(self):
+        """The Elasticsearch 6-era response nested the field under the
+        mapping type name. No cluster either client can connect to still
+        reports mappings that way, so this covers the fallback branch
+        rather than a reachable deployment -- but the branch is what lets
+        the type check stay a check on the mapped type instead of on the
+        response shape, which is what broke this migration before."""
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.reindex") as mock_reindex,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
+            idx = mock_index_cls.return_value
+            idx.exists.return_value = True
+            idx.get_field_mapping.return_value = {
+                "dmarc_aggregate": {
+                    "mappings": {
+                        "doc": {
+                            "published_policy.fo": {"mapping": {"fo": {"type": "long"}}}
+                        }
+                    }
+                }
+            }
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
+        mock_reindex.assert_called_once()
+
+    def test_skips_when_fo_already_text(self):
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+            patch("parsedmarc.elastic.reindex") as mock_reindex,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
+            idx = mock_index_cls.return_value
+            idx.exists.return_value = True
+            idx.get_field_mapping.return_value = _typeless_fo_mapping(
+                "dmarc_aggregate", "text"
+            )
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
+        mock_reindex.assert_not_called()
+        idx.create.assert_not_called()
+        idx.delete.assert_not_called()
+
+    def test_index_exists_failure_does_not_raise(self):
+        """A cluster error inside the per-index fo-migration loop (e.g.
+        Index(...).exists() raising because the cluster is unreachable)
+        must not abort startup: it is caught, logged, and the loop moves
+        on to the combined-field backfill, which is exercised here with
+        its own connection failure so both warnings are asserted."""
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.side_effect = ConnectionError(
+                "cluster unreachable"
+            )
+            mock_get_conn.side_effect = RuntimeError("no connection")
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(
+                    aggregate_indexes=["dmarc_aggregate"],
+                    legacy_fo_indexes=["dmarc_aggregate"],
+                )
+
+        self.assertTrue(
+            any(
+                "legacy published_policy.fo migration" in msg
+                and "cluster unreachable" in msg
+                for msg in cm.output
+            )
+        )
+        self.assertTrue(
+            any("Skipping the dkim_results_combined" in msg for msg in cm.output)
+        )
+        self.assertTrue(any("no connection" in msg for msg in cm.output))
+
+    def test_no_legacy_indexes_means_no_lookup(self):
+        """The combined-field backfill must not drag the fo migration
+        along: passing only aggregate_indexes leaves the legacy loop
+        untouched, so a modern deployment never probes for it."""
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_get_conn.return_value = self._noop_backfill_client()
+            migrate_indexes(aggregate_indexes=["dmarc_aggregate"])
+        mock_index_cls.return_value.exists.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # save_aggregate_report_to_elasticsearch
 # ---------------------------------------------------------------------------

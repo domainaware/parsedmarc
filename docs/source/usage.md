@@ -127,7 +127,7 @@ The full set of configuration options are:
       Elasticsearch, Splunk and/or S3
   - `save_smtp_tls` - bool: Save SMTP-STS report data to
       Elasticsearch, Splunk and/or S3
-  - `index_prefix_domain_map` -  bool: A path mapping of Opensearch/Elasticsearch index prefixes to domain names
+  - `index_prefix_domain_map` -  str: Path to a YAML file mapping Opensearch/Elasticsearch index prefixes to domain names
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
   - `silent` - bool: Set this to `False` to output results to STDOUT
@@ -1172,6 +1172,10 @@ When configured correctly, if ParseDMARC finds that a report is related to a dom
  :::{note}
  A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.
 :::
+
+Each key must map to a *list* of domains; a file of any other shape is rejected at startup.
+
+The index migrations and backfills that run at startup cover every tenant prefix in the map, in addition to the unprefixed indexes that hold reports for domains the map does not list. A configuration reload (`SIGHUP`) re-reads the map, so a newly onboarded tenant is covered without restarting parsedmarc. See [Backfilling the combined DKIM/SPF result fields](elasticsearch.md#backfilling-the-combined-dkimspf-result-fields) for the details.
 
 ## Running parsedmarc as a systemd service
 
