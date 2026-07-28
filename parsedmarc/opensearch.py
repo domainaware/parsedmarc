@@ -600,6 +600,10 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
 
 
 _LEGACY_FO_FIELD = "published_policy.fo"
+# The same field split into the object/leaf names a mapping body nests it
+# under. Derived from the dotted name so the mapping written below cannot
+# drift from the field _legacy_fo_field_type() reads.
+_LEGACY_FO_OBJECT, _LEGACY_FO_LEAF = _LEGACY_FO_FIELD.split(".")
 
 
 def _legacy_fo_field_type(index: Index) -> str | None:
@@ -629,7 +633,7 @@ def _legacy_fo_field_type(index: Index) -> str | None:
     field_mapping = mappings.get(_LEGACY_FO_FIELD)
     if not field_mapping:
         return None
-    return field_mapping.get("mapping", {}).get("fo", {}).get("type")
+    return field_mapping.get("mapping", {}).get(_LEGACY_FO_LEAF, {}).get("type")
 
 
 def migrate_indexes(
@@ -696,11 +700,22 @@ def migrate_indexes(
             if _legacy_fo_field_type(legacy_index) != "long":
                 continue
             new_index_name = f"{legacy_index_name}-v{version}"
+            # Nested object form rather than the dotted key this used to
+            # send. Both are accepted and produce an identical mapping
+            # (verified against Elasticsearch 8.19 and OpenSearch 3), but
+            # dot expansion is conditional on the object field's
+            # `subobjects` setting, and this shape never is.
             body = {
                 "properties": {
-                    _LEGACY_FO_FIELD: {
-                        "type": "text",
-                        "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+                    _LEGACY_FO_OBJECT: {
+                        "properties": {
+                            _LEGACY_FO_LEAF: {
+                                "type": "text",
+                                "fields": {
+                                    "keyword": {"type": "keyword", "ignore_above": 256}
+                                },
+                            }
+                        }
                     }
                 }
             }
@@ -709,6 +724,17 @@ def migrate_indexes(
                 f"{_LEGACY_FO_FIELD} is mapped as long, as parsedmarc "
                 "releases before 5.0.0 declared it"
             )
+            # Reaching here means the original index still holds the data:
+            # it is deleted only after the reindex below succeeds. So a
+            # leftover target index is the debris of an earlier attempt
+            # that died between create() and delete(), and keeping it would
+            # fail every later attempt on "resource already exists".
+            if Index(new_index_name).exists():
+                logger.warning(
+                    f"Discarding {new_index_name} left behind by an earlier "
+                    f"interrupted migration of {legacy_index_name}"
+                )
+                Index(new_index_name).delete()
             Index(new_index_name).create()
             Index(new_index_name).put_mapping(body=body)
             reindex(connections.get_connection(), legacy_index_name, new_index_name)

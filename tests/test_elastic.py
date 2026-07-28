@@ -571,6 +571,21 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
         client.count.return_value = {"count": 0}
         return client
 
+    @staticmethod
+    def _index_mocks(*, v2_exists):
+        """Distinct Index() mocks per name, so the original and the -v2
+        target can be told apart. A single shared mock cannot express
+        "the original exists but its migration target does not", which is
+        the ordinary case."""
+        original = MagicMock(name="dmarc_aggregate")
+        original.exists.return_value = True
+        original.get_field_mapping.return_value = _typeless_fo_mapping(
+            "dmarc_aggregate", "long"
+        )
+        v2 = MagicMock(name="dmarc_aggregate-v2")
+        v2.exists.return_value = v2_exists
+        return original, v2, lambda name: v2 if name.endswith("-v2") else original
+
     def test_skips_non_existent_index(self):
         with (
             patch("parsedmarc.elastic.Index") as mock_index_cls,
@@ -602,38 +617,67 @@ class TestMigrateIndexesFoMigration(unittest.TestCase):
         """The actual migration path: when fo is mapped as 'long', a v2
         index is created with the corrected text/keyword mapping, data is
         reindexed into it, and the old index is deleted."""
+        original, v2, factory = self._index_mocks(v2_exists=False)
         with (
-            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.Index", side_effect=factory) as mock_index_cls,
             patch("parsedmarc.elastic.reindex") as mock_reindex,
             patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
         ):
             mock_client = self._noop_backfill_client()
             mock_get_conn.return_value = mock_client
-            idx = mock_index_cls.return_value
-            idx.exists.return_value = True
-            idx.get_field_mapping.return_value = _typeless_fo_mapping(
-                "dmarc_aggregate", "long"
-            )
             migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
 
-        # The v2 index was created and given the corrected mapping. The 8.x
-        # client's put_mapping takes `properties`, not a `body` wrapper.
         self.assertIn(call("dmarc_aggregate-v2"), mock_index_cls.call_args_list)
-        idx.create.assert_called_once_with()
-        mapping_kwargs = idx.put_mapping.call_args.kwargs
+        v2.create.assert_called_once_with()
+        mapping_kwargs = v2.put_mapping.call_args.kwargs
         self.assertNotIn("body", mapping_kwargs)
         self.assertEqual(
-            mapping_kwargs["properties"]["published_policy.fo"],
+            mapping_kwargs["properties"]["published_policy"]["properties"]["fo"],
             {
                 "type": "text",
                 "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
             },
         )
 
+        # reindex old -> new (v2) with the connection's client, and only
+        # then is the original dropped. The v2 index is never deleted here:
+        # nothing was left over to discard.
         mock_reindex.assert_called_once_with(
             mock_client, "dmarc_aggregate", "dmarc_aggregate-v2"
         )
-        idx.delete.assert_called_once_with()
+        original.delete.assert_called_once_with()
+        v2.delete.assert_not_called()
+
+    def test_retries_after_an_interrupted_earlier_attempt(self):
+        """A run that died between create() and delete() leaves a -v2 index
+        behind. Reaching this code means the original still holds the data
+        -- it is deleted only after the reindex succeeds -- so the leftover
+        is debris. Without discarding it, create() raises "resource already
+        exists" on every later startup and the index is never migrated;
+        confirmed against a live cluster, where the unfixed code left the
+        original in place and the debris document in the v2 index."""
+        original, v2, factory = self._index_mocks(v2_exists=True)
+        with (
+            patch("parsedmarc.elastic.Index", side_effect=factory),
+            patch("parsedmarc.elastic.reindex") as mock_reindex,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_client = self._noop_backfill_client()
+            mock_get_conn.return_value = mock_client
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
+
+        self.assertTrue(
+            any("Discarding dmarc_aggregate-v2" in msg for msg in cm.output)
+        )
+        # The stale target is dropped, then recreated, and the migration
+        # runs to completion instead of aborting on "already exists".
+        v2.delete.assert_called_once_with()
+        v2.create.assert_called_once_with()
+        mock_reindex.assert_called_once_with(
+            mock_client, "dmarc_aggregate", "dmarc_aggregate-v2"
+        )
+        original.delete.assert_called_once_with()
 
     def test_migrates_when_fo_is_long_under_a_mapping_type(self):
         """The Elasticsearch 6-era response nested the field under the
