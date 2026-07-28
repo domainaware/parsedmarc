@@ -5,14 +5,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>parsedmarc.elastic &mdash; parsedmarc 10.4.0 documentation</title>
+  <title>parsedmarc.elastic &mdash; parsedmarc 10.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=2f7da7c1"></script>
+      <script src="../../_static/documentation_options.js?v=8b0523d8"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="../../_static/js/theme.js"></script>
@@ -102,6 +102,7 @@
     <span class="n">Text</span><span class="p">,</span>
     <span class="n">connections</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">elasticsearch.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">reindex</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidFailureReport</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsedmarc.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
@@ -771,18 +772,67 @@
 
 
 
+<span class="n">_LEGACY_FO_FIELD</span> <span class="o">=</span> <span class="s2">&quot;published_policy.fo&quot;</span>
+<span class="c1"># The same field split into the object/leaf names a mapping body nests it</span>
+<span class="c1"># under. Derived from the dotted name so the mapping written below cannot</span>
+<span class="c1"># drift from the field _legacy_fo_field_type() reads.</span>
+<span class="n">_LEGACY_FO_OBJECT</span><span class="p">,</span> <span class="n">_LEGACY_FO_LEAF</span> <span class="o">=</span> <span class="n">_LEGACY_FO_FIELD</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_legacy_fo_field_type</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="n">Index</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the mapped type of ``published_policy.fo`` in *index*.</span>
+
+<span class="sd">    Returns ``None`` when the index does not map the field at all.</span>
+
+<span class="sd">    Elasticsearch 6-era clusters keyed field mappings by the mapping type</span>
+<span class="sd">    name (``doc``); mapping types are gone from Elasticsearch 8, whose</span>
+<span class="sd">    responses put the field directly under ``mappings``. The type-keyed</span>
+<span class="sd">    shape is only descended into when such a key is actually present, so</span>
+<span class="sd">    this reads either shape.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        index (Index): The index to inspect.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str | None: The mapped field type, e.g. ``&quot;long&quot;`` or ``&quot;text&quot;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">index</span><span class="o">.</span><span class="n">get_field_mapping</span><span class="p">(</span><span class="n">fields</span><span class="o">=</span><span class="p">[</span><span class="n">_LEGACY_FO_FIELD</span><span class="p">])</span>
+    <span class="n">mappings</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]][</span><span class="s2">&quot;mappings&quot;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">_LEGACY_FO_FIELD</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mappings</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">type_name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;doc&quot;</span><span class="p">,</span> <span class="s2">&quot;_doc&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">type_name</span> <span class="ow">in</span> <span class="n">mappings</span><span class="p">:</span>
+                <span class="n">mappings</span> <span class="o">=</span> <span class="n">mappings</span><span class="p">[</span><span class="n">type_name</span><span class="p">]</span>
+                <span class="k">break</span>
+    <span class="n">field_mapping</span> <span class="o">=</span> <span class="n">mappings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_LEGACY_FO_FIELD</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">field_mapping</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">field_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;mapping&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">_LEGACY_FO_LEAF</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="migrate_indexes">
 <a class="viewcode-back" href="../../api.html#parsedmarc.elastic.migrate_indexes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">migrate_indexes</span><span class="p">(</span>
     <span class="n">aggregate_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">failure_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">smtp_tls_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">legacy_fo_indexes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Backfills the ``dkim_results_combined``/``spf_results_combined`` fields</span>
-<span class="sd">    (added for issue #169) on aggregate report documents, and the</span>
-<span class="sd">    ``policies_combined``/``failure_details_combined`` fields on SMTP TLS</span>
-<span class="sd">    report documents, that were saved before those fields existed.</span>
+<span class="sd">    Runs index migrations and backfills.</span>
+
+<span class="sd">    First, the legacy ``published_policy.fo`` migration, for each name in</span>
+<span class="sd">    ``legacy_fo_indexes``: parsedmarc releases before 5.0.0 declared that</span>
+<span class="sd">    field as an integer, so those indexes mapped it as ``long``, which</span>
+<span class="sd">    cannot hold the multi-value ``fo`` settings reports carry (``0:1``,</span>
+<span class="sd">    ``d:s``). Such an index is rebuilt as a ``-v2`` index with the</span>
+<span class="sd">    text/keyword shape, the documents are reindexed into it, and the</span>
+<span class="sd">    original is deleted.</span>
+
+<span class="sd">    Second, it backfills the ``dkim_results_combined``/</span>
+<span class="sd">    ``spf_results_combined`` fields (added for issue #169) on aggregate</span>
+<span class="sd">    report documents, and the ``policies_combined``/</span>
+<span class="sd">    ``failure_details_combined`` fields on SMTP TLS report documents, that</span>
+<span class="sd">    were saved before those fields existed.</span>
 
 <span class="sd">    For each name in ``aggregate_indexes``/``smtp_tls_indexes``, this</span>
 <span class="sd">    submits an ``update_by_query`` against the ``f&quot;{name}*&quot;`` index pattern</span>
@@ -802,7 +852,72 @@
 <span class="sd">        failure_indexes (list): A list of failure index names</span>
 <span class="sd">            (accepted for API compatibility; unused)</span>
 <span class="sd">        smtp_tls_indexes (list): A list of SMTP TLS index names</span>
+<span class="sd">        legacy_fo_indexes (list): A list of index names to check for the</span>
+<span class="sd">            pre-5.0.0 ``published_policy.fo`` ``long`` mapping. Unlike the</span>
+<span class="sd">            backfill arguments these are exact names, not patterns:</span>
+<span class="sd">            5.0.0 introduced date-suffixed index names in the same release</span>
+<span class="sd">            that fixed the mapping, so an affected index has no date</span>
+<span class="sd">            component. It may still be prefixed or suffixed -- both</span>
+<span class="sd">            options date back to 4.1.0 -- so callers should pass the</span>
+<span class="sd">            names their own ``index_prefix``/``index_suffix``</span>
+<span class="sd">            configuration produces.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">aggregate_indexes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">smtp_tls_indexes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">legacy_fo_indexes</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="n">version</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="k">for</span> <span class="n">legacy_index_name</span> <span class="ow">in</span> <span class="n">legacy_fo_indexes</span> <span class="ow">or</span> <span class="p">[]:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">legacy_index</span> <span class="o">=</span> <span class="n">Index</span><span class="p">(</span><span class="n">legacy_index_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">legacy_index</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">_legacy_fo_field_type</span><span class="p">(</span><span class="n">legacy_index</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">&quot;long&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">new_index_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">legacy_index_name</span><span class="si">}</span><span class="s2">-v</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="c1"># Nested object form rather than the dotted key this used to</span>
+            <span class="c1"># send. Both are accepted and produce an identical mapping</span>
+            <span class="c1"># (verified against Elasticsearch 8.19 and OpenSearch 3), but</span>
+            <span class="c1"># dot expansion is conditional on the object field&#39;s</span>
+            <span class="c1"># `subobjects` setting, and this shape never is.</span>
+            <span class="n">properties</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">_LEGACY_FO_OBJECT</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span>
+                        <span class="n">_LEGACY_FO_LEAF</span><span class="p">:</span> <span class="p">{</span>
+                            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">{</span>
+                                <span class="s2">&quot;keyword&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;keyword&quot;</span><span class="p">,</span> <span class="s2">&quot;ignore_above&quot;</span><span class="p">:</span> <span class="mi">256</span><span class="p">}</span>
+                            <span class="p">},</span>
+                        <span class="p">}</span>
+                    <span class="p">}</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Migrating </span><span class="si">{</span><span class="n">legacy_index_name</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">new_index_name</span><span class="si">}</span><span class="s2">: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_LEGACY_FO_FIELD</span><span class="si">}</span><span class="s2"> is mapped as long, as parsedmarc &quot;</span>
+                <span class="s2">&quot;releases before 5.0.0 declared it&quot;</span>
+            <span class="p">)</span>
+            <span class="c1"># Reaching here means the original index still holds the data:</span>
+            <span class="c1"># it is deleted only after the reindex below succeeds. So a</span>
+            <span class="c1"># leftover target index is the debris of an earlier attempt</span>
+            <span class="c1"># that died between create() and delete(), and keeping it would</span>
+            <span class="c1"># fail every later attempt on &quot;resource already exists&quot;.</span>
+            <span class="k">if</span> <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Discarding </span><span class="si">{</span><span class="n">new_index_name</span><span class="si">}</span><span class="s2"> left behind by an earlier &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;interrupted migration of </span><span class="si">{</span><span class="n">legacy_index_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+            <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+            <span class="n">Index</span><span class="p">(</span><span class="n">new_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">put_mapping</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="n">properties</span><span class="p">)</span>
+            <span class="n">reindex</span><span class="p">(</span><span class="n">connections</span><span class="o">.</span><span class="n">get_connection</span><span class="p">(),</span> <span class="n">legacy_index_name</span><span class="p">,</span> <span class="n">new_index_name</span><span class="p">)</span>
+            <span class="n">Index</span><span class="p">(</span><span class="n">legacy_index_name</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Failed the legacy published_policy.fo migration for &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">legacy_index_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. This will be retried at the &quot;</span>
+                <span class="s2">&quot;next startup.&quot;</span>
+            <span class="p">)</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">aggregate_indexes</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">smtp_tls_indexes</span><span class="p">:</span>
         <span class="k">return</span>
 

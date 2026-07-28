@@ -127,7 +127,8 @@ The full set of configuration options are:
       Elasticsearch, Splunk and/or S3
   - `save_smtp_tls` - bool: Save SMTP-STS report data to
       Elasticsearch, Splunk and/or S3
-  - `index_prefix_domain_map` -  bool: A path mapping of Opensearch/Elasticsearch index prefixes to domain names
+  - `index_prefix_domain_map` - str: Path to a YAML file mapping
+      OpenSearch/Elasticsearch index prefixes to domain names
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
   - `silent` - bool: Set this to `False` to output results to STDOUT
@@ -1167,11 +1168,15 @@ whalensolutions:
 
 Save it to disk where the user running ParseDMARC can read it, then set `index_prefix_domain_map` to that filepath in the `[general]` section of the ParseDMARC configuration file and do not set an `index_prefix` option in the `[elasticsearch]` or `[opensearch]` sections.
 
-When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of Opensearch or the ELK stack to only grant users access to the indexes that they need.
+When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of OpenSearch or the ELK stack to only grant users access to the indexes that they need.
 
  :::{note}
  A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.
 :::
+
+Each key must be a tenant name and each value a *list* of domain names, all strings; a file of any other shape is rejected at startup.
+
+The index migrations and backfills that run at startup cover every tenant prefix in the map, in addition to the unprefixed indexes that hold reports for domains the map does not list. A configuration reload (`SIGHUP`) re-reads the map, so a newly onboarded tenant is covered without restarting parsedmarc. See [Backfilling the combined DKIM/SPF result fields](elasticsearch.md#backfilling-the-combined-dkimspf-result-fields) for the details.
 
 ## Running parsedmarc as a systemd service
 

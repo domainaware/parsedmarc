@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using parsedmarc &mdash; parsedmarc 10.4.0 documentation</title>
+  <title>Using parsedmarc &mdash; parsedmarc 10.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2f7da7c1"></script>
+      <script src="_static/documentation_options.js?v=8b0523d8"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -230,7 +230,8 @@ Elasticsearch, Splunk and/or S3</p></li>
 Elasticsearch, Splunk and/or S3</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">save_smtp_tls</span></code> - bool: Save SMTP-STS report data to
 Elasticsearch, Splunk and/or S3</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">index_prefix_domain_map</span></code> -  bool: A path mapping of Opensearch/Elasticsearch index prefixes to domain names</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">index_prefix_domain_map</span></code> - str: Path to a YAML file mapping
+OpenSearch/Elasticsearch index prefixes to domain names</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">strip_attachment_payloads</span></code> - bool: Remove attachment
 payloads from results</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">silent</span></code> - bool: Set this to <code class="docutils literal notranslate"><span class="pre">False</span></code> to output results to STDOUT</p></li>
@@ -1377,11 +1378,13 @@ high-volume mailbox processing.</p>
 </pre></div>
 </div>
 <p>Save it to disk where the user running ParseDMARC can read it, then set <code class="docutils literal notranslate"><span class="pre">index_prefix_domain_map</span></code> to that filepath in the <code class="docutils literal notranslate"><span class="pre">[general]</span></code> section of the ParseDMARC configuration file and do not set an <code class="docutils literal notranslate"><span class="pre">index_prefix</span></code> option in the <code class="docutils literal notranslate"><span class="pre">[elasticsearch]</span></code> or <code class="docutils literal notranslate"><span class="pre">[opensearch]</span></code> sections.</p>
-<p>When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of Opensearch or the ELK stack to only grant users access to the indexes that they need.</p>
+<p>When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of OpenSearch or the ELK stack to only grant users access to the indexes that they need.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.</p>
 </div>
+<p>Each key must be a tenant name and each value a <em>list</em> of domain names, all strings; a file of any other shape is rejected at startup.</p>
+<p>The index migrations and backfills that run at startup cover every tenant prefix in the map, in addition to the unprefixed indexes that hold reports for domains the map does not list. A configuration reload (<code class="docutils literal notranslate"><span class="pre">SIGHUP</span></code>) re-reads the map, so a newly onboarded tenant is covered without restarting parsedmarc. See <a class="reference internal" href="elasticsearch.html#backfilling-the-combined-dkim-spf-result-fields"><span class="std std-ref">Backfilling the combined DKIM/SPF result fields</span></a> for the details.</p>
 </section>
 <section id="running-parsedmarc-as-a-systemd-service">
 <h2>Running parsedmarc as a systemd service<a class="headerlink" href="#running-parsedmarc-as-a-systemd-service" title="Link to this heading"></a></h2>

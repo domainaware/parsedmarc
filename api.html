@@ -6,14 +6,14 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API reference &mdash; parsedmarc 10.4.0 documentation</title>
+  <title>API reference &mdash; parsedmarc 10.4.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=2f7da7c1"></script>
+      <script src="_static/documentation_options.js?v=8b0523d8"></script>
       <script src="_static/doctools.js?v=fd6eb6e6"></script>
       <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     <script src="_static/js/theme.js"></script>
@@ -1283,11 +1283,20 @@ remaining keys are passed through; defaults are skipped entirely.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.elastic.migrate_indexes">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Link to this definition"></a></dt>
-<dd><p>Backfills the <code class="docutils literal notranslate"><span class="pre">dkim_results_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">spf_results_combined</span></code> fields
-(added for issue #169) on aggregate report documents, and the
-<code class="docutils literal notranslate"><span class="pre">policies_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">failure_details_combined</span></code> fields on SMTP TLS
-report documents, that were saved before those fields existed.</p>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.elastic.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legacy_fo_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/elastic.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.elastic.migrate_indexes" title="Link to this definition"></a></dt>
+<dd><p>Runs index migrations and backfills.</p>
+<p>First, the legacy <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> migration, for each name in
+<code class="docutils literal notranslate"><span class="pre">legacy_fo_indexes</span></code>: parsedmarc releases before 5.0.0 declared that
+field as an integer, so those indexes mapped it as <code class="docutils literal notranslate"><span class="pre">long</span></code>, which
+cannot hold the multi-value <code class="docutils literal notranslate"><span class="pre">fo</span></code> settings reports carry (<code class="docutils literal notranslate"><span class="pre">0:1</span></code>,
+<code class="docutils literal notranslate"><span class="pre">d:s</span></code>). Such an index is rebuilt as a <code class="docutils literal notranslate"><span class="pre">-v2</span></code> index with the
+text/keyword shape, the documents are reindexed into it, and the
+original is deleted.</p>
+<p>Second, it backfills the <code class="docutils literal notranslate"><span class="pre">dkim_results_combined</span></code>/
+<code class="docutils literal notranslate"><span class="pre">spf_results_combined</span></code> fields (added for issue #169) on aggregate
+report documents, and the <code class="docutils literal notranslate"><span class="pre">policies_combined</span></code>/
+<code class="docutils literal notranslate"><span class="pre">failure_details_combined</span></code> fields on SMTP TLS report documents, that
+were saved before those fields existed.</p>
 <p>For each name in <code class="docutils literal notranslate"><span class="pre">aggregate_indexes</span></code>/<code class="docutils literal notranslate"><span class="pre">smtp_tls_indexes</span></code>, this
 submits an <code class="docutils literal notranslate"><span class="pre">update_by_query</span></code> against the <code class="docutils literal notranslate"><span class="pre">f&quot;{name}*&quot;</span></code> index pattern
 (the real indexes are date-suffixed) as a non-blocking background task
@@ -1307,6 +1316,15 @@ next startup, and the manual <code class="docutils literal notranslate"><span cl
 <li><p><strong>failure_indexes</strong> (<em>list</em>) – A list of failure index names
 (accepted for API compatibility; unused)</p></li>
 <li><p><strong>smtp_tls_indexes</strong> (<em>list</em>) – A list of SMTP TLS index names</p></li>
+<li><p><strong>legacy_fo_indexes</strong> (<em>list</em>) – A list of index names to check for the
+pre-5.0.0 <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> <code class="docutils literal notranslate"><span class="pre">long</span></code> mapping. Unlike the
+backfill arguments these are exact names, not patterns:
+5.0.0 introduced date-suffixed index names in the same release
+that fixed the mapping, so an affected index has no date
+component. It may still be prefixed or suffixed – both
+options date back to 4.1.0 – so callers should pass the
+names their own <code class="docutils literal notranslate"><span class="pre">index_prefix</span></code>/<code class="docutils literal notranslate"><span class="pre">index_suffix</span></code>
+configuration produces.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1457,12 +1475,15 @@ any other settings through unchanged.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="parsedmarc.opensearch.migrate_indexes">
-<span class="sig-prename descclassname"><span class="pre">parsedmarc.opensearch.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/opensearch.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.opensearch.migrate_indexes" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">parsedmarc.opensearch.</span></span><span class="sig-name descname"><span class="pre">migrate_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aggregate_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">failure_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smtp_tls_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legacy_fo_indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/parsedmarc/opensearch.html#migrate_indexes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#parsedmarc.opensearch.migrate_indexes" title="Link to this definition"></a></dt>
 <dd><p>Runs index migrations and backfills.</p>
-<p>First, the legacy <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> migration: indexes where that
-field was mapped as <code class="docutils literal notranslate"><span class="pre">long</span></code> (data indexed by very old parsedmarc
-releases under the Elasticsearch 6-era <code class="docutils literal notranslate"><span class="pre">doc</span></code> mapping type) are rebuilt
-as a <code class="docutils literal notranslate"><span class="pre">-v2</span></code> index with the text/keyword shape.</p>
+<p>First, the legacy <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> migration, for each name in
+<code class="docutils literal notranslate"><span class="pre">legacy_fo_indexes</span></code>: parsedmarc releases before 5.0.0 declared that
+field as an integer, so those indexes mapped it as <code class="docutils literal notranslate"><span class="pre">long</span></code>, which
+cannot hold the multi-value <code class="docutils literal notranslate"><span class="pre">fo</span></code> settings reports carry (<code class="docutils literal notranslate"><span class="pre">0:1</span></code>,
+<code class="docutils literal notranslate"><span class="pre">d:s</span></code>). Such an index is rebuilt as a <code class="docutils literal notranslate"><span class="pre">-v2</span></code> index with the
+text/keyword shape, the documents are reindexed into it, and the
+original is deleted.</p>
 <p>Second, the <code class="docutils literal notranslate"><span class="pre">dkim_results_combined</span></code>/<code class="docutils literal notranslate"><span class="pre">spf_results_combined</span></code> backfill
 (added for issue #169) for aggregate report documents that were saved
 before those fields existed. For each name in <code class="docutils literal notranslate"><span class="pre">aggregate_indexes</span></code>,
@@ -1488,6 +1509,15 @@ report documents, for each name in <code class="docutils literal notranslate"><s
 (accepted for API compatibility; no migrations are
 currently needed for failure indexes)</p></li>
 <li><p><strong>smtp_tls_indexes</strong> (<em>list</em>) – A list of SMTP TLS index names</p></li>
+<li><p><strong>legacy_fo_indexes</strong> (<em>list</em>) – A list of index names to check for the
+pre-5.0.0 <code class="docutils literal notranslate"><span class="pre">published_policy.fo</span></code> <code class="docutils literal notranslate"><span class="pre">long</span></code> mapping. Unlike the
+backfill arguments these are exact names, not patterns:
+5.0.0 introduced date-suffixed index names in the same release
+that fixed the mapping, so an affected index has no date
+component. It may still be prefixed or suffixed – both
+options date back to 4.1.0 – so callers should pass the
+names their own <code class="docutils literal notranslate"><span class="pre">index_prefix</span></code>/<code class="docutils literal notranslate"><span class="pre">index_suffix</span></code>
+configuration produces.</p></li>
 </ul>
 </dd>
 </dl>
