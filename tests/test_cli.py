@@ -3378,6 +3378,83 @@ watch = true
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.watch_inbox")
     @patch("parsedmarc.cli.IMAPConnection")
+    def testReloadPassesFreshDomainMapToOutputClients(
+        self,
+        mock_imap,
+        mock_watch,
+        mock_get_reports,
+        mock_load_config,
+        mock_parse_config,
+        mock_init_clients,
+    ):
+        """The index migrations resolve their target index names from
+        index_prefix_domain_map, so a reload has to hand the *reloaded* map
+        to _init_output_clients() -- otherwise a tenant onboarded into the
+        map is not covered until the process restarts (issue #868)."""
+        import signal as signal_module
+
+        mock_imap.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_load_config.return_value = ConfigParser()
+
+        first_map = {"tenant_a": ["example.com"]}
+        second_map = {"tenant_a": ["example.com"], "tenant_b": ["example.net"]}
+        maps = [first_map, second_map]
+
+        def parse_side_effect(config, opts):
+            opts.imap_host = "imap.example.com"
+            opts.imap_user = "user"
+            opts.imap_password = "pass"
+            opts.mailbox_watch = True
+            return maps.pop(0) if maps else second_map
+
+        mock_parse_config.side_effect = parse_side_effect
+        mock_init_clients.return_value = {}
+
+        watch_calls = [0]
+
+        def watch_side_effect(*args, **kwargs):
+            watch_calls[0] += 1
+            if watch_calls[0] == 1:
+                os.kill(os.getpid(), signal_module.SIGHUP)
+                return
+            raise FileExistsError("stop-watch-loop")
+
+        mock_watch.side_effect = watch_side_effect
+
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(self._BASE_CONFIG)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with self.assertRaises(SystemExit):
+                parsedmarc.cli._main()
+
+        self.assertEqual(mock_init_clients.call_count, 2)
+        self.assertIs(
+            mock_init_clients.call_args_list[0].kwargs["index_prefix_domain_map"],
+            first_map,
+        )
+        self.assertIs(
+            mock_init_clients.call_args_list[1].kwargs["index_prefix_domain_map"],
+            second_map,
+        )
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    @patch("parsedmarc.cli._init_output_clients")
+    @patch("parsedmarc.cli._parse_config")
+    @patch("parsedmarc.cli._load_config")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
     def testReloadClosesOldClients(
         self,
         mock_imap,
@@ -3412,7 +3489,7 @@ watch = true
         new_client = MagicMock()
         init_call = [0]
 
-        def init_side_effect(opts):
+        def init_side_effect(opts, index_prefix_domain_map=None):
             init_call[0] += 1
             if init_call[0] == 1:
                 return {"kafka_client": old_client}
@@ -3509,7 +3586,7 @@ watch = true
         # Capture opts used on each _init_output_clients call
         init_opts_captures = []
 
-        def init_side_effect(opts):
+        def init_side_effect(opts, index_prefix_domain_map=None):
             from argparse import Namespace as NS
 
             init_opts_captures.append(NS(**vars(opts)))
@@ -4185,6 +4262,427 @@ to = admin@example.com
         emailed_results = mock_email_results.call_args.args[0]
         report_ids = {r["report_id"] for r in emailed_results["smtp_tls_reports"]}
         self.assertEqual(report_ids, {"allowed-1", "mixed-case-1"})
+
+
+class TestNormalizeIndexPrefix(unittest.TestCase):
+    """_normalize_index_prefix() is the single definition of how an
+    index_prefix_domain_map key becomes an index name prefix. The save path
+    and the migration path both call it, so these assertions pin the exact
+    strings both sides must agree on."""
+
+    def test_lowercases_and_strips(self):
+        self.assertEqual(parsedmarc.cli._normalize_index_prefix(" Acme "), "acme_")
+
+    def test_replaces_spaces_and_hyphens(self):
+        self.assertEqual(
+            parsedmarc.cli._normalize_index_prefix("Acme Corp-2"), "acme_corp_2_"
+        )
+
+    def test_strips_surrounding_underscores(self):
+        self.assertEqual(parsedmarc.cli._normalize_index_prefix("_tenant_"), "tenant_")
+
+    def test_key_that_normalizes_to_nothing_yields_a_bare_underscore(self):
+        """Documents rather than special-cases the degenerate result: the
+        save path writes such a report's documents to `_dmarc_aggregate-*`,
+        so the migration path has to target the same name."""
+        self.assertEqual(parsedmarc.cli._normalize_index_prefix("_"), "_")
+        self.assertEqual(parsedmarc.cli._normalize_index_prefix("   "), "_")
+
+
+class TestMigrationIndexNames(unittest.TestCase):
+    """_migration_index_names() resolves every index name an index
+    migration should target, widening both configurable axes (issue #868).
+    Each case asserts the whole list, in order, so it observes the names
+    that must be absent as well as the ones that must be present."""
+
+    def test_nothing_configured_is_unchanged(self):
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names("dmarc_aggregate", None, None, None),
+            ["dmarc_aggregate"],
+        )
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names("dmarc_aggregate", None, None, {}),
+            ["dmarc_aggregate"],
+        )
+
+    def test_suffix_also_targets_the_unsuffixed_name(self):
+        """`dmarc_aggregate_prod*` matches none of the operator's own
+        pre-suffix `dmarc_aggregate-*` indexes, so both are targeted."""
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names(
+                "dmarc_aggregate", "prod", None, None
+            ),
+            ["dmarc_aggregate_prod", "dmarc_aggregate"],
+        )
+
+    def test_empty_suffix_adds_no_duplicate(self):
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names("dmarc_aggregate", "", None, None),
+            ["dmarc_aggregate"],
+        )
+
+    def test_domain_map_fans_out_after_the_unprefixed_name(self):
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names(
+                "dmarc_aggregate",
+                None,
+                None,
+                {"Acme Corp": ["acme.example"], "widgets-inc": ["widgets.example"]},
+            ),
+            [
+                "dmarc_aggregate",
+                "acme_corp_dmarc_aggregate",
+                "widgets_inc_dmarc_aggregate",
+            ],
+        )
+
+    def test_keys_that_normalize_identically_are_deduplicated(self):
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names(
+                "dmarc_aggregate",
+                None,
+                None,
+                {"acme corp": ["a.example"], "Acme-Corp": ["b.example"]},
+            ),
+            ["dmarc_aggregate", "acme_corp_dmarc_aggregate"],
+        )
+
+    def test_configured_prefix_suppresses_the_domain_map_fan_out(self):
+        """A deployment with its own index_prefix writes only under that
+        prefix; submitting an _update_by_query against map-derived patterns
+        would touch another deployment's data on a shared cluster. The
+        suffix axis still applies."""
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names(
+                "dmarc_aggregate", "prod", "corp_", {"acme": ["acme.example"]}
+            ),
+            ["corp_dmarc_aggregate_prod", "corp_dmarc_aggregate"],
+        )
+
+    def test_configured_prefix_is_used_verbatim(self):
+        """The save path passes index_prefix through untouched, so the
+        migration path must not normalize it either."""
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names(
+                "dmarc_aggregate", None, "My-Prefix ", None
+            ),
+            ["My-Prefix dmarc_aggregate"],
+        )
+
+    def test_both_axes_compose_in_save_time_order(self):
+        """Save time builds `{prefix}{base}_{suffix}-{date}`: the prefix
+        precedes the base name and the suffix follows it."""
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names(
+                "smtp_tls", "prod", None, {"acme": ["acme.example"]}
+            ),
+            ["smtp_tls_prod", "smtp_tls", "acme_smtp_tls_prod", "acme_smtp_tls"],
+        )
+
+    def test_key_normalizing_to_an_underscore_is_targeted(self):
+        self.assertEqual(
+            parsedmarc.cli._migration_index_names(
+                "dmarc_aggregate", None, None, {"_": ["acme.example"]}
+            ),
+            ["dmarc_aggregate", "_dmarc_aggregate"],
+        )
+
+
+class TestMigrateIndexesDomainMapWiring(unittest.TestCase):
+    """Issue #868: the startup index migrations built their index names
+    from index_prefix/index_suffix alone, so a multi-tenant deployment
+    whose prefixes come from index_prefix_domain_map had its backfill
+    guard run against `dmarc_aggregate*`, which matches none of its real
+    `<tenant>_dmarc_aggregate-*` indexes -- a silent no-op. These tests
+    assert the index names actually handed to migrate_indexes()."""
+
+    def _write_config(self, config, domain_map=None):
+        paths = {}
+        if domain_map is not None:
+            import yaml
+
+            with NamedTemporaryFile("w", suffix=".yaml", delete=False) as map_file:
+                yaml.dump(domain_map, map_file)
+                paths["map"] = map_file.name
+            self.addCleanup(
+                lambda: os.path.exists(paths["map"]) and os.remove(paths["map"])
+            )
+            config = config.format(map_path=paths["map"])
+        with NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(config)
+            paths["config"] = config_file.name
+        self.addCleanup(
+            lambda: os.path.exists(paths["config"]) and os.remove(paths["config"])
+        )
+        return paths["config"]
+
+    _IMAP = """
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+"""
+
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testElasticsearchMigrationFansOutOverDomainMap(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        mock_migrate,
+    ):
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+save_smtp_tls = true
+silent = true
+index_prefix_domain_map = {map_path}
+"""
+            + self._IMAP
+            + """
+[elasticsearch]
+hosts = localhost
+""",
+            domain_map={"Tenant-A": ["example.com"], "tenant_b": ["example.net"]},
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        kwargs = mock_migrate.call_args.kwargs
+        self.assertEqual(
+            kwargs["aggregate_indexes"],
+            [
+                "dmarc_aggregate",
+                "tenant_a_dmarc_aggregate",
+                "tenant_b_dmarc_aggregate",
+            ],
+        )
+        self.assertEqual(
+            kwargs["failure_indexes"],
+            ["dmarc_failure", "tenant_a_dmarc_failure", "tenant_b_dmarc_failure"],
+        )
+        self.assertEqual(
+            kwargs["smtp_tls_indexes"],
+            ["smtp_tls", "tenant_a_smtp_tls", "tenant_b_smtp_tls"],
+        )
+        # The legacy fo migration does not fan out over the map: it
+        # deletes the index it reindexes, and no index it could apply to
+        # can carry a tenant prefix.
+        self.assertEqual(kwargs["legacy_fo_indexes"], ["dmarc_aggregate"])
+
+    @patch("parsedmarc.cli.opensearch.migrate_indexes")
+    @patch("parsedmarc.cli.opensearch.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testOpenSearchMigrationFansOutWithSuffix(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        mock_migrate,
+    ):
+        """The OpenSearch block carries its own copy of the fan-out, so it
+        is asserted separately. With an index_suffix set, the unsuffixed
+        name is targeted too, for documents indexed before the suffix was
+        configured."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+silent = true
+index_prefix_domain_map = {map_path}
+"""
+            + self._IMAP
+            + """
+[opensearch]
+hosts = localhost
+index_suffix = prod
+""",
+            domain_map={"Tenant-A": ["example.com"]},
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        kwargs = mock_migrate.call_args.kwargs
+        self.assertEqual(
+            kwargs["aggregate_indexes"],
+            [
+                "dmarc_aggregate_prod",
+                "dmarc_aggregate",
+                "tenant_a_dmarc_aggregate_prod",
+                "tenant_a_dmarc_aggregate",
+            ],
+        )
+        self.assertEqual(
+            kwargs["smtp_tls_indexes"],
+            [
+                "smtp_tls_prod",
+                "smtp_tls",
+                "tenant_a_smtp_tls_prod",
+                "tenant_a_smtp_tls",
+            ],
+        )
+
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testConfiguredPrefixSuppressesDomainMapFanout(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        mock_migrate,
+    ):
+        """The negative half of the fan-out contract, and the one case here
+        that also passed before #868 was fixed: a deployment that sets its
+        own index_prefix must never submit an _update_by_query against a
+        map-derived index pattern it does not write to."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+silent = true
+index_prefix_domain_map = {map_path}
+"""
+            + self._IMAP
+            + """
+[elasticsearch]
+hosts = localhost
+index_prefix = corp_
+""",
+            domain_map={"Tenant-A": ["example.com"]},
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        kwargs = mock_migrate.call_args.kwargs
+        self.assertEqual(kwargs["aggregate_indexes"], ["corp_dmarc_aggregate"])
+        self.assertEqual(kwargs["failure_indexes"], ["corp_dmarc_failure"])
+        self.assertEqual(kwargs["smtp_tls_indexes"], ["corp_smtp_tls"])
+
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testLegacyFoMigrationHonorsPrefixAndSuffixButNotTheDomainMap(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        mock_migrate,
+    ):
+        """The published_policy.fo migration takes exact index names, and
+        index_prefix/index_suffix both date back to 4.1.0, so an affected
+        index may carry either. It cannot carry a tenant prefix, though:
+        index_prefix_domain_map arrived in 8.19.0, long after 5.0.0 fixed
+        the mapping. Asserting the full list covers both halves -- the
+        configured prefix and suffix are applied, and no map-derived name
+        is, which matters because this migration deletes the index it
+        reindexes."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+silent = true
+index_prefix_domain_map = {map_path}
+"""
+            + self._IMAP
+            + """
+[elasticsearch]
+hosts = localhost
+index_prefix = corp_
+index_suffix = prod
+""",
+            domain_map={"Tenant-A": ["example.com"]},
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_migrate.call_args.kwargs["legacy_fo_indexes"],
+            ["corp_dmarc_aggregate_prod", "corp_dmarc_aggregate"],
+        )
+
+    @patch("parsedmarc.cli.elastic.save_aggregate_report_to_elasticsearch")
+    @patch("parsedmarc.cli.elastic.migrate_indexes")
+    @patch("parsedmarc.cli.elastic.set_hosts")
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testMigrationTargetsMatchSaveTimePrefix(
+        self,
+        mock_imap_connection,
+        mock_get_reports,
+        _mock_set_hosts,
+        mock_migrate,
+        mock_save_aggregate,
+    ):
+        """Both ends of the shared-normalization contract in one test: the
+        prefix a report is *saved* under has to appear among the index
+        names the migration targets, or the backfill misses that tenant's
+        data."""
+        mock_imap_connection.return_value = object()
+        report = _sample_aggregate_reports()[0]
+        report["policy_published"]["domain"] = "example.com"
+        mock_get_reports.side_effect = _fetch_invoking_save_callback(
+            {
+                "aggregate_reports": [report],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+        )
+        config_path = self._write_config(
+            """[general]
+save_aggregate = true
+silent = true
+index_prefix_domain_map = {map_path}
+"""
+            + self._IMAP
+            + """
+[elasticsearch]
+hosts = localhost
+""",
+            domain_map={"Tenant-A": ["example.com"]},
+        )
+
+        with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+            parsedmarc.cli._main()
+
+        self.assertEqual(
+            mock_save_aggregate.call_args.kwargs["index_prefix"], "tenant_a_"
+        )
+        self.assertIn(
+            "tenant_a_dmarc_aggregate",
+            mock_migrate.call_args.kwargs["aggregate_indexes"],
+        )
 
 
 class TestMailboxSaveCallbackWiring(unittest.TestCase):
@@ -5156,6 +5654,78 @@ class TestParseConfigGeneral(unittest.TestCase):
         _parse_config(cp, opts)
         self.assertEqual(opts.failure_json_filename, "fa.json")
         self.assertEqual(opts.failure_csv_filename, "fa.csv")
+
+    def _index_prefix_domain_map_config(self, yaml_text):
+        with NamedTemporaryFile("w", suffix=".yaml", delete=False) as map_file:
+            map_file.write(yaml_text)
+            map_path = map_file.name
+        self.addCleanup(lambda: os.path.exists(map_path) and os.remove(map_path))
+        return _config_with("general", {"index_prefix_domain_map": map_path})
+
+    def test_index_prefix_domain_map_accepts_a_mapping_of_lists(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = self._index_prefix_domain_map_config(
+            "tenant_a:\n  - example.com\n  - example.net\n"
+        )
+        self.assertEqual(
+            _parse_config(cp, _opts()),
+            {"tenant_a": ["example.com", "example.net"]},
+        )
+
+    def test_index_prefix_domain_map_empty_file_is_unset(self):
+        """An empty file loads as None, which keeps multi-tenant prefixing
+        switched off rather than tripping the shape check."""
+        from parsedmarc.cli import _parse_config
+
+        cp = self._index_prefix_domain_map_config("")
+        self.assertIsNone(_parse_config(cp, _opts()))
+
+    def test_index_prefix_domain_map_rejects_a_non_mapping(self):
+        """A list-shaped file has no tenant names, so the save path cannot
+        derive index prefixes from it and the migration path would resolve
+        garbage index names from its items."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = self._index_prefix_domain_map_config("- example.com\n- example.net\n")
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, _opts())
+        self.assertIn("index_prefix_domain_map", str(ctx.exception))
+
+    def test_index_prefix_domain_map_rejects_a_scalar_domain_value(self):
+        """The save path tests `domain in <value>`, and `in` on a str is a
+        substring test, not equality
+        (https://docs.python.org/3/reference/expressions.html
+        #membership-test-operations) -- so a scalar value silently claims
+        every domain that contains it, e.g. "example.co" matching
+        "example.com"."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = self._index_prefix_domain_map_config("tenant_a: example.co\n")
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, _opts())
+        self.assertIn("list of domain names", str(ctx.exception))
+
+    def test_index_prefix_domain_map_rejects_a_non_string_domain(self):
+        """A non-string list item never compares equal to the base domain
+        the save path looks up, so `tenant_a: [42]` would match nothing at
+        all -- the same silent-misbehavior class as a scalar value, and the
+        reason the check covers the list's items and not just its type."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = self._index_prefix_domain_map_config("tenant_a:\n  - 42\n")
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, _opts())
+        self.assertIn("all strings", str(ctx.exception))
+
+    def test_index_prefix_domain_map_rejects_a_non_string_key(self):
+        """A non-string tenant name cannot be normalized into an index
+        prefix; it used to raise AttributeError mid-save instead."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = self._index_prefix_domain_map_config("42:\n  - example.com\n")
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
 
     def test_general_dns_settings_with_defaults(self):
         from parsedmarc.cli import _parse_config

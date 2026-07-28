@@ -663,6 +663,27 @@ def _parse_config(config: ConfigParser, opts):
         if "index_prefix_domain_map" in general_config:
             with open(_expand_path(general_config["index_prefix_domain_map"])) as f:
                 index_prefix_domain_map = yaml.safe_load(f)
+            # An empty file loads as None, which means "unset". Anything else
+            # must be a mapping of tenant name to a list of domain names, all
+            # strings: the save path iterates the keys as index name prefixes
+            # and tests `get_base_domain(...).lower() in <value>`. Every other
+            # shape fails silently rather than loudly -- a scalar value makes
+            # that an `in` on a str, which is a substring test, so it matches
+            # the wrong domains ("example.co" in "example.com" is True), and a
+            # non-string list item simply never compares equal to any domain.
+            if index_prefix_domain_map is not None and (
+                not isinstance(index_prefix_domain_map, dict)
+                or not all(
+                    isinstance(key, str)
+                    and isinstance(value, list)
+                    and all(isinstance(domain, str) for domain in value)
+                    for key, value in index_prefix_domain_map.items()
+                )
+            ):
+                raise ConfigurationError(
+                    "index_prefix_domain_map must be a YAML mapping of tenant "
+                    "name to a list of domain names, all strings"
+                )
         if "offline" in general_config:
             opts.offline = bool(general_config.getboolean("offline"))
         if "strip_attachment_payloads" in general_config:
@@ -1419,8 +1440,121 @@ class _OpenSearchHandle:
             pass
 
 
-def _init_output_clients(opts):
+def _normalize_index_prefix(prefix):
+    """Normalize an ``index_prefix_domain_map`` key into an index name prefix.
+
+    Lowercases, strips surrounding whitespace and then surrounding
+    underscores, replaces the remaining spaces and hyphens with
+    underscores, and appends a trailing ``_``.
+
+    Shared by the save path (``get_index_prefix()`` in :func:`_main`) and the
+    migration path (:func:`_migration_index_names`) so that the indexes
+    parsedmarc migrates cannot drift from the ones it writes to.
+
+    A key that normalizes to the empty string (``"_"``, ``"  "``) yields the
+    literal ``"_"``. That is deliberate: it is exactly the prefix the save
+    path produces for such a key, so it is the prefix its documents live
+    under.
+
+    The ``[elasticsearch]``/``[opensearch]`` ``index_prefix`` option is never
+    passed through this function -- the save path uses that option verbatim,
+    so the migration path must too.
+
+    Args:
+        prefix (str): A key from ``index_prefix_domain_map``.
+
+    Returns:
+        str: The index name prefix, including its trailing underscore.
+    """
+    prefix = prefix.lower().strip().strip("_").replace(" ", "_").replace("-", "_")
+    return f"{prefix}_"
+
+
+def _migration_index_names(
+    base_name, index_suffix, configured_prefix, index_prefix_domain_map
+):
+    """Resolve every index name an index migration should target.
+
+    Mirrors the way save time builds index names, which is
+    ``{prefix}{base_name}_{index_suffix}-{date}``, and widens each of the
+    two configurable axes so that a migration cannot silently skip indexes
+    the deployment holds data in (issue #868).
+
+    **Suffix axis.** When ``index_suffix`` is set, the suffixed name (what
+    this deployment writes today) and the bare ``base_name`` are both
+    returned, suffixed first. The bare name covers
+    documents indexed before the suffix was configured, or under a previous
+    one; without it, ``dmarc_aggregate_prod*`` matches none of the
+    operator's own ``dmarc_aggregate-*`` indexes. Because callers turn each
+    name into an ``f"{name}*"`` pattern, the bare name's pattern is a strict
+    superset of the suffixed one: on a shared cluster it also matches other
+    deployments' suffixes, and on the first run after an upgrade both
+    patterns can submit an overlapping ``update_by_query``. That is safe --
+    the backfill scripts only set a field that is missing, and submissions
+    use ``conflicts="proceed"`` -- but it is a deliberate trade of
+    narrowness for coverage of the operator's own history.
+
+    **Prefix axis.** A configured ``index_prefix`` wins outright and
+    suppresses the ``index_prefix_domain_map`` fan-out, because such a
+    deployment writes only under that prefix and must not touch index
+    patterns it does not own. Truthiness decides, matching the save path's
+    ``opts.*_index_prefix or get_index_prefix(report)``. Otherwise the
+    unprefixed name comes first, followed by one name per map key --
+    normalized by :func:`_normalize_index_prefix`, in map order. The
+    unprefixed name has to stay: aggregate and failure reports for a domain
+    that is absent from the map are still saved without a prefix, and
+    indexes predating the map exist for every report type.
+
+    ``configured_prefix`` is used verbatim, never normalized, for parity
+    with the save path.
+
+    Args:
+        base_name (str): The unprefixed, unsuffixed index name, e.g.
+            ``"dmarc_aggregate"``.
+        index_suffix (str | None): The configured ``index_suffix``, or
+            ``None``/``""`` when none is configured.
+        configured_prefix (str | None): The configured ``index_prefix``, or
+            ``None``/``""`` when none is configured.
+        index_prefix_domain_map (dict | None): The parsed
+            ``general.index_prefix_domain_map``, or ``None`` when
+            multi-tenant prefixing is not configured.
+
+    Returns:
+        list: Index names, deduplicated, in first-seen order. With nothing
+        configured this is just ``[base_name]``.
+    """
+    bases = [base_name]
+    if index_suffix:
+        bases.insert(0, f"{base_name}_{index_suffix}")
+
+    if configured_prefix:
+        prefixes = [configured_prefix]
+    else:
+        prefixes = [""]
+        for key in index_prefix_domain_map or {}:
+            prefix = _normalize_index_prefix(key)
+            if prefix not in prefixes:
+                prefixes.append(prefix)
+
+    names = []
+    for prefix in prefixes:
+        for base in bases:
+            name = f"{prefix}{base}"
+            if name not in names:
+                names.append(name)
+    return names
+
+
+def _init_output_clients(opts, index_prefix_domain_map=None):
     """Create output clients based on current opts.
+
+    Args:
+        opts: Namespace of parsed configuration values.
+        index_prefix_domain_map (dict | None): The parsed
+            ``general.index_prefix_domain_map``. ``None`` -- the default --
+            means multi-tenant prefixing is not configured, so Elasticsearch
+            and OpenSearch index migrations target only the names derived
+            from ``index_prefix``/``index_suffix``.
 
     Returns:
         dict of client instances keyed by name.
@@ -1563,19 +1697,34 @@ def _init_output_clients(opts):
                     opts.elasticsearch_hosts,
                     opts.elasticsearch_ssl,
                 )
-                es_aggregate_index = "dmarc_aggregate"
-                es_failure_index = "dmarc_failure"
-                es_smtp_tls_index = "smtp_tls"
-                if opts.elasticsearch_index_suffix:
-                    suffix = opts.elasticsearch_index_suffix
-                    es_aggregate_index = f"{es_aggregate_index}_{suffix}"
-                    es_failure_index = f"{es_failure_index}_{suffix}"
-                    es_smtp_tls_index = f"{es_smtp_tls_index}_{suffix}"
-                if opts.elasticsearch_index_prefix:
-                    prefix = opts.elasticsearch_index_prefix
-                    es_aggregate_index = f"{prefix}{es_aggregate_index}"
-                    es_failure_index = f"{prefix}{es_failure_index}"
-                    es_smtp_tls_index = f"{prefix}{es_smtp_tls_index}"
+                es_aggregate_indexes = _migration_index_names(
+                    "dmarc_aggregate",
+                    opts.elasticsearch_index_suffix,
+                    opts.elasticsearch_index_prefix,
+                    index_prefix_domain_map,
+                )
+                es_failure_indexes = _migration_index_names(
+                    "dmarc_failure",
+                    opts.elasticsearch_index_suffix,
+                    opts.elasticsearch_index_prefix,
+                    index_prefix_domain_map,
+                )
+                es_smtp_tls_indexes = _migration_index_names(
+                    "smtp_tls",
+                    opts.elasticsearch_index_suffix,
+                    opts.elasticsearch_index_prefix,
+                    index_prefix_domain_map,
+                )
+                # The legacy published_policy.fo migration gets the same
+                # names minus the tenant fan-out: index_prefix_domain_map
+                # arrived in 8.19.0, long after 5.0.0 fixed the mapping, so
+                # no index it names can carry the old one.
+                es_legacy_fo_indexes = _migration_index_names(
+                    "dmarc_aggregate",
+                    opts.elasticsearch_index_suffix,
+                    opts.elasticsearch_index_prefix,
+                    None,
+                )
                 elastic_timeout_value = (
                     float(opts.elasticsearch_timeout)
                     if opts.elasticsearch_timeout is not None
@@ -1592,10 +1741,19 @@ def _init_output_clients(opts):
                     timeout=elastic_timeout_value,
                     serverless=opts.elasticsearch_serverless,
                 )
+                logger.debug(
+                    "Elasticsearch index migration targets: aggregate=%s, "
+                    "failure=%s, smtp_tls=%s, legacy_fo=%s",
+                    es_aggregate_indexes,
+                    es_failure_indexes,
+                    es_smtp_tls_indexes,
+                    es_legacy_fo_indexes,
+                )
                 elastic.migrate_indexes(
-                    aggregate_indexes=[es_aggregate_index],
-                    failure_indexes=[es_failure_index],
-                    smtp_tls_indexes=[es_smtp_tls_index],
+                    aggregate_indexes=es_aggregate_indexes,
+                    failure_indexes=es_failure_indexes,
+                    smtp_tls_indexes=es_smtp_tls_indexes,
+                    legacy_fo_indexes=es_legacy_fo_indexes,
                 )
                 clients["elasticsearch"] = _ElasticsearchHandle()
         except Exception as e:
@@ -1608,19 +1766,34 @@ def _init_output_clients(opts):
                     opts.opensearch_hosts,
                     opts.opensearch_ssl,
                 )
-                os_aggregate_index = "dmarc_aggregate"
-                os_failure_index = "dmarc_failure"
-                os_smtp_tls_index = "smtp_tls"
-                if opts.opensearch_index_suffix:
-                    suffix = opts.opensearch_index_suffix
-                    os_aggregate_index = f"{os_aggregate_index}_{suffix}"
-                    os_failure_index = f"{os_failure_index}_{suffix}"
-                    os_smtp_tls_index = f"{os_smtp_tls_index}_{suffix}"
-                if opts.opensearch_index_prefix:
-                    prefix = opts.opensearch_index_prefix
-                    os_aggregate_index = f"{prefix}{os_aggregate_index}"
-                    os_failure_index = f"{prefix}{os_failure_index}"
-                    os_smtp_tls_index = f"{prefix}{os_smtp_tls_index}"
+                os_aggregate_indexes = _migration_index_names(
+                    "dmarc_aggregate",
+                    opts.opensearch_index_suffix,
+                    opts.opensearch_index_prefix,
+                    index_prefix_domain_map,
+                )
+                os_failure_indexes = _migration_index_names(
+                    "dmarc_failure",
+                    opts.opensearch_index_suffix,
+                    opts.opensearch_index_prefix,
+                    index_prefix_domain_map,
+                )
+                os_smtp_tls_indexes = _migration_index_names(
+                    "smtp_tls",
+                    opts.opensearch_index_suffix,
+                    opts.opensearch_index_prefix,
+                    index_prefix_domain_map,
+                )
+                # The legacy published_policy.fo migration gets the same
+                # names minus the tenant fan-out: index_prefix_domain_map
+                # arrived in 8.19.0, long after 5.0.0 fixed the mapping, so
+                # no index it names can carry the old one.
+                os_legacy_fo_indexes = _migration_index_names(
+                    "dmarc_aggregate",
+                    opts.opensearch_index_suffix,
+                    opts.opensearch_index_prefix,
+                    None,
+                )
                 opensearch_timeout_value = (
                     float(opts.opensearch_timeout)
                     if opts.opensearch_timeout is not None
@@ -1639,10 +1812,19 @@ def _init_output_clients(opts):
                     aws_region=opts.opensearch_aws_region,
                     aws_service=opts.opensearch_aws_service,
                 )
+                logger.debug(
+                    "OpenSearch index migration targets: aggregate=%s, "
+                    "failure=%s, smtp_tls=%s, legacy_fo=%s",
+                    os_aggregate_indexes,
+                    os_failure_indexes,
+                    os_smtp_tls_indexes,
+                    os_legacy_fo_indexes,
+                )
                 opensearch.migrate_indexes(
-                    aggregate_indexes=[os_aggregate_index],
-                    failure_indexes=[os_failure_index],
-                    smtp_tls_indexes=[os_smtp_tls_index],
+                    aggregate_indexes=os_aggregate_indexes,
+                    failure_indexes=os_failure_indexes,
+                    smtp_tls_indexes=os_smtp_tls_indexes,
+                    legacy_fo_indexes=os_legacy_fo_indexes,
                 )
                 clients["opensearch"] = _OpenSearchHandle()
         except Exception as e:
@@ -1728,17 +1910,9 @@ def _main():
             domain = get_base_domain(domain)
             if domain:
                 domain = domain.lower()
-                for prefix in index_prefix_domain_map:
-                    if domain in index_prefix_domain_map[prefix]:
-                        prefix = (
-                            prefix.lower()
-                            .strip()
-                            .strip("_")
-                            .replace(" ", "_")
-                            .replace("-", "_")
-                        )
-                        prefix = f"{prefix}_"
-                        return prefix
+                for key in index_prefix_domain_map:
+                    if domain in index_prefix_domain_map[key]:
+                        return _normalize_index_prefix(key)
         return None
 
     def filter_smtp_tls_reports_for_index_prefix(tls_reports):
@@ -2506,7 +2680,9 @@ def _main():
     retry_delay = 5
     for attempt in range(max_retries + 1):
         try:
-            clients = _init_output_clients(opts)
+            clients = _init_output_clients(
+                opts, index_prefix_domain_map=index_prefix_domain_map
+            )
             break
         except ConfigurationError as e:
             logger.critical(str(e))
@@ -3060,7 +3236,9 @@ def _main():
                 new_opts = Namespace(**vars(opts_from_cli))
                 new_config = _load_config(config_file)
                 new_index_prefix_domain_map = _parse_config(new_config, new_opts)
-                new_clients = _init_output_clients(new_opts)
+                new_clients = _init_output_clients(
+                    new_opts, index_prefix_domain_map=new_index_prefix_domain_map
+                )
 
                 # All steps succeeded — commit the changes atomically.
                 _close_output_clients(clients)
