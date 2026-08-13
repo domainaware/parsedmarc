@@ -156,7 +156,7 @@
         "y": 2
       },
       "id": 6,
-      "fixed_interval": null,
+      "interval": null,
       "legend": {
         "percentage": false,
         "show": true,
@@ -191,7 +191,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -248,7 +248,7 @@
         "y": 2
       },
       "id": 2,
-      "fixed_interval": null,
+      "interval": null,
       "legend": {
         "percentage": false,
         "show": true,
@@ -280,7 +280,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -337,7 +337,7 @@
         "y": 2
       },
       "id": 5,
-      "fixed_interval": null,
+      "interval": null,
       "legend": {
         "header": "",
         "percentage": false,
@@ -372,7 +372,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -625,7 +625,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -855,7 +855,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -980,7 +980,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1107,7 +1107,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1234,7 +1234,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1376,7 +1376,7 @@
               "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1439,7 +1439,7 @@
         "y": 38
       },
       "id": 36,
-      "fixed_interval": "$interval",
+      "interval": "$interval",
       "links": [],
       "options": {
         "colorMode": "background",
@@ -1447,9 +1447,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -1466,7 +1464,7 @@
               "field": "date_begin",
               "id": "6",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -2469,7 +2467,7 @@
         "y": 63
       },
       "id": 41,
-      "fixed_interval": "1d",
+      "interval": "1d",
       "links": [],
       "options": {
         "showHeader": true,
@@ -2876,7 +2874,7 @@
         "y": 72
       },
       "id": 43,
-      "fixed_interval": "86399",
+      "interval": "86399",
       "links": [],
       "options": {
         "showHeader": true,
@@ -3171,7 +3169,7 @@
         "y": 81
       },
       "id": 14,
-      "fixed_interval": "",
+      "interval": "",
       "links": [],
       "options": {
         "showHeader": true,
@@ -3838,7 +3836,7 @@
               "field": "Arrival Date (UTC)",
               "id": "6",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 1,
                 "trimEdges": 0
               },
@@ -4811,12 +4809,7 @@
   "refresh": "10s",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [
-    "DKIM",
-    "SPF",
-    "DMARC",
-    "Email"
-  ],
+  "tags": ["DKIM", "SPF", "DMARC", "Email"],
   "templating": {
     "list": [
       {
@@ -4932,17 +4925,7 @@
       "2h",
       "1d"
     ],
-    "time_options": [
-      "5m",
-      "15m",
-      "1h",
-      "6h",
-      "12h",
-      "24h",
-      "2d",
-      "7d",
-      "30d"
-    ]
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
   },
   "timezone": "",
   "title": "DMARC Reports",
