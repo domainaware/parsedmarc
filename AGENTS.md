@@ -224,16 +224,12 @@ The author's "cold re-read" is never cold — it confirms the model the author a
 
 ## Releases
 
-A release isn't done until built artifacts are attached to the GitHub release page. Full sequence:
-
-1. Bump version in `parsedmarc/constants.py`; rename `CHANGELOG.md`'s `## Unreleased` heading to the new version number (these two edits always land together, in the release PR only). Feature/fix PRs accumulate their entries under `## Unreleased` and never touch `constants.py` or pick a version number — choosing the number is a release-time decision.
-2. Commit on a feature branch, open a PR, merge to master.
-3. `git fetch && git checkout master && git pull`.
-4. `git tag -a <version> -m "<version>" <sha>` and `git push origin <version>`.
-5. `rm -rf dist && hatch build`. Verify `git describe --tags --exact-match` matches the tag.
-6. `gh release create <version> --title "<version>" --notes-file <notes>`.
-7. `gh release upload <version> dist/parsedmarc-<version>.tar.gz dist/parsedmarc-<version>-py3-none-any.whl`.
-8. Confirm `gh release view <version> --json assets` shows both the sdist and the wheel before considering the release complete.
+- **CRITICAL: Never make a release without the explicit permission of the maintainer.** That includes every action that starts or advances a release: pushing a version tag, creating a GitHub Release, publishing to PyPI, or merging a release branch. Preparing release changes on a branch is fine; triggering the release itself requires the maintainer to say so, each time.
+- Feature/fix PRs accumulate their entries under `CHANGELOG.md`'s `## Unreleased` heading and never touch `parsedmarc/constants.py` or pick a version number — choosing the number is a release-time decision. The release PR bumps the version in `parsedmarc/constants.py` and renames `## Unreleased` to the version number; these two edits always land together, and only in the release PR.
+- Releases are automated by `.github/workflows/release.yml`. Once the release PR merges, push an annotated tag matching the version (e.g. `10.5.0`, no `v` prefix): `git tag -a <version> -m "<version>" <sha> && git push origin <version>`. The tag push runs the full CI suite (reused from `python-tests.yml` via `workflow_call`), and only if it passes: builds the package (failing if the tag doesn't match the version in `parsedmarc/constants.py`), publishes it to PyPI via Trusted Publishing, creates a GitHub Release (notes taken from the tag's `CHANGELOG.md` section, failing if none exists, with the built distributions attached), builds and pushes the multi-arch Docker image to ghcr.io, and deploys the Sphinx docs to GitHub Pages.
+- A release isn't done until the Release workflow run is fully green: PyPI shows the new version, the GitHub Release has both the sdist and wheel attached, and the ghcr.io image tags exist.
+- Docs deployment lives in `.github/workflows/docs.yml`, which release.yml calls. For documentation-only updates between releases, the maintainer can run it on demand (Actions → Docs → Run workflow). Like releases, on-demand docs deployment is a maintainer-permission action — see the CRITICAL rule above.
+- The pipeline rests on one-time repo/PyPI configuration; if a release fails in an unexpected place, check these before debugging the workflows: a PyPI Trusted Publisher for the `parsedmarc` project (owner `domainaware`, repo `parsedmarc`, workflow `release.yml`, environment `pypi`), the repo's Pages source set to "GitHub Actions" (not the legacy `gh-pages` branch), and the `github-pages` environment's deployment policy allowing version *tags* — release.yml calls docs.yml from a `refs/tags/*` ref, so a branch-only policy fails that deployment.
 
 ## Maintaining the reverse DNS maps
 
