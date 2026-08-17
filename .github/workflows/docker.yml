@@ -4,6 +4,9 @@ permissions:
   contents: read
 
 on:
+  # Backstop for a manually-created release: releases created by the Release
+  # workflow itself never emit this event (see the workflow_call comment
+  # below), so in the normal flow the push happens via workflow_call instead.
   release:
     types:
       - published
@@ -13,6 +16,16 @@ on:
   # Allow maintainers to build/validate the multi-arch image on demand
   # (e.g. from a feature branch) without pushing anything to the registry.
   workflow_dispatch:
+  # Called directly by the Release workflow, since a GitHub Release created
+  # with that workflow's own GITHUB_TOKEN does not emit a `release:
+  # published` event (GitHub recursion prevention), so the trigger above
+  # never fires for it.
+  workflow_call:
+    inputs:
+      push_image:
+        description: "Push the built image to ghcr.io (used by the Release workflow)"
+        type: boolean
+        default: false
 
 env:
   REGISTRY: ghcr.io
@@ -49,10 +62,12 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Log in to the Container registry
-        # Only authenticate when we will actually push (release). The master
-        # push and workflow_dispatch runs build for validation only and must
-        # never touch the registry, so they skip the login entirely.
-        if: github.event_name == 'release'
+        # Only authenticate when we will actually push: a published release
+        # event, or the Release workflow calling this with push_image: true
+        # (see the workflow_call comment above). The master push and
+        # workflow_dispatch runs build for validation only and must never
+        # touch the registry, so they skip the login entirely.
+        if: github.event_name == 'release' || inputs.push_image == true
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -64,9 +79,10 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          # Push only on a published release. Every other trigger (push to
+          # Push on a published release event, or when the Release workflow
+          # calls this with push_image: true. Every other trigger (push to
           # master, workflow_dispatch) builds both architectures for
           # validation but never pushes.
-          push: ${{ github.event_name == 'release' }}
-          tags:  ${{ steps.meta.outputs.tags }}
+          push: ${{ github.event_name == 'release' || inputs.push_image == true }}
+          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

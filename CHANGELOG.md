@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- **Bumped the `mailsuite` floor to `>=2.3.0`**, which raises the transitive `mail-parser` floor to `>=4.6.2` and the transitive `cryptography` floor to `>=50.0.0`.
+- **Releases and docs deployment are now automated by a tag-triggered GitHub Actions workflow**: CI-gated build, PyPI publishing via Trusted Publishing, a GitHub Release with attached distributions, a Docker image push to ghcr.io, and a GitHub Pages docs deploy. The manual `build.sh` and `publish-docs.sh` scripts are removed.
+
 ## 10.4.1
 
 ### Bug fixes

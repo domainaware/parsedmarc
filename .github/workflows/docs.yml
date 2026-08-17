@@ -1,0 +1,56 @@
+name: Docs
+
+# Builds the Sphinx docs and deploys them to GitHub Pages.
+# Runs on demand (Actions → Docs → Run workflow) for documentation-only
+# updates between releases, and is called by release.yml on every release.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Build and deploy docs
+    runs-on: ubuntu-latest
+    concurrency:
+      group: github-pages-deploy
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # Job-level permissions replace (not merge with) the workflow-level
+    # grant, so contents: read must be repeated here for checkout.
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[build]
+
+      - name: Build docs
+        run: make -C docs html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/build/html
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
