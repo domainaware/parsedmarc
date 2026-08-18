@@ -7,14 +7,11 @@ import socket
 from typing import Any
 from urllib.parse import urlparse
 
-import requests
-import urllib3
+import httpx
 
 from parsedmarc.constants import USER_AGENT
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_unix_timestamp
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 class SplunkError(RuntimeError):
@@ -49,25 +46,26 @@ class HECClient(object):
                 data before giving up
         """
         parsed_url = urlparse(url)
-        self.url = "{0}://{1}/services/collector/event/1.0".format(
-            parsed_url.scheme, parsed_url.netloc
+        self.url = (
+            f"{parsed_url.scheme}://{parsed_url.netloc}/services/collector/event/1.0"
         )
         self.access_token = access_token.lstrip("Splunk ")
         self.index = index
         self.host = socket.getfqdn()
         self.source = source
-        self.session = requests.Session()
         self.timeout = timeout
         self.verify = verify
         self._common_data: dict[str, str | int | float | dict] = dict(
             host=self.host, source=self.source, index=self.index
         )
 
-        self.session.headers.update(
-            {
+        self.session = httpx.Client(
+            headers={
                 "User-Agent": USER_AGENT,
-                "Authorization": "Splunk {0}".format(self.access_token),
-            }
+                "Authorization": f"Splunk {self.access_token}",
+            },
+            verify=self.verify,
+            follow_redirects=True,
         )
 
     def save_aggregate_reports_to_splunk(
@@ -90,7 +88,7 @@ class HECClient(object):
             return
 
         data = self._common_data.copy()
-        json_str = ""
+        json_lines: list[str] = []
         for report in aggregate_reports:
             for record in report["records"]:
                 new_report: dict[str, str | int | float | dict] = dict()
@@ -122,18 +120,20 @@ class HECClient(object):
                     new_report["spf_results"] = record["auth_results"]["spf"]
 
                 data["sourcetype"] = "dmarc:aggregate"
+                # interval_begin is a UTC wall-clock string; assume_utc keeps
+                # it from being re-interpreted as local time on non-UTC hosts.
                 timestamp = human_timestamp_to_unix_timestamp(
-                    new_report["interval_begin"]
+                    new_report["interval_begin"], assume_utc=True
                 )
                 data["time"] = timestamp
                 data["event"] = new_report.copy()
-                json_str += "{0}\n".format(json.dumps(data))
+                json_lines.append(f"{json.dumps(data)}\n")
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+                self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
         except Exception as e:
@@ -159,7 +159,7 @@ class HECClient(object):
         if len(failure_reports) < 1:
             return
 
-        json_str = ""
+        json_lines: list[str] = []
         for report in failure_reports:
             data = self._common_data.copy()
             data["sourcetype"] = "dmarc:failure"
@@ -170,13 +170,13 @@ class HECClient(object):
             )
             data["time"] = timestamp
             data["event"] = report.copy()
-            json_str += "{0}\n".format(json.dumps(data))
+            json_lines.append(f"{json.dumps(data)}\n")
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+                self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
         except Exception as e:
@@ -203,19 +203,19 @@ class HECClient(object):
             return
 
         data = self._common_data.copy()
-        json_str = ""
+        json_lines: list[str] = []
         for report in reports:
             data["sourcetype"] = "smtp:tls"
             timestamp = human_timestamp_to_unix_timestamp(report["begin_date"])
             data["time"] = timestamp
             data["event"] = report.copy()
-            json_str += "{0}\n".format(json.dumps(data))
+            json_lines.append(f"{json.dumps(data)}\n")
 
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
             response = self.session.post(
-                self.url, data=json_str, verify=self.verify, timeout=self.timeout
+                self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
         except Exception as e:

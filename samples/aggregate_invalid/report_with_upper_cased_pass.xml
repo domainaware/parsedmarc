@@ -21,7 +21,7 @@
    <source_ip>23.104.41.189</source_ip>
    <count>1</count>
    <policy_evaluated>
-    <disposition>none</disposition>
+    <disposition>None</disposition>
     <dkim>Pass</dkim>
     <spf>Pass</spf>
    </policy_evaluated>

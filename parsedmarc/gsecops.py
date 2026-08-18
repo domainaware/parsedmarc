@@ -350,13 +350,9 @@ class GoogleSecOpsClient(object):
             raise GoogleSecOpsError(
                 "Invalid configuration. project_id and instance_id are required."
             )
-        parent = "projects/{0}/locations/{1}/instances/{2}".format(
-            project_id, region, instance_id
-        )
+        parent = f"projects/{project_id}/locations/{region}/instances/{instance_id}"
         self.url = (
-            "https://chronicle.{0}.rep.googleapis.com/v1/{1}/events:import".format(
-                region, parent
-            )
+            f"https://chronicle.{region}.rep.googleapis.com/v1/{parent}/events:import"
         )
         if credentials_file:
             credentials = service_account.Credentials.from_service_account_file(
@@ -388,15 +384,11 @@ class GoogleSecOpsClient(object):
             self._import_events(events[middle:])
             return
         if response.status_code == 400:
-            logger.error(
-                "Google SecOps rejected event {0}: {1}".format(events[0], response.text)
-            )
+            logger.error(f"Google SecOps rejected event {events[0]}: {response.text}")
             self._dropped += 1
             return
         raise GoogleSecOpsError(
-            "Import failed with HTTP {0}: {1}".format(
-                response.status_code, response.text
-            )
+            f"Import failed with HTTP {response.status_code}: {response.text}"
         )
 
     def save_events(self, events: list[dict[str, Any]]) -> None:
@@ -406,8 +398,8 @@ class GoogleSecOpsClient(object):
             self._import_events(events[start : start + _MAX_EVENTS_PER_BATCH])
         if self._dropped:
             raise GoogleSecOpsError(
-                "{0} of {1} events were rejected by Google SecOps "
-                "(see error log for details)".format(self._dropped, len(events))
+                f"{self._dropped} of {len(events)} events were rejected by Google SecOps "
+                "(see error log for details)"
             )
 
     def publish_results(
@@ -438,8 +430,6 @@ class GoogleSecOpsClient(object):
             for report in results["smtp_tls_reports"]:
                 events += smtp_tls_report_to_udm_events(report)
         if len(events) > 0:
-            logger.info(
-                "Publishing {0} UDM events to Google SecOps".format(len(events))
-            )
+            logger.info(f"Publishing {len(events)} UDM events to Google SecOps")
             self.save_events(events)
             logger.info("Successfully published UDM events to Google SecOps")

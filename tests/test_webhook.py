@@ -49,7 +49,7 @@ class TestWebhookClientSaveMethods(unittest.TestCase):
         client.session = MagicMock()
         client.save_aggregate_report_to_webhook('{"agg": 1}')
         client.session.post.assert_called_once_with(
-            "http://agg.example.com", data='{"agg": 1}', timeout=60
+            "http://agg.example.com", content='{"agg": 1}', timeout=60
         )
 
     def test_failure_posts_to_failure_url(self):
@@ -57,7 +57,7 @@ class TestWebhookClientSaveMethods(unittest.TestCase):
         client.session = MagicMock()
         client.save_failure_report_to_webhook('{"fail": 1}')
         client.session.post.assert_called_once_with(
-            "http://fail.example.com", data='{"fail": 1}', timeout=60
+            "http://fail.example.com", content='{"fail": 1}', timeout=60
         )
 
     def test_smtp_tls_posts_to_smtp_tls_url(self):
@@ -65,7 +65,21 @@ class TestWebhookClientSaveMethods(unittest.TestCase):
         client.session = MagicMock()
         client.save_smtp_tls_report_to_webhook('{"tls": 1}')
         client.session.post.assert_called_once_with(
-            "http://tls.example.com", data='{"tls": 1}', timeout=60
+            "http://tls.example.com", content='{"tls": 1}', timeout=60
+        )
+
+
+class TestWebhookClientDictPayload(unittest.TestCase):
+    """``_send_to_webhook`` accepts ``bytes | str | dict``. httpx only
+    form-encodes a dict via ``data=``; string/bytes payloads must use
+    ``content=`` since httpx's ``data=`` is form-encoding only."""
+
+    def test_dict_payload_uses_data_kwarg(self):
+        client = _client()
+        client.session = MagicMock()
+        client._send_to_webhook("http://agg.example.com", {"agg": 1})
+        client.session.post.assert_called_once_with(
+            "http://agg.example.com", data={"agg": 1}, timeout=60
         )
 
 

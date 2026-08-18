@@ -7,11 +7,13 @@ extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 
 import base64
 import gzip
+import inspect
 import json
 import logging
 import mailbox
 import os
 import unittest
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from glob import glob
 from io import BytesIO
@@ -19,13 +21,19 @@ from pathlib import Path
 from shutil import rmtree
 from tempfile import NamedTemporaryFile, mkdtemp
 from typing import BinaryIO, cast
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from lxml import etree  # type: ignore[import-untyped]
 
 import parsedmarc
-from parsedmarc.mail import MaildirConnection
-from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
+import parsedmarc.constants as constants
+from parsedmarc.mail import MaildirConnection, MSGraphConnection
+from parsedmarc.types import (
+    AggregateReport,
+    FailureReport,
+    ParsingResults,
+    SMTPTLSReport,
+)
 
 # Detect if running in GitHub Actions to skip DNS lookups
 OFFLINE_MODE = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
@@ -68,7 +76,7 @@ class Test(unittest.TestCase):
         file = "samples/extract_report/nice-input.xml"
         with open(file, "rb") as f:
             data = f.read()
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report(data)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = f.read()
@@ -79,7 +87,7 @@ class Test(unittest.TestCase):
         """Test extract report function for XML input"""
         print()
         file = "samples/extract_report/nice-input.xml"
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = f.read()
@@ -98,7 +106,7 @@ class Test(unittest.TestCase):
         """Test extract report function for gzip input"""
         print()
         file = "samples/extract_report/nice-input.xml.gz"
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = f.read()
@@ -109,7 +117,7 @@ class Test(unittest.TestCase):
         """Test extract report function for zip input"""
         print()
         file = "samples/extract_report/nice-input.xml.zip"
-        print("Testing {0}: ".format(file), end="")
+        print(f"Testing {file}: ", end="")
         xmlout = parsedmarc.extract_report_from_file_path(file)
         with open("samples/extract_report/nice-input.xml") as f:
             xmlin = minify_xml(f.read())
@@ -150,7 +158,7 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 result = parsedmarc.parse_report_file(
                     sample_path, always_use_local_files=True, offline=OFFLINE_MODE
@@ -160,6 +168,25 @@ class Test(unittest.TestCase):
                     cast(AggregateReport, result["report"])
                 )
             print("Passed!")
+
+    def testAggregateResultWordsAreLowercase(self):
+        """Reporter-supplied result words are lowercased at ingest; RFC 7489
+        Appendix C and RFC 9990 define the result and disposition types as
+        lowercase enum tokens (issue #288).
+        """
+        result = parsedmarc.parse_report_file(
+            "samples/aggregate_invalid/report_with_upper_cased_pass.xml",
+            offline=True,
+        )
+        assert result["report_type"] == "aggregate"
+        report = cast(AggregateReport, result["report"])
+        record = report["records"][0]
+
+        self.assertEqual(record["policy_evaluated"]["dkim"], "pass")
+        self.assertEqual(record["policy_evaluated"]["spf"], "pass")
+        self.assertEqual(record["auth_results"]["dkim"][0]["result"], "pass")
+        self.assertEqual(record["auth_results"]["spf"][0]["result"], "pass")
+        self.assertEqual(record["policy_evaluated"]["disposition"], "none")
 
     def testEmptySample(self):
         """Test empty/unparasable report"""
@@ -171,7 +198,7 @@ class Test(unittest.TestCase):
         print()
         sample_paths = glob("samples/failure/*.eml")
         for sample_path in sample_paths:
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 with open(sample_path) as sample_file:
                     sample_content = sample_file.read()
@@ -185,6 +212,18 @@ class Test(unittest.TestCase):
                     cast(FailureReport, result["report"])
                 )
             print("Passed!")
+
+    def testFailureSampleWithoutFeedbackReportPart(self):
+        """A plain-text-only failure report (no message/feedback-report part)
+        must still contain every field the Elasticsearch/OpenSearch outputs
+        access with hard key lookups (issue #332)"""
+        sample_path = "samples/failure/exim_plain_text_only_no_arf_part.eml"
+        result = parsedmarc.parse_report_file(sample_path, offline=OFFLINE_MODE)
+        assert result["report_type"] == "failure"
+        report = cast(FailureReport, result["report"])
+        assert report["feedback_type"] == "auth-failure"
+        assert "authentication_results" in report
+        assert report["source"]["ip_address"] == "203.0.113.68"
 
     def testFailureReportBackwardCompat(self):
         """Test that old forensic function aliases still work"""
@@ -209,7 +248,7 @@ class Test(unittest.TestCase):
         """Test parsing the sample report from RFC 9990 Appendix B"""
         print()
         sample_path = "samples/aggregate/rfc9990-sample.xml"
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         result = parsedmarc.parse_report_file(
             sample_path, always_use_local_files=True, offline=True
         )
@@ -287,7 +326,7 @@ class Test(unittest.TestCase):
         sample_path = (
             "samples/aggregate/example.net!example.com!1529366400!1529452799.xml"
         )
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         result = parsedmarc.parse_report_file(
             sample_path, always_use_local_files=True, offline=True
         )
@@ -314,7 +353,7 @@ class Test(unittest.TestCase):
             "samples/aggregate/"
             "rfc9990-example.net!example.com!1700000000!1700086399.xml"
         )
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         result = parsedmarc.parse_report_file(
             sample_path, always_use_local_files=True, offline=True
         )
@@ -554,7 +593,7 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 result = parsedmarc.parse_report_file(sample_path, offline=OFFLINE_MODE)
                 assert result["report_type"] == "smtp_tls"
@@ -713,7 +752,9 @@ class Test(unittest.TestCase):
             "auth_results": {"dkim": [], "spf": []},
         }
         with self.assertRaises(ValueError):
-            parsedmarc._parse_report_record(record, offline=True)
+            parsedmarc._parse_report_record(
+                record, config=parsedmarc.ParserConfig(offline=True)
+            )
 
     def testParseReportRecordMissingDkimSpf(self):
         """Record with missing dkim/spf auth results defaults correctly"""
@@ -730,7 +771,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["auth_results"]["dkim"], [])
         self.assertEqual(result["auth_results"]["spf"], [])
 
@@ -750,7 +793,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         reasons = result["policy_evaluated"]["policy_override_reasons"]
         self.assertEqual(len(reasons), 1)
         self.assertEqual(reasons[0]["type"], "forwarded")
@@ -775,7 +820,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         reasons = result["policy_evaluated"]["policy_override_reasons"]
         self.assertEqual(len(reasons), 2)
         self.assertEqual(reasons[0]["comment"], "relay")
@@ -799,7 +846,9 @@ class Test(unittest.TestCase):
             },
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertIn("identifiers", result)
         self.assertEqual(result["identifiers"]["header_from"], "example.com")
 
@@ -821,7 +870,9 @@ class Test(unittest.TestCase):
                 "spf": [],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         dkim = result["auth_results"]["dkim"][0]
         self.assertEqual(dkim["selector"], "none")
         self.assertEqual(dkim["result"], "none")
@@ -845,7 +896,9 @@ class Test(unittest.TestCase):
                 "spf": {"domain": "example.com"},
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         spf = result["auth_results"]["spf"][0]
         self.assertEqual(spf["scope"], "mfrom")
         self.assertEqual(spf["result"], "none")
@@ -883,7 +936,9 @@ class Test(unittest.TestCase):
                 ],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["auth_results"]["dkim"][0]["human_result"], "good key")
         self.assertEqual(
             result["auth_results"]["spf"][0]["human_result"], "sender valid"
@@ -909,7 +964,9 @@ class Test(unittest.TestCase):
                 ],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["identifiers"]["envelope_from"], "bounce.example.com")
 
     def testParseReportRecordEnvelopeFromNullFallback(self):
@@ -935,7 +992,9 @@ class Test(unittest.TestCase):
                 ],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["identifiers"]["envelope_from"], "spf.example.com")
 
     def testParseReportRecordEnvelopeFromNullNoSpfDomain(self):
@@ -962,7 +1021,9 @@ class Test(unittest.TestCase):
                 "spf": [{"scope": "mfrom", "result": "pass"}],
             },
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertIsNone(result["identifiers"]["envelope_from"])
 
     def testParseReportRecordEnvelopeTo(self):
@@ -984,7 +1045,9 @@ class Test(unittest.TestCase):
             },
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertEqual(result["identifiers"]["envelope_to"], "recipient@example.com")
 
     def testParseReportRecordAlignment(self):
@@ -1002,7 +1065,9 @@ class Test(unittest.TestCase):
             "identifiers": {"header_from": "example.com"},
             "auth_results": {"dkim": [], "spf": []},
         }
-        result = parsedmarc._parse_report_record(record, offline=True)
+        result = parsedmarc._parse_report_record(
+            record, config=parsedmarc.ParserConfig(offline=True)
+        )
         self.assertTrue(result["alignment"]["dkim"])
         self.assertFalse(result["alignment"]["spf"])
         self.assertTrue(result["alignment"]["dmarc"])
@@ -1758,7 +1823,7 @@ class Test(unittest.TestCase):
         """parse_aggregate_report_file parses bytes input directly"""
         print()
         sample_path = "samples/aggregate/rfc9990-sample.xml"
-        print("Testing {0}: ".format(sample_path), end="")
+        print(f"Testing {sample_path}: ", end="")
         with open(sample_path, "rb") as f:
             data = f.read()
         report = parsedmarc.parse_aggregate_report_file(
@@ -1777,7 +1842,7 @@ class Test(unittest.TestCase):
         for sample_path in sample_paths:
             if os.path.isdir(sample_path):
                 continue
-            print("Testing {0}: ".format(sample_path), end="")
+            print(f"Testing {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 parsed_report = cast(
                     AggregateReport,
@@ -1802,7 +1867,7 @@ class Test(unittest.TestCase):
         print()
         sample_paths = glob("samples/failure/*.eml")
         for sample_path in sample_paths:
-            print("Testing CSV for {0}: ".format(sample_path), end="")
+            print(f"Testing CSV for {sample_path}: ", end="")
             with self.subTest(sample=sample_path):
                 parsed_report = cast(
                     FailureReport,
@@ -1844,6 +1909,19 @@ class TestExtractReport(unittest.TestCase):
         compressed = gzip.compress(xml)
         result = parsedmarc.extract_report(compressed)
         self.assertIn("<feedback>", result)
+
+    def testExtractReportFromPlainJson(self):
+        """extract_report passes uncompressed JSON bytes through as text.
+
+        Regression test: MAGIC_JSON was written as b"\\7b", which Python
+        reads as the octal escape \\7 (BEL, 0x07) followed by a literal
+        "b" -- not 0x7B, the "{" every RFC 8259 JSON object begins with --
+        so plain JSON was rejected as "Not a valid zip, gzip, json, or
+        xml file". Every in-tree caller pre-guarded with its own zip/gzip
+        or "{" check, which masked the dead branch."""
+        json_bytes = b'{"organization-name": "Example"}'
+        result = parsedmarc.extract_report(json_bytes)
+        self.assertEqual(result, '{"organization-name": "Example"}')
 
     def testExtractReportFromZip(self):
         """extract_report handles zip compressed content"""
@@ -2728,6 +2806,295 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
             os.remove(path)
 
 
+class TestGetDmarcReportsFromMboxParallel(unittest.TestCase):
+    """n_procs=1 vs n_procs=2 parity for get_dmarc_reports_from_mbox, driven
+    against a real mbox file built from real sample emails (offline parsing,
+    no mocks of parsedmarc internals): one aggregate, one failure, one
+    SMTP TLS report, a duplicate copy of the aggregate, and a junk message
+    that isn't a report at all.
+
+    Confirms the parallel branch classifies and dedups identically to the
+    sequential branch, and that the junk message produces a warning log
+    instead of raising -- both branches must only catch InvalidDMARCReport
+    (a ParserError subclass) around a single message and continue, since a
+    bare ParserError is deliberately re-raised (see the n_procs > 1 branch
+    of get_dmarc_reports_from_mbox, which mirrors the sequential branch's
+    `except InvalidDMARCReport` scope).
+    """
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+    JUNK = b"From: noise@example.com\nSubject: not a report\n\nplain text\n"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self._path = os.path.join(self._tmp, "reports.mbox")
+        box = mailbox.mbox(self._path)
+        box.lock()
+        try:
+            # AGGREGATE appears twice: dedup must collapse it to one report.
+            for source in (self.AGGREGATE, self.FAILURE, self.SMTP_TLS, self.AGGREGATE):
+                with open(source, "rb") as source_file:
+                    box.add(mailbox.mboxMessage(source_file.read()))
+            box.add(mailbox.mboxMessage(self.JUNK))
+            box.flush()
+        finally:
+            box.unlock()
+        box.close()
+
+    @staticmethod
+    def _aggregate_report_ids(results):
+        return {r["report_metadata"]["report_id"] for r in results["aggregate_reports"]}
+
+    def test_parallel_matches_sequential(self):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as sequential_logs:
+            sequential = parsedmarc.get_dmarc_reports_from_mbox(
+                self._path, offline=True, n_procs=1
+            )
+
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as parallel_logs:
+            parallel = parsedmarc.get_dmarc_reports_from_mbox(
+                self._path, offline=True, n_procs=2
+            )
+
+        # Dedup collapsed the duplicate aggregate to a single report, and
+        # both branches picked the same report.
+        self.assertEqual(len(sequential["aggregate_reports"]), 1)
+        self.assertEqual(len(parallel["aggregate_reports"]), 1)
+        self.assertEqual(
+            self._aggregate_report_ids(sequential), self._aggregate_report_ids(parallel)
+        )
+
+        # Same failure/smtp_tls counts in both branches.
+        self.assertEqual(len(sequential["failure_reports"]), 1)
+        self.assertEqual(len(parallel["failure_reports"]), 1)
+        self.assertEqual(len(sequential["smtp_tls_reports"]), 1)
+        self.assertEqual(len(parallel["smtp_tls_reports"]), 1)
+
+        # The junk message warned in both branches without raising.
+        self.assertTrue(
+            any("not a valid report" in line for line in sequential_logs.output),
+            sequential_logs.output,
+        )
+        self.assertTrue(
+            any("not a valid report" in line for line in parallel_logs.output),
+            parallel_logs.output,
+        )
+
+
+class TestCentralizedConfig(unittest.TestCase):
+    """Regression coverage for the centralize-config-503 refactor
+    (parsedmarc/config.py's ``ParserConfig``): the kwargs-style public API
+    must keep observing/mutating the same module-default caches it always
+    has (via ``_resolve_config`` injecting ``IP_ADDRESS_CACHE`` /
+    ``SEEN_AGGREGATE_REPORT_IDS`` / ``REVERSE_DNS_MAP`` rather than letting
+    a fresh ``ParserConfig()`` default-factory hand back empty ones), an
+    explicit ``config=`` must win over individual option keyword arguments
+    when both are given, and the DNS-timeout/retry/normalize-threshold
+    defaults must stay consistent between each public function's own
+    signature and ``ParserConfig``'s field defaults.
+    """
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+
+    def _build_single_aggregate_mbox(self) -> str:
+        """Builds a temporary mbox containing one copy of AGGREGATE."""
+        tmp = mkdtemp()
+        self.addCleanup(rmtree, tmp, ignore_errors=True)
+        path = os.path.join(tmp, "reports.mbox")
+        box = mailbox.mbox(path)
+        box.lock()
+        try:
+            with open(self.AGGREGATE, "rb") as source_file:
+                box.add(mailbox.mboxMessage(source_file.read()))
+            box.flush()
+        finally:
+            box.unlock()
+        box.close()
+        return path
+
+    def test_kwargs_path_uses_module_default_caches_not_fresh_ones(self):
+        """Regression guard for _resolve_config: calling
+        get_dmarc_reports_from_mbox with plain kwargs (no config=) twice in
+        a row over the same mbox must dedup the second run's aggregate
+        report against the first run's, because both calls must resolve to
+        the SAME module-default parsedmarc.SEEN_AGGREGATE_REPORT_IDS cache.
+        If _resolve_config ever let the kwargs path fall through to
+        ParserConfig's default_factory instead of explicitly injecting the
+        module-default caches, each call would get a fresh, empty cache and
+        this dedup would silently stop working.
+        """
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        path = self._build_single_aggregate_mbox()
+
+        first = parsedmarc.get_dmarc_reports_from_mbox(path, offline=True)
+        second = parsedmarc.get_dmarc_reports_from_mbox(path, offline=True)
+
+        self.assertEqual(len(first["aggregate_reports"]), 1)
+        self.assertEqual(len(second["aggregate_reports"]), 0)
+
+        report_metadata = first["aggregate_reports"][0]["report_metadata"]
+        report_key = f"{report_metadata['org_name']}_{report_metadata['report_id']}"
+        self.assertIn(report_key, parsedmarc.SEEN_AGGREGATE_REPORT_IDS)
+
+    def test_kwargs_and_config_equivalence(self):
+        """parse_report_file must produce identical results whether called
+        with individual option keyword arguments or an equivalent explicit
+        ParserConfig, for one sample of each report type. None of these
+        paths touch dedup (that's only in _classify_parsed_email /
+        get_dmarc_reports_from_mbox / get_dmarc_reports_from_mailbox), so
+        no cache clearing is needed between calls.
+        """
+        sample_paths = [
+            "samples/aggregate/rfc9990-sample.xml",
+            "samples/failure/dmarc_ruf_report_linkedin.eml",
+            "samples/smtp_tls/google.com_smtp_tls_report.eml",
+        ]
+        for sample_path in sample_paths:
+            with self.subTest(sample=sample_path):
+                kwargs_result = parsedmarc.parse_report_file(
+                    sample_path, offline=True, always_use_local_files=True
+                )
+                config_result = parsedmarc.parse_report_file(
+                    sample_path,
+                    config=parsedmarc.ParserConfig(
+                        offline=True, always_use_local_files=True
+                    ),
+                )
+                self.assertEqual(kwargs_result, config_result)
+
+    def test_config_wins_over_kwargs_normalize_threshold(self):
+        """When both config= and normalize_timespan_threshold_hours= are
+        given, the config's value must win -- per the documented contract,
+        an explicit config makes the individual option kwargs inert.
+
+        samples/aggregate/ikea.com!example.de!1538690400!1538776800.xml
+        spans exactly 86400 seconds (24h), so a 1.0-hour threshold
+        normalizes it and a 1000-hour threshold does not; this makes the
+        config-vs-kwarg outcome observable in normalized_timespan.
+        """
+        sample_path = "samples/aggregate/ikea.com!example.de!1538690400!1538776800.xml"
+        with open(sample_path, "rb") as f:
+            data = f.read()
+
+        # Config's high threshold must win over the kwarg's low threshold:
+        # the report must NOT be normalized.
+        report = parsedmarc.parse_aggregate_report_file(
+            data,
+            offline=True,
+            config=parsedmarc.ParserConfig(
+                offline=True, normalize_timespan_threshold_hours=1000.0
+            ),
+            normalize_timespan_threshold_hours=1.0,
+        )
+        for record in report["records"]:
+            self.assertFalse(record["normalized_timespan"])  # type: ignore[typeddict-item]
+
+        # Converse: config's low threshold must win over the kwarg's high
+        # threshold: the report MUST be normalized.
+        report = parsedmarc.parse_aggregate_report_file(
+            data,
+            offline=True,
+            config=parsedmarc.ParserConfig(
+                offline=True, normalize_timespan_threshold_hours=1.0
+            ),
+            normalize_timespan_threshold_hours=1000.0,
+        )
+        for record in report["records"]:
+            self.assertTrue(record["normalized_timespan"])  # type: ignore[typeddict-item]
+
+    def test_separate_configs_isolate_dedup_state(self):
+        """Two independently constructed ParserConfig(offline=True)
+        instances must NOT share dedup state (each has its own
+        seen_aggregate_report_ids cache), but reusing the SAME instance
+        across two calls must dedup, exactly like the module-default-cache
+        kwargs path does.
+        """
+        path = self._build_single_aggregate_mbox()
+
+        cfg_a = parsedmarc.ParserConfig(offline=True)
+        cfg_b = parsedmarc.ParserConfig(offline=True)
+        result_a = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_a)
+        result_b = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_b)
+        self.assertEqual(len(result_a["aggregate_reports"]), 1)
+        self.assertEqual(len(result_b["aggregate_reports"]), 1)
+
+        cfg_c = parsedmarc.ParserConfig(offline=True)
+        first = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_c)
+        second = parsedmarc.get_dmarc_reports_from_mbox(path, config=cfg_c)
+        self.assertEqual(len(first["aggregate_reports"]), 1)
+        self.assertEqual(len(second["aggregate_reports"]), 0)
+
+    def test_dns_and_normalize_defaults_match_constants_and_parser_config(self):
+        """DNS timeout/retries and normalize-timespan-threshold defaults
+        must match parsedmarc.constants (the authoritative source --
+        DEFAULT_DNS_TIMEOUT, DEFAULT_DNS_MAX_RETRIES) and
+        parsedmarc.config.ParserConfig's own field defaults, across every
+        public function that accepts them.
+
+        Regression guard: before this refactor, get_dmarc_reports_from_mailbox
+        and watch_inbox each had a stray literal ``dns_timeout=6.0`` (instead
+        of ``DEFAULT_DNS_TIMEOUT == 2.0``) and
+        ``normalize_timespan_threshold_hours=24`` (an int, instead of the
+        float ``24.0`` used everywhere else) -- exactly the kind of drift
+        _resolve_config's shared construction path is meant to prevent from
+        silently reappearing.
+        """
+        functions_and_dns_params = [
+            (parsedmarc.parse_aggregate_report_xml, "timeout", "retries"),
+            (parsedmarc.parse_aggregate_report_file, "dns_timeout", "dns_retries"),
+            (parsedmarc.parse_failure_report, "dns_timeout", "dns_retries"),
+            (parsedmarc.parse_report_email, "dns_timeout", "dns_retries"),
+            (parsedmarc.parse_report_file, "dns_timeout", "dns_retries"),
+            (parsedmarc.get_dmarc_reports_from_mbox, "dns_timeout", "dns_retries"),
+            (
+                parsedmarc.get_dmarc_reports_from_mailbox,
+                "dns_timeout",
+                "dns_retries",
+            ),
+            (parsedmarc.watch_inbox, "dns_timeout", "dns_retries"),
+        ]
+
+        default_config = parsedmarc.ParserConfig()
+
+        for func, timeout_param, retries_param in functions_and_dns_params:
+            with self.subTest(func=func.__name__, param="dns"):
+                sig = inspect.signature(func)
+                timeout_default = sig.parameters[timeout_param].default
+                retries_default = sig.parameters[retries_param].default
+                self.assertEqual(timeout_default, constants.DEFAULT_DNS_TIMEOUT)
+                self.assertEqual(retries_default, constants.DEFAULT_DNS_MAX_RETRIES)
+                self.assertEqual(timeout_default, default_config.dns_timeout)
+                self.assertEqual(retries_default, default_config.dns_retries)
+
+        # parse_failure_report has no normalize_timespan_threshold_hours
+        # parameter -- normalization is an aggregate-report-only concept.
+        normalize_funcs = [
+            parsedmarc.parse_aggregate_report_xml,
+            parsedmarc.parse_aggregate_report_file,
+            parsedmarc.parse_report_email,
+            parsedmarc.parse_report_file,
+            parsedmarc.get_dmarc_reports_from_mbox,
+            parsedmarc.get_dmarc_reports_from_mailbox,
+            parsedmarc.watch_inbox,
+        ]
+        for func in normalize_funcs:
+            with self.subTest(func=func.__name__, param="normalize"):
+                sig = inspect.signature(func)
+                default = sig.parameters["normalize_timespan_threshold_hours"].default
+                self.assertEqual(default, 24.0)
+                self.assertIsInstance(default, float)
+                self.assertEqual(
+                    default, default_config.normalize_timespan_threshold_hours
+                )
+
+
 class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
     """Input validation on get_dmarc_reports_from_mailbox.
 
@@ -2746,6 +3113,38 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
             )
         self.assertIn("mutually exclusive", str(ctx.exception))
 
+    def test_inherited_delete_with_test_raises(self):
+        """The guard checks the effective per-type flags, so delete=True still
+        raises alongside test=True when only *one* per-type flag opts out --
+        the remaining three inherit the deletion."""
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=MagicMock(), delete=True, delete_aggregate=False, test=True
+            )
+        self.assertIn("mutually exclusive", str(ctx.exception))
+
+    def test_explicit_per_type_delete_with_test_raises(self):
+        """Each per-type delete flag on its own is enough to conflict with
+        test=True, with the overall delete option left False and the other
+        three flags explicitly False."""
+        for flag in (
+            "delete_aggregate",
+            "delete_failure",
+            "delete_smtp_tls",
+            "delete_invalid",
+        ):
+            with self.subTest(flag=flag):
+                with self.assertRaises(ValueError) as ctx:
+                    parsedmarc.get_dmarc_reports_from_mailbox(
+                        connection=MagicMock(),
+                        test=True,
+                        delete_aggregate=flag == "delete_aggregate",
+                        delete_failure=flag == "delete_failure",
+                        delete_smtp_tls=flag == "delete_smtp_tls",
+                        delete_invalid=flag == "delete_invalid",
+                    )
+                self.assertIn("mutually exclusive", str(ctx.exception))
+
     def test_none_connection_raises(self):
         with self.assertRaises(ValueError) as ctx:
             parsedmarc.get_dmarc_reports_from_mailbox(
@@ -2753,6 +3152,32 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
                 connection=None  # pyright: ignore[reportArgumentType]
             )
         self.assertIn("connection", str(ctx.exception).lower())
+
+    def test_negative_max_unsaved_retries_raises(self):
+        """max_unsaved_retries is user-configurable (INI/env/kwarg), so an
+        invalid negative value is rejected at the door with a clear error
+        instead of silently behaving like 0 (move to Unsaved on the first
+        failed save)."""
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=MagicMock(), max_unsaved_retries=-1
+            )
+        self.assertIn("max_unsaved_retries", str(ctx.exception))
+
+    def test_watch_inbox_negative_max_unsaved_retries_raises(self):
+        """watch_inbox validates before entering the watch loop: raised
+        inside a check, the ValueError would be swallowed and endlessly
+        retried by the IMAP and Maildir backends' per-check exception
+        handling instead of surfacing to the caller."""
+        conn = MagicMock()
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.watch_inbox(
+                mailbox_connection=conn,
+                callback=lambda batch: None,
+                max_unsaved_retries=-1,
+            )
+        self.assertIn("max_unsaved_retries", str(ctx.exception))
+        conn.watch.assert_not_called()
 
 
 class TestMigrateForensicArchiveFolderErrorHandling(unittest.TestCase):
@@ -2854,6 +3279,34 @@ class TestMigrateForensicArchiveFolderMaildir(unittest.TestCase):
         self.assertEqual(result["failure_reports"], [])
 
 
+class _FailingDisposalMaildirConnection(MaildirConnection):
+    """A MaildirConnection whose first disposal call fails.
+
+    Real mailbox backends can reject an individual delete or move (permission
+    denied, a UID that vanished, a dropped connection) while the rest of the
+    batch is still fine. Failing only the *first* call, then behaving
+    normally, is what makes that observable: the message the failure hit
+    stays put, and every message after it must still be disposed of.
+    """
+
+    def __init__(self, *args, fail_delete=False, fail_move=False, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._fail_delete = fail_delete
+        self._fail_move = fail_move
+
+    def delete_message(self, message_id):
+        if self._fail_delete:
+            self._fail_delete = False
+            raise RuntimeError("server said no")
+        super().delete_message(message_id)
+
+    def move_message(self, message_id, folder_name):
+        if self._fail_move:
+            self._fail_move = False
+            raise RuntimeError("server said no")
+        super().move_message(message_id, folder_name)
+
+
 class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
     """parsedmarc's real mailbox processing loop, end to end on an on-disk
     Maildir (mailsuite MaildirConnection, no mocks, offline parsing): fetch
@@ -2895,6 +3348,23 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         )
         return conn, result
 
+    def _assert_each_report_type_routed(self, conn, result):
+        """Shared assertions for one report of each type plus an
+        unparseable message: each is filed under the correct subfolder
+        (Aggregate / Failure / SMTP-TLS / Invalid) and the INBOX is
+        drained. Used by both the sequential and n_procs=2 variants below
+        so the two tests share their assertions instead of duplicating
+        them."""
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+
     def test_each_report_type_routed_to_its_archive_subfolder(self):
         """One report of each type plus an unparseable message: each is filed
         under the correct subfolder (Aggregate / Failure / SMTP-TLS / Invalid)
@@ -2906,15 +3376,20 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
 
         conn, result = self._run()
 
-        self.assertEqual(len(result["aggregate_reports"]), 1)
-        self.assertEqual(len(result["failure_reports"]), 1)
-        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self._assert_each_report_type_routed(conn, result)
 
-        self.assertEqual(conn.fetch_messages("INBOX"), [])
-        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
-        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
-        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
-        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+    def test_each_report_type_routed_to_its_archive_subfolder_parallel(self):
+        """Same scenario as above, with n_procs=2: fetching and archiving
+        stay sequential in the parent, but parsing runs in worker
+        processes. The routing outcome must be identical."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(n_procs=2)
+
+        self._assert_each_report_type_routed(conn, result)
 
     def test_delete_mode_removes_processed_messages(self):
         """delete=True: a parsed message is removed from the INBOX rather than
@@ -2928,6 +3403,130 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         # The Failure folder is created but nothing is filed there — deleted.
         self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
 
+    def test_delete_mode_removes_processed_messages_parallel(self):
+        """Same as above, with n_procs=2 and enough messages (>1) to take
+        the parallel branch: invalid-message disposition happens after the
+        parse phase for n_procs > 1 (see get_dmarc_reports_from_mailbox's
+        docstring), but the end result -- both messages gone from the
+        INBOX and nothing archived -- must match delete mode exactly."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(delete=True, n_procs=2)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+
+    def test_delete_aggregate_overrides_delete_false(self):
+        """delete_aggregate=True with delete left at its False default: only
+        the aggregate report message is deleted; the other two report types
+        (and the unparseable message) are still archived."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete_aggregate=True)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+
+    def test_delete_failure_false_overrides_delete_true(self):
+        """delete=True with delete_failure=False: failure report messages are
+        kept (archived) while every other message -- aggregate, SMTP TLS, and
+        the unparseable one, all inheriting delete=True -- is deleted. This is
+        the motivating case from issue #256."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete=True, delete_failure=False)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(conn.fetch_messages("Archive/SMTP-TLS"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Invalid"), [])
+
+    def test_delete_invalid_true_deletes_unparseable_messages(self):
+        """delete_invalid=True on its own: the unparseable message is deleted
+        while the parsed failure report is still archived."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete_invalid=True)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Invalid"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+
+    def test_delete_invalid_false_keeps_unparseable_when_delete_true(self):
+        """delete=True with delete_invalid=False: the unparseable message is
+        kept in Archive/Invalid for debugging while the parsed failure report
+        message is deleted."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(delete=True, delete_invalid=False)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+
+    def test_per_type_delete_flags_parallel(self):
+        """Same per-type semantics on the n_procs=2 branch, where
+        invalid-message disposition happens after the parse phase: the
+        failure report and the unparseable message are archived (both
+        explicitly False) while the aggregate report inherits delete=True and
+        is deleted."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.JUNK)
+
+        conn, result = self._run(
+            n_procs=2, delete=True, delete_failure=False, delete_invalid=False
+        )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+
+    def test_test_mode_allowed_when_all_delete_flags_explicitly_false(self):
+        """The test/delete guard fires on the *effective* per-type flags, so
+        delete=True alongside all four per-type flags explicitly False is
+        valid with test=True: nothing would be deleted. The message is parsed
+        and left in the INBOX."""
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(
+            delete=True,
+            delete_aggregate=False,
+            delete_failure=False,
+            delete_smtp_tls=False,
+            delete_invalid=False,
+            test=True,
+        )
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertFalse(conn.folder_exists("Archive/Failure"))
+
     def test_test_mode_parses_without_moving_or_creating_folders(self):
         """test=True: the report is parsed and returned, but the message stays
         in the INBOX and no archive folders are created/touched."""
@@ -2938,6 +3537,793 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self.assertEqual(len(result["failure_reports"]), 1)
         self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
         self.assertFalse(conn.folder_exists("Archive/Failure"))
+
+    def test_test_mode_parses_without_moving_or_creating_folders_parallel(self):
+        """Same as above, with n_procs=2 and enough messages (>1) to take
+        the parallel branch: test mode disposes of nothing regardless of
+        n_procs, so both messages stay put and no archive folders appear."""
+        self._deliver(self.FAILURE)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(test=True, n_procs=2)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+        self.assertFalse(conn.folder_exists("Archive/Failure"))
+        self.assertFalse(conn.folder_exists("Archive/Aggregate"))
+
+    def test_duplicate_aggregate_parallel_archives_both_messages(self):
+        """Delivering the same aggregate sample twice: dedup means the
+        parsed *results* contain only one aggregate report, but the
+        sequential caller appends a message's UID to the aggregate archive
+        list unconditionally -- including for the duplicate -- so BOTH
+        source messages still get archived to Aggregate. The n_procs=2
+        branch must match: the helper (_classify_parsed_email) owns the
+        dedup, but the caller appends the UID regardless of report_type
+        matching "aggregate", exactly as the sequential branch does."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(n_procs=2)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 2)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+
+    def test_delete_error_is_logged_and_disposal_continues(self):
+        """A backend that rejects one delete must not abort the disposal of
+        the remaining messages: the error is logged and the loop moves on to
+        the next report type. The aggregate message's delete fails, so it
+        stays in the INBOX, while the SMTP TLS message is still deleted."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.SMTP_TLS)
+        conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_delete=True
+        )
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            result = parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=conn, offline=True, delete=True
+            )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertTrue(
+            any(
+                "Mailbox error: Error deleting message UID" in line
+                for line in cm.output
+            ),
+            cm.output,
+        )
+        # Only the message whose delete raised is left behind.
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(conn.fetch_messages("Archive/SMTP-TLS"), [])
+
+    def test_move_error_is_logged_and_disposal_continues(self):
+        """The same for the archiving half of the disposal loop: a rejected
+        move is logged and the loop continues, so the aggregate message stays
+        in the INBOX while the SMTP TLS message still reaches its archive
+        subfolder."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.SMTP_TLS)
+        conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_move=True
+        )
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            result = parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=conn, offline=True
+            )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertTrue(
+            any(
+                "Mailbox error: Error moving message UID" in line for line in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+
+
+class _UncreatableFolderMaildirConnection(MaildirConnection):
+    """A MaildirConnection whose folder_exists() always fails.
+
+    Real backends can reject a folder listing (permissions, a dropped
+    connection, an IMAP server that dislikes the name). The Unsaved holding
+    folder's defensive pre-move check has to warn and carry on rather than
+    crash the run, which is only observable with a backend that fails it.
+    """
+
+    def folder_exists(self, folder_name: str) -> bool:
+        raise RuntimeError("server said no")
+
+
+class TestGetDmarcReportsFromMailboxMaildirSaveCallback(unittest.TestCase):
+    """The save_callback contract of get_dmarc_reports_from_mailbox, on the
+    same real on-disk Maildir harness as the class above (no mocks): a batch
+    is only archived or deleted once the callback confirms it was saved, and
+    a batch that keeps failing eventually moves to the Unsaved holding
+    folder instead of being retried forever (#242)."""
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+    JUNK = b"From: noise@example.com\nSubject: not a report\n\nplain text\n"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        # Both of these are module-global process state: a report "seen" by
+        # an earlier test would be dropped from this test's results, and a
+        # stale retry count would move messages to Unsaved early.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        parsedmarc._FAILED_SAVE_ATTEMPTS.clear()
+        self.addCleanup(parsedmarc._FAILED_SAVE_ATTEMPTS.clear)
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        self._inbox = mailbox.Maildir(self._maildir, create=True)
+
+    def _deliver(self, source):
+        if isinstance(source, str):
+            with open(source, "rb") as source_file:
+                raw = source_file.read()
+        else:
+            raw = source
+        self._inbox.add(mailbox.MaildirMessage(raw))
+        self._inbox.flush()
+
+    def _run(self, connection=None, **kwargs):
+        conn = connection or MaildirConnection(self._maildir, maildir_create=True)
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, **kwargs
+        )
+        return conn, result
+
+    @staticmethod
+    def _fail(batch):
+        del batch
+        return False
+
+    def test_failed_save_callback_leaves_messages_in_inbox(self):
+        """A save_callback returning False leaves the batch's messages in the
+        INBOX untouched, while the parsed reports are still returned to the
+        caller."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(save_callback=self._fail)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+        self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+
+    def test_failed_save_logs_an_error_naming_the_reports_folder(self):
+        """The retry is logged at error level, not debug or warning: an
+        output destination that keeps rejecting reports is something
+        operators alert on."""
+        self._deliver(self.AGGREGATE)
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            self._run(save_callback=self._fail)
+
+        self.assertTrue(
+            any(
+                "Reports were not saved: leaving 1 message(s) in INBOX" in line
+                for line in cm.output
+            ),
+            cm.output,
+        )
+
+    def test_failed_save_then_retry_is_not_deduplicated(self):
+        """A failed save must not poison the aggregate-report dedup cache:
+        the message stays in the INBOX and, on the next run, the same report
+        is parsed and handed to save_callback again rather than being
+        silently skipped as an already-seen duplicate."""
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(save_callback=self._fail)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+        received = []
+        conn, result = self._run(save_callback=received.append)
+
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+    def test_save_callback_exception_leaves_messages(self):
+        """An exception raised by save_callback counts as a failed save --
+        the batch's messages stay in the reports folder and the attempt is
+        recorded against the retry cap -- and is then re-raised to the
+        caller."""
+        self._deliver(self.AGGREGATE)
+
+        def _boom(batch):
+            del batch
+            raise RuntimeError("sink is down")
+
+        with self.assertRaises(RuntimeError):
+            self._run(save_callback=_boom)
+
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(len(parsedmarc._FAILED_SAVE_ATTEMPTS), 1)
+        # The dedup keys were staged, not committed, so the next run
+        # reparses the report instead of dropping it as a duplicate.
+        _, result = self._run(save_callback=None)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+
+    def test_save_callback_exception_still_bounded_by_the_retry_cap(self):
+        """A callback that always raises -- the CLI's does, under
+        fail_on_output_error -- is bounded by max_unsaved_retries exactly
+        like one that returns False: the failure bookkeeping runs before the
+        exception is re-raised, so the message moves to Archive/Unsaved at
+        the cap instead of being re-delivered on every check forever. This
+        matters because mailsuite's IMAP and Maildir watch loops swallow the
+        exception and keep checking."""
+        self._deliver(self.AGGREGATE)
+
+        def _boom(batch):
+            del batch
+            raise RuntimeError("sink is down")
+
+        with self.assertRaises(RuntimeError):
+            self._run(save_callback=_boom, max_unsaved_retries=0)
+
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+
+    def test_successful_save_callback_archives_messages(self):
+        """A save_callback returning None (or any non-False value) commits the
+        batch exactly as when no callback is supplied, and is handed that
+        batch's parsed reports before any archiving happens."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+        self._deliver(self.SMTP_TLS)
+
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        received = []
+
+        def _record(batch):
+            # Nothing has been archived yet at this point -- that is the
+            # whole contract: the caller gets to veto the archiving.
+            received.append((batch, len(conn.fetch_messages("INBOX"))))
+
+        _, result = self._run(connection=conn, save_callback=_record)
+
+        self.assertEqual(len(received), 1)
+        batch, inbox_count_at_callback_time = received[0]
+        self.assertEqual(len(batch["aggregate_reports"]), 1)
+        self.assertEqual(len(batch["failure_reports"]), 1)
+        self.assertEqual(len(batch["smtp_tls_reports"]), 1)
+        self.assertEqual(inbox_count_at_callback_time, 3)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+
+    def test_failed_save_callback_with_delete_does_not_delete(self):
+        """delete=True does not bypass the save_callback contract: a failed
+        save leaves the message in place instead of deleting it, since the
+        mailbox is the only remaining copy of the report."""
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(delete=True, save_callback=self._fail)
+
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+    def test_invalid_message_still_filed_when_save_fails(self):
+        """An unparseable message carries no report data, so nothing about it
+        can fail to save: it is filed to Archive/Invalid regardless of the
+        callback's verdict, and only the successfully parsed report's message
+        is held back."""
+        self._deliver(self.JUNK)
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(save_callback=self._fail)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+    def test_unsaved_folder_created_only_with_a_save_callback(self):
+        """The Unsaved holding folder is only reachable when a callback can
+        report a batch unsaved, so it is only created up front in that case
+        -- it would otherwise sit empty in every user's mailbox. The
+        without-callback half runs in a second, fresh Maildir: the first run
+        already created the folder in the shared one, so its absence is only
+        observable somewhere the callback never touched."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=lambda batch: None)
+        self.assertTrue(conn.folder_exists("Archive/Unsaved"))
+
+        other_maildir = os.path.join(self._tmp, "MaildirNoCallback")
+        other_inbox = mailbox.Maildir(other_maildir, create=True)
+        with open(self.FAILURE, "rb") as failure_file:
+            other_inbox.add(mailbox.MaildirMessage(failure_file.read()))
+        other_inbox.flush()
+        other_conn = MaildirConnection(other_maildir, maildir_create=True)
+        parsedmarc.get_dmarc_reports_from_mailbox(connection=other_conn, offline=True)
+        self.assertTrue(other_conn.folder_exists("Archive/Failure"))
+        self.assertFalse(other_conn.folder_exists("Archive/Unsaved"))
+
+    def test_repeated_failures_move_the_message_to_unsaved(self):
+        """With the default max_unsaved_retries of 2, a message stays in the
+        reports folder through its first failed save and the retry after it,
+        and moves to Archive/Unsaved on the third -- the initial attempt plus
+        two retries, so a permanently broken output destination receives the
+        same reports at most three times instead of forever."""
+        self._deliver(self.AGGREGATE)
+
+        for _ in range(2):
+            conn, _ = self._run(save_callback=self._fail)
+            self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+            self.assertEqual(conn.fetch_messages("Archive/Unsaved"), [])
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            conn, _ = self._run(save_callback=self._fail)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+        self.assertTrue(any("Archive/Unsaved" in line for line in cm.output), cm.output)
+
+    def test_max_unsaved_retries_zero_moves_on_the_first_failure(self):
+        """max_unsaved_retries=0 is valid and means "do not retry": the
+        message moves to Archive/Unsaved the first time its batch fails to
+        save."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=0)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_unsaved_messages_are_moved_not_deleted(self):
+        """A message that ran out of retries is moved to Unsaved even when
+        every delete flag says delete: it holds the only copy of a report
+        that was never saved anywhere, so deleting it is the one outcome
+        this feature exists to prevent."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(
+            save_callback=self._fail, max_unsaved_retries=0, delete=True
+        )
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_successful_save_clears_the_retry_counters(self):
+        """A successful save resets the batch's failure counts, so an
+        unrelated failure later starts from zero rather than inheriting a
+        near-cap count. The counters are asserted directly because the
+        messages they were counting are archived on success, taking their
+        own future behavior with them."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=self._fail)
+        self.assertEqual(len(parsedmarc._FAILED_SAVE_ATTEMPTS), 1)
+
+        conn, _ = self._run(save_callback=lambda batch: True)
+
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+    def test_test_mode_invokes_the_callback_without_touching_anything(self):
+        """test=True still runs the callback, so a test run exercises the
+        whole output pipeline, but neither the mailbox nor the retry
+        counters move regardless of the verdict -- even at
+        max_unsaved_retries=0, which would otherwise file the message under
+        Unsaved immediately."""
+        self._deliver(self.AGGREGATE)
+
+        received = []
+
+        def _record_and_fail(batch):
+            received.append(batch)
+            return False
+
+        conn = None
+        for _ in range(2):
+            conn, _ = self._run(
+                save_callback=_record_and_fail, max_unsaved_retries=0, test=True
+            )
+        assert conn is not None
+
+        self.assertEqual(len(received), 2)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertFalse(conn.folder_exists("Archive/Unsaved"))
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+
+    def test_unsaved_folder_is_created_when_folder_creation_was_skipped(self):
+        """Watch mode calls in with create_folders=False, so the Unsaved
+        folder may not exist by the time a message needs to go there. The
+        defensive check before the move creates it."""
+        self._deliver(self.AGGREGATE)
+        conn = MaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+
+        self._run(
+            connection=conn,
+            save_callback=self._fail,
+            max_unsaved_retries=0,
+            create_folders=False,
+        )
+
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_unsaved_folder_check_failure_is_logged_not_raised(self):
+        """A backend that cannot answer whether the Unsaved folder exists is
+        warned about and skipped rather than crashing the run; the move
+        itself is still attempted."""
+        self._deliver(self.AGGREGATE)
+        conn = _UncreatableFolderMaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            self._run(
+                connection=conn,
+                save_callback=self._fail,
+                max_unsaved_retries=0,
+                create_folders=False,
+            )
+
+        self.assertTrue(
+            any(
+                "Could not create folder Archive/Unsaved" in line for line in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+
+    def test_failed_move_to_unsaved_is_logged_and_leaves_the_message(self):
+        """A backend that rejects the move to Unsaved is logged like any
+        other mailbox error, and the message simply stays in the reports
+        folder -- it is never dropped."""
+        self._deliver(self.AGGREGATE)
+        conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_move=True
+        )
+
+        with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+            self._run(connection=conn, save_callback=self._fail, max_unsaved_retries=0)
+
+        self.assertTrue(
+            any(
+                "Mailbox error: Error moving message UID" in line for line in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Unsaved"), [])
+
+    def test_failed_move_keeps_the_counter_so_the_move_is_retried(self):
+        """A failed move to Unsaved must not reset the message's failure
+        counter: the still-in-place message would otherwise get a fresh set
+        of under-cap retries (and duplicate deliveries) each time the move
+        failed. With the counter kept, the next failed save classifies the
+        message over-cap again and re-attempts the move -- which succeeds
+        here once the backend allows it. Cap 1 makes the distinction
+        observable: were the counter reset by run 2's failed move, run 3
+        would count the message back under the cap and leave it in the
+        INBOX instead of moving it."""
+        self._deliver(self.AGGREGATE)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+
+        failing_conn = _FailingDisposalMaildirConnection(
+            self._maildir, maildir_create=True, fail_move=True
+        )
+        with self.assertLogs("parsedmarc.log", level="ERROR"):
+            self._run(
+                connection=failing_conn,
+                save_callback=self._fail,
+                max_unsaved_retries=1,
+            )
+        self.assertEqual(len(failing_conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(len(parsedmarc._FAILED_SAVE_ATTEMPTS), 1)
+
+        conn, _ = self._run(save_callback=self._fail, max_unsaved_retries=1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
+        self.assertEqual(parsedmarc._FAILED_SAVE_ATTEMPTS, {})
+
+    def test_failed_save_skips_the_batch_size_zero_re_check(self):
+        """With batch_size=0 the function re-checks the folder and recurses
+        on whatever is still there. After a failed save that would re-fetch
+        the very messages just held back and burn the whole retry budget
+        inside one call, so the re-check is skipped: one run costs a message
+        exactly one retry."""
+        self._deliver(self.AGGREGATE)
+
+        conn, result = self._run(
+            save_callback=self._fail, batch_size=0, max_unsaved_retries=1
+        )
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Unsaved"), [])
+
+    def test_save_callback_receives_each_batch_separately(self):
+        """batch_size=0 recursion hands each fetched batch to the callback on
+        its own, and each batch is archived before the next is fetched --
+        the callback never sees an earlier batch's reports twice, while the
+        returned results accumulate all of them."""
+        self._deliver(self.AGGREGATE)
+        conn = _MidRunArrivalMaildirConnection(
+            self._maildir, maildir_create=True, extra_source=self.SMTP_TLS
+        )
+        received = []
+
+        _, result = self._run(
+            connection=conn, save_callback=received.append, batch_size=0
+        )
+
+        self.assertEqual(len(received), 2)
+        self.assertEqual(len(received[0]["aggregate_reports"]), 1)
+        self.assertEqual(received[0]["smtp_tls_reports"], [])
+        self.assertEqual(received[1]["aggregate_reports"], [])
+        self.assertEqual(len(received[1]["smtp_tls_reports"]), 1)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+
+    def test_failed_save_callback_parallel(self):
+        """The n_procs>1 parsing branch stages its dedup keys and holds its
+        messages back exactly like the sequential one; only parsing moves to
+        the worker processes."""
+        self._deliver(self.AGGREGATE)
+        self._deliver(self.FAILURE)
+
+        conn, result = self._run(save_callback=self._fail, n_procs=2)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+
+        # The dedup keys were not committed, so a retry reparses.
+        conn, result = self._run(save_callback=None, n_procs=2)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+
+class _MidRunArrivalMaildirConnection(MaildirConnection):
+    """A MaildirConnection that delivers one extra message into the INBOX
+    right after its first fetch_messages() call returns, simulating mail
+    arriving while the first batch is being processed.
+
+    Used only to make get_dmarc_reports_from_mailbox's batch_size=0
+    tail-recursion branch (`if not test and not batch_size:`) actually
+    recurse once for real -- no parsedmarc internals are mocked, only this
+    real mailsuite MaildirConnection subclass's timing -- so the n_procs
+    pass-through in that recursive call is genuinely exercised rather than
+    merely inspected. The recursive call's own re-check then finds nothing
+    further (the extra message has already been archived), so recursion
+    terminates after one extra level -- cheap and deterministic.
+    """
+
+    def __init__(self, *args, extra_source, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._extra_source = extra_source
+        self._delivered_extra = False
+
+    def fetch_messages(self, reports_folder, **kwargs):
+        result = super().fetch_messages(reports_folder, **kwargs)
+        if not self._delivered_extra:
+            self._delivered_extra = True
+            with open(self._extra_source, "rb") as extra_file:
+                raw = extra_file.read()
+            box = mailbox.Maildir(self._maildir_path, create=False)
+            box.add(mailbox.MaildirMessage(raw))
+            box.flush()
+        return result
+
+
+class TestGetDmarcReportsFromMailboxMaildirBatchSizeZeroRecursion(unittest.TestCase):
+    """batch_size=0 makes get_dmarc_reports_from_mailbox re-check the
+    mailbox after its main pass and recurse if new messages showed up
+    (__init__.py's `if not test and not batch_size:` block). This exercises
+    that recursive call with n_procs=2 threaded through it for real."""
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        inbox = mailbox.Maildir(self._maildir, create=True)
+        for source in (self.AGGREGATE, self.FAILURE):
+            with open(source, "rb") as source_file:
+                inbox.add(mailbox.MaildirMessage(source_file.read()))
+        inbox.flush()
+
+    def test_batch_size_zero_recursion_threads_n_procs(self):
+        conn = _MidRunArrivalMaildirConnection(
+            self._maildir, maildir_create=True, extra_source=self.SMTP_TLS
+        )
+
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, n_procs=2, batch_size=0
+        )
+
+        # The main pass parses AGGREGATE + FAILURE; the message that "arrives"
+        # after the main pass's fetch is only found and parsed via the
+        # recursive re-check call, which would be missing from the results
+        # entirely if the n_procs kwarg (or anything else) were dropped from
+        # that recursive call.
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+
+    def test_batch_size_zero_recursion_threads_per_type_delete(self):
+        """The per-report-type delete flags must be threaded through the
+        recursive re-check call too. The SMTP TLS report only "arrives" after
+        the main pass's fetch, so it is disposed of by the recursive call: with
+        delete_smtp_tls=True it must be deleted, not archived. Dropping the
+        kwarg from the recursive call archives it instead and fails here."""
+        conn = _MidRunArrivalMaildirConnection(
+            self._maildir, maildir_create=True, extra_source=self.SMTP_TLS
+        )
+
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, batch_size=0, delete_smtp_tls=True
+        )
+
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(conn.fetch_messages("Archive/SMTP-TLS"), [])
+        # The types that inherit the (False) delete default are unaffected.
+        self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+
+
+class _SingleCheckMaildirConnection(MaildirConnection):
+    """A MaildirConnection whose watch() performs exactly one check.
+
+    mailsuite's own MaildirConnection.watch() loops forever (sleeping
+    check_timeout seconds between checks) and swallows every exception the
+    callback raises, so it cannot be driven from a test as-is. This override
+    keeps the same signature, invokes watch_inbox's check_callback once, lets
+    exceptions propagate, and returns -- so the real closure inside
+    watch_inbox runs against a real on-disk Maildir, with no parsedmarc
+    internals mocked.
+    """
+
+    def watch(
+        self,
+        check_callback: Callable[[parsedmarc.MailboxConnection], None],
+        check_timeout: int,
+        config_reloading: Callable[[], bool] | None = None,
+    ) -> None:
+        del check_timeout, config_reloading
+        check_callback(self)
+
+
+class TestWatchInboxMaildir(unittest.TestCase):
+    """watch_inbox builds a check_callback closure that calls
+    get_dmarc_reports_from_mailbox on every mailbox check. Everything watch
+    mode does to messages therefore flows through that closure, which is
+    reached only via the backend's watch() -- so it needs a connection whose
+    watch() actually runs one check (see _SingleCheckMaildirConnection)."""
+
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+    JUNK = b"From: noise@example.com\nSubject: not a report\n\nplain text\n"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        inbox = mailbox.Maildir(self._maildir, create=True)
+        with open(self.FAILURE, "rb") as failure_file:
+            inbox.add(mailbox.MaildirMessage(failure_file.read()))
+        inbox.add(mailbox.MaildirMessage(self.JUNK))
+        inbox.flush()
+
+    def test_watch_inbox_forwards_per_type_delete_flags(self):
+        """Trip-wire for the per-report-type delete flags on watch_inbox's
+        inner call: delete=True with delete_failure=False must archive the
+        failure report message while the unparseable message, inheriting
+        delete=True, is deleted. Dropping delete_failure from the closure
+        would silently delete the failure report message instead -- watch
+        mode ignoring what the caller asked for -- and fail here."""
+        conn = _SingleCheckMaildirConnection(self._maildir, maildir_create=True)
+        # watch_inbox passes create_folders=False (in real watch mode the
+        # archive folders already exist, created by the run's first pass), so
+        # the destination folder and its parent are seeded here.
+        conn.create_folder("Archive")
+        conn.create_folder("Archive/Failure")
+        received = []
+
+        parsedmarc.watch_inbox(
+            mailbox_connection=conn,
+            callback=received.append,
+            offline=True,
+            delete=True,
+            delete_failure=False,
+        )
+
+        # The results reach the callback through the same closure.
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["failure_reports"]), 1)
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Failure")), 1)
+        # delete_invalid inherited delete=True, so the unparseable message was
+        # deleted rather than filed in the Invalid subfolder.
+        self.assertFalse(conn.folder_exists("Archive/Invalid"))
+
+    def test_watch_inbox_callback_returning_false_defers_the_batch(self):
+        """watch_inbox's callback is the batch's save_callback, not a
+        notification that runs after archiving: returning False leaves the
+        failure report message in the INBOX for the next check. Before this
+        was wired through, watch mode archived every batch first and told the
+        callback afterward, which is the data-loss path of #242."""
+        parsedmarc._FAILED_SAVE_ATTEMPTS.clear()
+        self.addCleanup(parsedmarc._FAILED_SAVE_ATTEMPTS.clear)
+        conn = _SingleCheckMaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+        conn.create_folder("Archive/Invalid")
+        received = []
+
+        def _record_and_fail(batch):
+            received.append(batch)
+            return False
+
+        parsedmarc.watch_inbox(
+            mailbox_connection=conn,
+            callback=_record_and_fail,
+            offline=True,
+        )
+
+        self.assertEqual(len(received), 1)
+        self.assertEqual(len(received[0]["failure_reports"]), 1)
+        self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
+        self.assertEqual(conn.fetch_messages("Archive/Failure"), [])
+        # The unparseable message carries no report data and is filed either
+        # way, so only the report message is held back.
+        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+
+    def test_watch_inbox_forwards_max_unsaved_retries(self):
+        """max_unsaved_retries reaches the per-check mailbox call: with 0,
+        the first failed save in watch mode files the message under
+        Archive/Unsaved instead of leaving it for the next check."""
+        parsedmarc._FAILED_SAVE_ATTEMPTS.clear()
+        self.addCleanup(parsedmarc._FAILED_SAVE_ATTEMPTS.clear)
+        conn = _SingleCheckMaildirConnection(self._maildir, maildir_create=True)
+        conn.create_folder("Archive")
+        conn.create_folder("Archive/Invalid")
+
+        parsedmarc.watch_inbox(
+            mailbox_connection=conn,
+            callback=lambda batch: False,
+            offline=True,
+            max_unsaved_retries=0,
+        )
+
+        self.assertEqual(conn.fetch_messages("INBOX"), [])
+        self.assertEqual(len(conn.fetch_messages("Archive/Unsaved")), 1)
 
 
 class TestEmailResultsErrorBranches(unittest.TestCase):
@@ -2959,6 +4345,62 @@ class TestEmailResultsErrorBranches(unittest.TestCase):
                 # str, not list — triggers assert
                 mail_to="admin@example.com",  # pyright: ignore[reportArgumentType]
             )
+
+
+class TestEmailResultsViaMsGraph(unittest.TestCase):
+    """email_results_via_msgraph() shares its
+    subject/message/attachment-building logic with email_results() via the
+    extracted _build_report_email_content() helper, so both transports stay
+    in lockstep instead of drifting into two different sets of defaults."""
+
+    @staticmethod
+    def _results() -> ParsingResults:
+        return {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+
+    def testEmailResultsViaMsGraphBuildsSameContentAsEmailResults(self):
+        connection = MagicMock(spec=MSGraphConnection, mailbox_name="mb@example.com")
+        results = self._results()
+
+        parsedmarc.email_results_via_msgraph(results, connection, ["admin@example.com"])
+
+        connection.send_message.assert_called_once()
+        graph_kwargs = connection.send_message.call_args.kwargs
+
+        with patch("parsedmarc.send_email") as mock_send_email:
+            parsedmarc.email_results(
+                results,
+                host="smtp.example.com",
+                mail_from="from@example.com",
+                mail_to=["admin@example.com"],
+            )
+        mock_send_email.assert_called_once()
+        smtp_kwargs = mock_send_email.call_args.kwargs
+
+        self.assertEqual(graph_kwargs["subject"], smtp_kwargs["subject"])
+        self.assertEqual(graph_kwargs["plain_message"], smtp_kwargs["plain_message"])
+        self.assertEqual(
+            graph_kwargs["attachments"][0][0],
+            smtp_kwargs["attachments"][0][0],
+        )
+        self.assertEqual(graph_kwargs["message_to"], ["admin@example.com"])
+        self.assertEqual(graph_kwargs["message_from"], "mb@example.com")
+
+    def testEmailResultsViaMsGraphAppendsZipExtension(self):
+        connection = MagicMock(spec=MSGraphConnection, mailbox_name="mb@example.com")
+
+        parsedmarc.email_results_via_msgraph(
+            self._results(),
+            connection,
+            ["admin@example.com"],
+            attachment_filename="report",
+        )
+
+        graph_kwargs = connection.send_message.call_args.kwargs
+        self.assertEqual(graph_kwargs["attachments"][0][0], "report.zip")
 
 
 class TestAppendJson(unittest.TestCase):
@@ -3088,6 +4530,166 @@ class TestAppendCsv(unittest.TestCase):
         finally:
             if os.path.exists(path):
                 os.remove(path)
+
+
+def _minimal_aggregate_xml(
+    policy_published: str = (
+        "<policy_published><domain>example.com</domain><p>none</p></policy_published>"
+    ),
+    org_name: str = "TestOrg",
+    email: str = "test@example.com",
+    reason: str = "",
+) -> str:
+    """A minimal, valid aggregate report with substitutable sections."""
+    return f"""<?xml version="1.0"?>
+    <feedback>
+        <report_metadata>
+            <org_name>{org_name}</org_name>
+            <email>{email}</email>
+            <report_id>edge-case</report_id>
+            <date_range><begin>1704067200</begin><end>1704153599</end></date_range>
+        </report_metadata>
+        {policy_published}
+        <record>
+            <row>
+                <source_ip>192.0.2.1</source_ip>
+                <count>1</count>
+                <policy_evaluated>
+                    <disposition>none</disposition>
+                    <dkim>pass</dkim>
+                    <spf>pass</spf>
+                    {reason}
+                </policy_evaluated>
+            </row>
+            <identifiers><header_from>example.com</header_from></identifiers>
+            <auth_results>
+                <spf><domain>example.com</domain><result>pass</result></spf>
+            </auth_results>
+        </record>
+    </feedback>"""
+
+
+class TestAggregateReportEdgeCases(unittest.TestCase):
+    """Parsing edge cases for aggregate report XML documents."""
+
+    def testBytesInputIsDecoded(self):
+        """parse_aggregate_report_xml accepts bytes input"""
+        xml = _minimal_aggregate_xml().encode("utf-8")
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(report["report_metadata"]["report_id"], "edge-case")
+
+    def testPolicyPublishedListUsesFirstEntry(self):
+        """When a reporter emits multiple policy_published elements, the
+        first one is used"""
+        policies = (
+            "<policy_published><domain>example.com</domain><p>reject</p>"
+            "</policy_published>"
+            "<policy_published><domain>other.example</domain><p>none</p>"
+            "</policy_published>"
+        )
+        report = parsedmarc.parse_aggregate_report_xml(
+            _minimal_aggregate_xml(policy_published=policies), offline=True
+        )
+        self.assertEqual(report["policy_published"]["domain"], "example.com")
+        self.assertEqual(report["policy_published"]["p"], "reject")
+
+    def testUnknownPolicyOverrideTypeWarnsUnderRFC9990(self):
+        """An override reason type that RFC 9990 does not define (and RFC
+        7489 never defined) logs an 'Unknown policy override reason type'
+        warning; it is stored as-is. RFC 9990's PolicyOverrideType
+        enumeration is {local_policy, mailing_list, other,
+        policy_test_mode, trusted_forwarder}."""
+        policies = (
+            "<policy_published><domain>example.com</domain><p>none</p>"
+            "<np>none</np></policy_published>"
+        )
+        reason = "<reason><type>banana</type></reason>"
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            report = parsedmarc.parse_aggregate_report_xml(
+                _minimal_aggregate_xml(policy_published=policies, reason=reason),
+                offline=True,
+            )
+        self.assertTrue(
+            any(
+                "Unknown policy override reason type" in message
+                for message in cm.output
+            )
+        )
+        reasons = report["records"][0]["policy_evaluated"]["policy_override_reasons"]
+        self.assertEqual(reasons[0]["type"], "banana")
+
+    def testMissingOrgNameAndEmailIsInvalid(self):
+        """A report with empty org_name and email raises
+        InvalidAggregateReport, since org_name has no fallback source"""
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(
+                _minimal_aggregate_xml(org_name="", email=""), offline=True
+            )
+        self.assertIn("Organization name is missing", str(ctx.exception))
+
+    def testMalformedEmailAttributeOnlyIsDiscarded(self):
+        """An <email> element that xmltodict turns into an attributes-only
+        dict (no text) is discarded rather than crashing"""
+        xml = _minimal_aggregate_xml().replace(
+            "<email>test@example.com</email>", '<email xml:lang="en"></email>'
+        )
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIsNone(report["report_metadata"]["org_email"])
+
+
+class _NonSeekableStream:
+    """A minimal non-seekable stream, like sys.stdin / a socket file."""
+
+    def __init__(self, data):
+        self._data = data
+        self._pos = 0
+
+    def seekable(self):
+        return False
+
+    def read(self, size=-1):
+        if size < 0:
+            result = self._data[self._pos :]
+            self._pos = len(self._data)
+        else:
+            result = self._data[self._pos : self._pos + size]
+            self._pos += size
+        return result
+
+
+class _BrokenSeekableStream(_NonSeekableStream):
+    """A stream whose seekable() itself raises, as some wrapped streams do."""
+
+    def seekable(self):
+        raise OSError("stream does not support seekable()")
+
+
+class TestExtractReportStreams(unittest.TestCase):
+    """extract_report accepts file objects that cannot seek (stdin, pipes,
+    sockets) and must reject text-mode streams with a clear error."""
+
+    def testNonSeekableTextStreamRaisesParserError(self):
+        """A non-seekable text-mode stream raises ParserError instead of
+        failing later on a bytes/str mismatch"""
+        with open("samples/extract_report/nice-input.xml") as f:
+            text = f.read()
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.extract_report(cast(BinaryIO, _NonSeekableStream(text)))
+        self.assertIn("binary", str(ctx.exception))
+
+    def testNonSeekableBytesStreamIsExtracted(self):
+        """A non-seekable binary stream is buffered and extracted"""
+        with open("samples/extract_report/nice-input.xml", "rb") as f:
+            data = f.read()
+        result = parsedmarc.extract_report(cast(BinaryIO, _NonSeekableStream(data)))
+        self.assertIn("<feedback>", result)
+
+    def testStreamWithBrokenSeekableIsExtracted(self):
+        """A stream whose seekable() raises is treated as non-seekable"""
+        with open("samples/extract_report/nice-input.xml", "rb") as f:
+            data = f.read()
+        result = parsedmarc.extract_report(cast(BinaryIO, _BrokenSeekableStream(data)))
+        self.assertIn("<feedback>", result)
 
 
 if __name__ == "__main__":

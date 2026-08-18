@@ -266,9 +266,14 @@ else
     # 2001:db8::, etc.) that won't resolve, so cap retries/timeout to bound
     # the cost of those NXDOMAIN-bound lookups. Intentionally invalid samples
     # (empty_reason.xml, invalid_xml.xml, etc.) are skipped from the list.
+    # samples/aggregate/!large-example.com!1711897200!1711983600.xml is
+    # deliberately NOT seeded: its 2,286 synthetic records would be ~99% of
+    # the corpus, drowning the realistic mix on every unfiltered dashboard
+    # (and its records carry no envelope_from and empty SPF domains, so that
+    # column reads almost entirely blank). To load it for scale or backfill
+    # testing, run the seed command below manually with that file appended.
     SAMPLE_FILES=(
         samples/aggregate/!example.com!1538204542!1538463818.xml
-        samples/aggregate/!large-example.com!1711897200!1711983600.xml
         'samples/aggregate/Report domain- borschow.com Submitter- google.com Report-ID- 949348866075514174.eml'
         samples/aggregate/addisonfoods.com!example.com!1536105600!1536191999.xml
         samples/aggregate/estadocuenta1.infonacot.gob.mx!example.com!1536853302!1536939702!2940.xml.zip
@@ -340,6 +345,33 @@ curl -sS -X POST 'http://localhost:5602/api/saved_objects/_import?overwrite=true
     --form file=@dashboards/opensearch/opensearch_dashboards.ndjson | sed 's/^/  /'
 echo "  (imported into OSD tenant: ${OSD_TENANT})"
 
+log "Ensuring Grafana Elasticsearch datasource plugin is installed"
+# Grafana >= 13 no longer bundles the Elasticsearch datasource plugin, and
+# GF_INSTALL_PLUGINS cannot install it (the image ships a root-owned
+# plugins-bundled/elasticsearch remnant its background installer fails to
+# replace). `grafana cli` installs into /var/lib/grafana/plugins, which works;
+# a restart is needed for Grafana to load it.
+code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -o /dev/null -w "%{http_code}" \
+    "http://localhost:3000/api/plugins/elasticsearch/settings")
+if [ "$code" != "200" ]; then
+    "${COMPOSE[@]}" exec -T grafana grafana cli plugins install elasticsearch \
+        | sed 's/^/  /'
+    "${COMPOSE[@]}" restart grafana >/dev/null
+    wait_for "Grafana (after plugin install)" \
+        curl -sf http://localhost:3000/api/health
+    code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+        -o /dev/null -w "%{http_code}" \
+        "http://localhost:3000/api/plugins/elasticsearch/settings")
+    if [ "$code" != "200" ]; then
+        echo "ERROR: elasticsearch datasource plugin failed to install" >&2
+        exit 1
+    fi
+    echo "  installed elasticsearch datasource plugin"
+else
+    echo "  elasticsearch datasource plugin already installed"
+fi
+
 log "Configuring Grafana datasources"
 # Two Elasticsearch datasources, one per index family, matching the dashboard's
 # template variables (dmarc-ag and dmarc-fo). Skipped when already present.
@@ -347,7 +379,7 @@ declare -a GF_DS_NAMES=("dmarc-ag" "dmarc-fo")
 # dmarc_f* matches both pre-rename dmarc_forensic* and post-rename
 # dmarc_failure* indices, mirroring the OpenSearch/Kibana dashboards.
 declare -a GF_DS_INDEX=("dmarc_aggregate*" "dmarc_f*")
-declare -a GF_DS_TIME=("date_range" "arrival_date")
+declare -a GF_DS_TIME=("date_begin" "arrival_date")
 for i in 0 1; do
     name="${GF_DS_NAMES[$i]}"
     code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \

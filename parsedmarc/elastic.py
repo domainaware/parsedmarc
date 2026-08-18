@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from elasticsearch.helpers import reindex
-from elasticsearch_dsl import (
+from elasticsearch.dsl import (
     Boolean,
     Date,
     Document,
@@ -16,11 +15,12 @@ from elasticsearch_dsl import (
     Keyword,
     Nested,
     Object,
+    Q,
     Search,
     Text,
     connections,
 )
-from elasticsearch_dsl.search import Q
+from elasticsearch.helpers import reindex
 
 from parsedmarc import InvalidFailureReport
 from parsedmarc.log import logger
@@ -42,13 +42,205 @@ _SERVERLESS = False
 # settings (e.g. ``refresh_interval``) are accepted and pass through.
 _SERVERLESS_REJECTED_SETTINGS = frozenset({"number_of_shards", "number_of_replicas"})
 
+# Guard query for the dkim_results_combined/spf_results_combined backfill
+# (see ``migrate_indexes``). Matches only documents that have at least one
+# DKIM or SPF auth result and are missing the corresponding combined field.
+# Empty arrays are invisible to ``exists``, so documents with zero
+# DKIM/SPF results are correctly skipped (verified against real data;
+# this also makes the query idempotent — a backfilled document no longer
+# matches). Each result is matched on an OR of its ``domain``/``result``
+# subfields as defense in depth: the parsers we audited never store a
+# result without both, but an empty string indexes no text tokens and is
+# invisible to ``exists``, and the storage shape of every historical
+# parsedmarc version can't be audited — matching either subfield costs
+# nothing and cannot skip a document that has something to backfill.
+_COMBINED_BACKFILL_QUERY: dict[str, Any] = {
+    "bool": {
+        "minimum_should_match": 1,
+        "should": [
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "dkim_results.domain"}},
+                                    {"exists": {"field": "dkim_results.result"}},
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "dkim_results_combined"}}],
+                }
+            },
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "spf_results.domain"}},
+                                    {"exists": {"field": "spf_results.result"}},
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "spf_results_combined"}}],
+                }
+            },
+        ],
+    }
+}
+
+# Painless script that (re)derives dkim_results_combined/spf_results_combined
+# from dkim_results/spf_results, matching the format written by
+# save_aggregate_report_to_elasticsearch(): "{selector} / {domain} / {result}"
+# per DKIM result and "{scope} / {domain} / {result}" per SPF result.
+_COMBINED_BACKFILL_SCRIPT = (
+    "List dk = new ArrayList(); "
+    "def dr = ctx._source.dkim_results; "
+    "if (dr != null) { "
+    "if (!(dr instanceof List)) { dr = [dr]; } "
+    "for (e in dr) { "
+    "if (e == null) { continue; } "
+    'def sel = e.selector != null ? e.selector : "none"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : "none"; '
+    'dk.add(sel + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.dkim_results_combined = dk; "
+    "List sp = new ArrayList(); "
+    "def sr = ctx._source.spf_results; "
+    "if (sr != null) { "
+    "if (!(sr instanceof List)) { sr = [sr]; } "
+    "for (e in sr) { "
+    "if (e == null) { continue; } "
+    'def sc = e.scope != null ? e.scope : "mfrom"; '
+    'def dom = e.domain != null ? e.domain : "none"; '
+    'def res = e.result != null ? e.result : (e.results != null ? e.results : "none"); '
+    'sp.add(sc + " / " + dom + " / " + res); '
+    "} } "
+    "ctx._source.spf_results_combined = sp;"
+)
+
+# Guard query for the policies_combined/failure_details_combined backfill
+# (see ``migrate_indexes``). Matches only SMTP TLS documents that have at
+# least one policy or failure detail and are missing the corresponding
+# combined field. Empty arrays are invisible to ``exists``, so documents
+# with zero policies/failure details are correctly skipped (this also
+# makes the query idempotent — a backfilled document no longer matches).
+# Each result is matched on an OR of its relevant subfields as defense in
+# depth: the parsers we audited never store a policy/failure detail
+# without these fields, but an empty string indexes no text tokens and is
+# invisible to ``exists``, and the storage shape of every historical
+# parsedmarc version can't be audited — matching either subfield costs
+# nothing and cannot skip a document that has something to backfill.
+_SMTP_TLS_COMBINED_BACKFILL_QUERY: dict[str, Any] = {
+    "bool": {
+        "minimum_should_match": 1,
+        "should": [
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {"exists": {"field": "policies.policy_domain"}},
+                                    {"exists": {"field": "policies.policy_type"}},
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "policies_combined"}}],
+                }
+            },
+            {
+                "bool": {
+                    "must": [
+                        {
+                            "bool": {
+                                "minimum_should_match": 1,
+                                "should": [
+                                    {
+                                        "exists": {
+                                            "field": "policies.failure_details.result_type"
+                                        }
+                                    },
+                                    {
+                                        "exists": {
+                                            "field": "policies.failure_details.sending_mta_ip"
+                                        }
+                                    },
+                                ],
+                            }
+                        }
+                    ],
+                    "must_not": [{"exists": {"field": "failure_details_combined"}}],
+                }
+            },
+        ],
+    }
+}
+
+# Painless script that (re)derives policies_combined/failure_details_combined
+# from policies/policies.failure_details, matching the format written by
+# save_smtp_tls_report_to_elasticsearch(): "{policy_domain} / {policy_type}"
+# per policy and "{policy_domain} / {policy_type} / {result_type} /
+# {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}" per failure
+# detail.
+_SMTP_TLS_COMBINED_BACKFILL_SCRIPT = (
+    "List pols = new ArrayList(); "
+    "List dets = new ArrayList(); "
+    "def ps = ctx._source.policies; "
+    "if (ps != null) { "
+    "if (!(ps instanceof List)) { ps = [ps]; } "
+    "for (p in ps) { "
+    "if (p == null) { continue; } "
+    'def dom = p.policy_domain != null ? p.policy_domain : "none"; '
+    'def typ = p.policy_type != null ? p.policy_type : "none"; '
+    'pols.add(dom + " / " + typ); '
+    "def fds = p.failure_details; "
+    "if (fds != null) { "
+    "if (!(fds instanceof List)) { fds = [fds]; } "
+    "for (f in fds) { "
+    "if (f == null) { continue; } "
+    'def rt = f.result_type != null ? f.result_type : "none"; '
+    'def smi = f.sending_mta_ip != null ? f.sending_mta_ip : "none"; '
+    'def ri = f.receiving_ip != null ? f.receiving_ip : "none"; '
+    'def rmh = f.receiving_mx_hostname != null ? f.receiving_mx_hostname : "none"; '
+    'dets.add(dom + " / " + typ + " / " + rt + " / " + smi + " / " + ri + " / " + rmh); '
+    "} } } } "
+    "ctx._source.policies_combined = pols; "
+    "ctx._source.failure_details_combined = dets;"
+)
+
 
 class _PolicyOverride(InnerDoc):
+    # The elasticsearch.dsl 8.x type stubs use dataclass_transform and only
+    # surface dataclass-style annotated fields (``name: M[...] =
+    # mapped_field(...)``) as constructor parameters. This module declares
+    # fields the pre-8.x way (``name = Text()``), which the runtime fully
+    # supports via ObjectBase.__init__(**kwargs), so this TYPE_CHECKING-only
+    # declaration restores the real runtime signature for the type checker.
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     type = Text()
     comment = Text()
 
 
 class _PublishedPolicy(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     domain = Text()
     adkim = Text()
     aspf = Text()
@@ -62,6 +254,12 @@ class _PublishedPolicy(InnerDoc):
 
 
 class _DKIMResult(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     domain = Text()
     selector = Text()
     result = Text()
@@ -69,13 +267,25 @@ class _DKIMResult(InnerDoc):
 
 
 class _SPFResult(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     domain = Text()
     scope = Text()
-    results = Text()
+    result = Text()
     human_result = Text()
 
 
 class _AggregateReportDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     class Index:
         name = "dmarc_aggregate"
 
@@ -110,21 +320,38 @@ class _AggregateReportDoc(Document):
     header_from = Text()
     envelope_from = Text()
     envelope_to = Text()
+    # Nested(...) on the two auth-result fields below is only the DSL's
+    # in-memory document shape; it is never installed as a mapping.
+    # create_indexes() deliberately skips Index.document() registration so
+    # these fields stay dynamic-mapped as plain `object` in the cluster
+    # (see the comment there and issue #169).
     dkim_results = Nested(_DKIMResult)
     spf_results = Nested(_SPFResult)
+    # One "{selector} / {domain} / {result}" (DKIM) or "{scope} / {domain} /
+    # {result}" (SPF) string per auth result. Kibana/Grafana tables cannot
+    # terms-aggregate the subfields of an object array without producing a
+    # cross-product of values (issue #169), so dashboards aggregate these
+    # composed keywords instead. Declared to match what dynamic mapping
+    # produces for a string array (text + .keyword).
+    dkim_results_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
+    spf_results_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
     np = Keyword()
     testing = Keyword()
     discovery_method = Keyword()
     generator = Text()
 
     def add_policy_override(self, type_: str, comment: str):
-        self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))  # pyright: ignore[reportCallIssue]
+        self.policy_overrides.append(_PolicyOverride(type=type_, comment=comment))
 
     def add_dkim_result(
         self,
         domain: str,
         selector: str,
-        result: _DKIMResult,
+        result: str,
         human_result: str | None = None,
     ):
         self.dkim_results.append(
@@ -134,13 +361,14 @@ class _AggregateReportDoc(Document):
                 result=result,
                 human_result=human_result,
             )
-        )  # pyright: ignore[reportCallIssue]
+        )
+        self.dkim_results_combined.append(f"{selector} / {domain} / {result}")
 
     def add_spf_result(
         self,
         domain: str,
         scope: str,
-        result: _SPFResult,
+        result: str,
         human_result: str | None = None,
     ):
         self.spf_results.append(
@@ -150,7 +378,8 @@ class _AggregateReportDoc(Document):
                 result=result,
                 human_result=human_result,
             )
-        )  # pyright: ignore[reportCallIssue]
+        )
+        self.spf_results_combined.append(f"{scope} / {domain} / {result}")
 
     def save(self, **kwargs):  # pyright: ignore[reportIncompatibleMethodOverride]
         self.passed_dmarc = False
@@ -160,17 +389,35 @@ class _AggregateReportDoc(Document):
 
 
 class _EmailAddressDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     display_name = Text()
     address = Text()
 
 
 class _EmailAttachmentDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     filename = Text()
     content_type = Text()
     sha256 = Text()
 
 
 class _FailureSampleDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     raw = Text()
     headers = Object()
     headers_only = Boolean()
@@ -186,28 +433,34 @@ class _FailureSampleDoc(InnerDoc):
     attachments = Nested(_EmailAttachmentDoc)
 
     def add_to(self, display_name: str, address: str):
-        self.to.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
+        self.to.append(_EmailAddressDoc(display_name=display_name, address=address))
 
     def add_reply_to(self, display_name: str, address: str):
         self.reply_to.append(
             _EmailAddressDoc(display_name=display_name, address=address)
-        )  # pyright: ignore[reportCallIssue]
+        )
 
     def add_cc(self, display_name: str, address: str):
-        self.cc.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
+        self.cc.append(_EmailAddressDoc(display_name=display_name, address=address))
 
     def add_bcc(self, display_name: str, address: str):
-        self.bcc.append(_EmailAddressDoc(display_name=display_name, address=address))  # pyright: ignore[reportCallIssue]
+        self.bcc.append(_EmailAddressDoc(display_name=display_name, address=address))
 
     def add_attachment(self, filename: str, content_type: str, sha256: str):
         self.attachments.append(
             _EmailAttachmentDoc(
                 filename=filename, content_type=content_type, sha256=sha256
             )
-        )  # pyright: ignore[reportCallIssue]
+        )
 
 
 class _FailureReportDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     class Index:
         name = "dmarc_failure"
 
@@ -234,9 +487,16 @@ class _FailureReportDoc(Document):
 
 
 class _SMTPTLSFailureDetailsDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     result_type = Text()
     sending_mta_ip = Ip()
     receiving_mx_helo = Text()
+    receiving_mx_hostname = Text()
     receiving_ip = Ip()
     failed_session_count = Integer()
     additional_information_uri = Text()
@@ -244,6 +504,12 @@ class _SMTPTLSFailureDetailsDoc(InnerDoc):
 
 
 class _SMTPTLSPolicyDoc(InnerDoc):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     policy_domain = Text()
     policy_type = Text()
     policy_strings = Text()
@@ -272,13 +538,19 @@ class _SMTPTLSPolicyDoc(InnerDoc):
             receiving_mx_helo=receiving_mx_helo,
             receiving_ip=receiving_ip,
             failed_session_count=failed_session_count,
-            additional_information=additional_information_uri,
+            additional_information_uri=additional_information_uri,
             failure_reason_code=failure_reason_code,
         )
-        self.failure_details.append(_details)  # pyright: ignore[reportCallIssue]
+        self.failure_details.append(_details)
 
 
 class _SMTPTLSReportDoc(Document):
+    # TYPE_CHECKING __init__: see _PolicyOverride
+    if TYPE_CHECKING:
+
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
     class Index:
         name = "smtp_tls"
 
@@ -289,27 +561,19 @@ class _SMTPTLSReportDoc(Document):
     contact_info = Text()
     report_id = Text()
     policies = Nested(_SMTPTLSPolicyDoc)
-
-    def add_policy(
-        self,
-        policy_type: str,
-        policy_domain: str,
-        successful_session_count: int,
-        failed_session_count: int,
-        *,
-        policy_string: str | None = None,
-        mx_host_patterns: list[str] | None = None,
-        failure_details: str | None = None,
-    ):
-        self.policies.append(
-            policy_type=policy_type,
-            policy_domain=policy_domain,
-            successful_session_count=successful_session_count,
-            failed_session_count=failed_session_count,
-            policy_string=policy_string,
-            mx_host_patterns=mx_host_patterns,
-            failure_details=failure_details,
-        )  # pyright: ignore[reportCallIssue]
+    # One "{policy_domain} / {policy_type}" string per policy. Kibana/
+    # Grafana tables cannot terms-aggregate the subfields of an object
+    # array without producing a cross-product of values (issue #169), so
+    # dashboards aggregate these composed keywords instead. Declared to
+    # match what dynamic mapping produces for a string array (text +
+    # .keyword).
+    policies_combined = Text(multi=True, fields={"keyword": Keyword(ignore_above=256)})
+    # One "{policy_domain} / {policy_type} / {result_type} /
+    # {sending_mta_ip} / {receiving_ip} / {receiving_mx_hostname}" string
+    # per failure detail, across all policies.
+    failure_details_combined = Text(
+        multi=True, fields={"keyword": Keyword(ignore_above=256)}
+    )
 
 
 class AlreadySaved(ValueError):
@@ -333,7 +597,9 @@ def set_hosts(
 
     Args:
         hosts (str | list[str]): A single hostname or URL, or list of hostnames or URLs
-        use_ssl (bool): Use an HTTPS connection to the server
+        use_ssl (bool): Controls the scheme prepended to any host that doesn't
+            already include one (``https://`` when True, ``http://`` when
+            False). Hosts that already carry a scheme are left unchanged.
         ssl_cert_path (str): Path to the certificate chain
         skip_certificate_verification (bool): Skip certificate verification
         username (str): The username to use for authentication
@@ -350,9 +616,10 @@ def set_hosts(
     _SERVERLESS = serverless
     if not isinstance(hosts, list):
         hosts = [hosts]
-    conn_params = {"hosts": hosts, "timeout": timeout}
+    scheme = "https://" if use_ssl else "http://"
+    normalized_hosts = [host if "://" in host else f"{scheme}{host}" for host in hosts]
+    conn_params = {"hosts": normalized_hosts, "request_timeout": timeout}
     if use_ssl:
-        conn_params["use_ssl"] = True
         if ssl_cert_path:
             conn_params["ca_certs"] = ssl_cert_path
         if skip_certificate_verification:
@@ -360,7 +627,7 @@ def set_hosts(
         else:
             conn_params["verify_certs"] = True
     if username and password:
-        conn_params["http_auth"] = (username, password)
+        conn_params["basic_auth"] = (username, password)
     if api_key:
         conn_params["api_key"] = api_key
     connections.create_connection(**conn_params)
@@ -390,62 +657,256 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
     for name in names:
         index = Index(name)
         try:
+            # Deliberately no Index.document() registration: the shipped
+            # dashboards cannot rebuild their detail tables on a `nested`
+            # mapping — Kibana/OSD visual editors do not support nested
+            # fields, Vega can run nested aggregations but does not render
+            # tables, and Grafana's nested bucket aggregation (9.4+) lacks
+            # reverse_nested for parent-level metrics like message_count —
+            # so the dynamic `object` mapping produced by a bare create is
+            # load-bearing for the shipped dashboards. _AggregateReportDoc
+            # still declares dkim_results/spf_results with Nested(...), but
+            # that is only the DSL's in-memory shape for building documents
+            # — it is never installed as a mapping. See issue #169 and the
+            # *_combined fields on _AggregateReportDoc.
             if not index.exists():
-                logger.debug("Creating Elasticsearch index: {0}".format(name))
+                logger.debug(f"Creating Elasticsearch index: {name}")
                 if effective_settings:
                     index.settings(**effective_settings)
                 index.create()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
+
+
+_LEGACY_FO_FIELD = "published_policy.fo"
+# The same field split into the object/leaf names a mapping body nests it
+# under. Derived from the dotted name so the mapping written below cannot
+# drift from the field _legacy_fo_field_type() reads.
+_LEGACY_FO_OBJECT, _LEGACY_FO_LEAF = _LEGACY_FO_FIELD.split(".")
+
+
+def _legacy_fo_field_type(index: Index) -> str | None:
+    """Return the mapped type of ``published_policy.fo`` in *index*.
+
+    Returns ``None`` when the index does not map the field at all.
+
+    Elasticsearch 6-era clusters keyed field mappings by the mapping type
+    name (``doc``); mapping types are gone from Elasticsearch 8, whose
+    responses put the field directly under ``mappings``. The type-keyed
+    shape is only descended into when such a key is actually present, so
+    this reads either shape.
+
+    Args:
+        index (Index): The index to inspect.
+
+    Returns:
+        str | None: The mapped field type, e.g. ``"long"`` or ``"text"``.
+    """
+    response = index.get_field_mapping(fields=[_LEGACY_FO_FIELD])
+    mappings = response[list(response.keys())[0]]["mappings"]
+    if _LEGACY_FO_FIELD not in mappings:
+        for type_name in ("doc", "_doc"):
+            if type_name in mappings:
+                mappings = mappings[type_name]
+                break
+    field_mapping = mappings.get(_LEGACY_FO_FIELD)
+    if not field_mapping:
+        return None
+    return field_mapping.get("mapping", {}).get(_LEGACY_FO_LEAF, {}).get("type")
 
 
 def migrate_indexes(
     aggregate_indexes: list[str] | None = None,
     failure_indexes: list[str] | None = None,
+    smtp_tls_indexes: list[str] | None = None,
+    legacy_fo_indexes: list[str] | None = None,
 ):
     """
-    Updates index mappings
+    Runs index migrations and backfills.
+
+    First, the legacy ``published_policy.fo`` migration, for each name in
+    ``legacy_fo_indexes``: parsedmarc releases before 5.0.0 declared that
+    field as an integer, so those indexes mapped it as ``long``, which
+    cannot hold the multi-value ``fo`` settings reports carry (``0:1``,
+    ``d:s``). Such an index is rebuilt as a ``-v2`` index with the
+    text/keyword shape, the documents are reindexed into it, and the
+    original is deleted.
+
+    Second, it backfills the ``dkim_results_combined``/
+    ``spf_results_combined`` fields (added for issue #169) on aggregate
+    report documents, and the ``policies_combined``/
+    ``failure_details_combined`` fields on SMTP TLS report documents, that
+    were saved before those fields existed.
+
+    For each name in ``aggregate_indexes``/``smtp_tls_indexes``, this
+    submits an ``update_by_query`` against the ``f"{name}*"`` index pattern
+    (the real indexes are date-suffixed) as a non-blocking background task
+    (``wait_for_completion=False``), so it never delays parsedmarc startup.
+    Submission is guarded by a cheap ``count`` query that only matches
+    documents with DKIM/SPF results (or policies/failure details) but no
+    combined field, so once an index is fully backfilled, later calls are a
+    fast no-op. Any error talking to the cluster (e.g. no indexes yet on a
+    fresh install, or a transient connection issue) is caught and logged as
+    a warning rather than raised; the backfill is simply retried on the
+    next startup, and the manual ``_update_by_query`` commands documented in
+    ``docs/source/elasticsearch.md`` remain available in the meantime.
 
     Args:
         aggregate_indexes (list): A list of aggregate index names
         failure_indexes (list): A list of failure index names
+            (accepted for API compatibility; unused)
+        smtp_tls_indexes (list): A list of SMTP TLS index names
+        legacy_fo_indexes (list): A list of index names to check for the
+            pre-5.0.0 ``published_policy.fo`` ``long`` mapping. Unlike the
+            backfill arguments these are exact names, not patterns:
+            5.0.0 introduced date-suffixed index names in the same release
+            that fixed the mapping, so an affected index has no date
+            component. It may still be prefixed or suffixed -- both
+            options date back to 4.1.0 -- so callers should pass the
+            names their own ``index_prefix``/``index_suffix``
+            configuration produces.
     """
-    version = 2
-    if aggregate_indexes is None:
-        aggregate_indexes = []
-    if failure_indexes is None:
-        failure_indexes = []
-    for aggregate_index_name in aggregate_indexes:
-        if not Index(aggregate_index_name).exists():
-            continue
-        aggregate_index = Index(aggregate_index_name)
-        doc = "doc"
-        fo_field = "published_policy.fo"
-        fo = "fo"
-        fo_mapping = aggregate_index.get_field_mapping(fields=[fo_field])
-        fo_mapping = fo_mapping[list(fo_mapping.keys())[0]]["mappings"]
-        if doc not in fo_mapping:
-            continue
+    if not aggregate_indexes and not smtp_tls_indexes and not legacy_fo_indexes:
+        return
 
-        fo_mapping = fo_mapping[doc][fo_field]["mapping"][fo]
-        fo_type = fo_mapping["type"]
-        if fo_type == "long":
-            new_index_name = "{0}-v{1}".format(aggregate_index_name, version)
-            body = {
-                "properties": {
-                    "published_policy.fo": {
-                        "type": "text",
-                        "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+    version = 2
+    for legacy_index_name in legacy_fo_indexes or []:
+        try:
+            legacy_index = Index(legacy_index_name)
+            if not legacy_index.exists():
+                continue
+            if _legacy_fo_field_type(legacy_index) != "long":
+                continue
+            new_index_name = f"{legacy_index_name}-v{version}"
+            # Nested object form rather than the dotted key this used to
+            # send. Both are accepted and produce an identical mapping
+            # (verified against Elasticsearch 8.19 and OpenSearch 3), but
+            # dot expansion is conditional on the object field's
+            # `subobjects` setting, and this shape never is.
+            properties = {
+                _LEGACY_FO_OBJECT: {
+                    "properties": {
+                        _LEGACY_FO_LEAF: {
+                            "type": "text",
+                            "fields": {
+                                "keyword": {"type": "keyword", "ignore_above": 256}
+                            },
+                        }
                     }
                 }
             }
+            logger.info(
+                f"Migrating {legacy_index_name} to {new_index_name}: "
+                f"{_LEGACY_FO_FIELD} is mapped as long, as parsedmarc "
+                "releases before 5.0.0 declared it"
+            )
+            # Reaching here means the original index still holds the data:
+            # it is deleted only after the reindex below succeeds. So a
+            # leftover target index is the debris of an earlier attempt
+            # that died between create() and delete(), and keeping it would
+            # fail every later attempt on "resource already exists".
+            if Index(new_index_name).exists():
+                logger.warning(
+                    f"Discarding {new_index_name} left behind by an earlier "
+                    f"interrupted migration of {legacy_index_name}"
+                )
+                Index(new_index_name).delete()
             Index(new_index_name).create()
-            Index(new_index_name).put_mapping(doc_type=doc, body=body)
-            reindex(connections.get_connection(), aggregate_index_name, new_index_name)  # pyright: ignore[reportArgumentType]
-            Index(aggregate_index_name).delete()
+            Index(new_index_name).put_mapping(properties=properties)
+            reindex(connections.get_connection(), legacy_index_name, new_index_name)
+            Index(legacy_index_name).delete()
+        except Exception as e:
+            logger.warning(
+                "Failed the legacy published_policy.fo migration for "
+                f"{legacy_index_name}: {e}. This will be retried at the "
+                "next startup."
+            )
 
-    for failure_index in failure_indexes:
-        pass
+    if not aggregate_indexes and not smtp_tls_indexes:
+        return
+
+    try:
+        client = connections.get_connection()
+    except Exception as e:
+        logger.warning(
+            "Skipping the dkim_results_combined/spf_results_combined/"
+            "policies_combined/failure_details_combined backfill: could "
+            f"not get an Elasticsearch connection: {e}. This will be "
+            "retried at the next startup."
+        )
+        return
+    for name in aggregate_indexes or []:
+        pattern = f"{name}*"
+        try:
+            count_response = client.count(
+                index=pattern,
+                query=_COMBINED_BACKFILL_QUERY,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            count = count_response["count"]
+            if not count:
+                continue
+            update_response = client.update_by_query(
+                index=pattern,
+                query=_COMBINED_BACKFILL_QUERY,
+                script={"source": _COMBINED_BACKFILL_SCRIPT, "lang": "painless"},
+                conflicts="proceed",
+                wait_for_completion=False,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            task_id = update_response.get("task")
+            logger.info(
+                "Backfilling dkim_results_combined/spf_results_combined on "
+                f"{count} existing documents in {pattern} (task {task_id})"
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to check/submit the dkim_results_combined/"
+                f"spf_results_combined backfill for {pattern}: {e}. This "
+                "will be retried at the next startup; the manual "
+                "_update_by_query command in the documentation remains "
+                "available in the meantime."
+            )
+
+    for name in smtp_tls_indexes or []:
+        pattern = f"{name}*"
+        try:
+            count_response = client.count(
+                index=pattern,
+                query=_SMTP_TLS_COMBINED_BACKFILL_QUERY,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            count = count_response["count"]
+            if not count:
+                continue
+            update_response = client.update_by_query(
+                index=pattern,
+                query=_SMTP_TLS_COMBINED_BACKFILL_QUERY,
+                script={
+                    "source": _SMTP_TLS_COMBINED_BACKFILL_SCRIPT,
+                    "lang": "painless",
+                },
+                conflicts="proceed",
+                wait_for_completion=False,
+                ignore_unavailable=True,
+                allow_no_indices=True,
+            )
+            task_id = update_response.get("task")
+            logger.info(
+                "Backfilling policies_combined/failure_details_combined on "
+                f"{count} existing documents in {pattern} (task {task_id})"
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to check/submit the policies_combined/"
+                f"failure_details_combined backfill for {pattern}: {e}. "
+                "This will be retried at the next startup; the manual "
+                "_update_by_query command in the documentation remains "
+                "available in the meantime."
+            )
 
 
 def save_aggregate_report_to_elasticsearch(
@@ -491,15 +952,18 @@ def save_aggregate_report_to_elasticsearch(
     end_date_query = Q(dict(range=dict(date_end=dict(lte=end_date))))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
-        search_index = "dmarc_aggregate_{0}*".format(index_suffix)
+        search_index = f"dmarc_aggregate_{index_suffix}*"
     else:
         search_index = "dmarc_aggregate*"
     if index_prefix is not None:
-        search_index = "{0}{1}".format(index_prefix, search_index)
+        search_index = f"{index_prefix}{search_index}"
     search = Search(index=search_index)
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
-    search.query = query
+    # elasticsearch.dsl's own docs recommend ``search.query = Q(...)``, but
+    # the ProxyDescriptor.__set__ stub is typed to accept only
+    # Dict[str, Any], not the Query object the docs tell you to assign.
+    search.query = query  # pyright: ignore[reportAttributeAccessIssue]
     begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
 
@@ -507,18 +971,15 @@ def save_aggregate_report_to_elasticsearch(
         existing = search.execute()
     except Exception as error_:
         raise ElasticsearchError(
-            "Elasticsearch's search for existing report \
-            error: {}".format(error_.__str__())
+            f"Elasticsearch's search for existing report error: {error_.__str__()}"
         )
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "An aggregate report ID {0} from {1} about {2} "
-            "with a date range of {3} UTC to {4} UTC already "
+            f"An aggregate report ID {report_id} from {org_name} about {domain} "
+            f"with a date range of {begin_date_human} UTC to {end_date_human} UTC already "
             "exists in "
-            "Elasticsearch".format(
-                report_id, org_name, domain, begin_date_human, end_date_human
-            )
+            "Elasticsearch"
         )
     published_policy = _PublishedPolicy(
         domain=aggregate_report["policy_published"]["domain"],
@@ -534,8 +995,12 @@ def save_aggregate_report_to_elasticsearch(
     )
 
     for record in aggregate_report["records"]:
-        begin_date = human_timestamp_to_datetime(record["interval_begin"], to_utc=True)
-        end_date = human_timestamp_to_datetime(record["interval_end"], to_utc=True)
+        begin_date = human_timestamp_to_datetime(
+            record["interval_begin"], to_utc=True, assume_utc=True
+        )
+        end_date = human_timestamp_to_datetime(
+            record["interval_end"], to_utc=True, assume_utc=True
+        )
         normalized_timespan = record["normalized_timespan"]
 
         if monthly_indexes:
@@ -607,11 +1072,11 @@ def save_aggregate_report_to_elasticsearch(
 
         index = "dmarc_aggregate"
         if index_suffix:
-            index = "{0}_{1}".format(index, index_suffix)
+            index = f"{index}_{index_suffix}"
         if index_prefix:
-            index = "{0}{1}".format(index_prefix, index)
+            index = f"{index_prefix}{index}"
 
-        index = "{0}-{1}".format(index, index_date)
+        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
@@ -621,7 +1086,7 @@ def save_aggregate_report_to_elasticsearch(
         try:
             agg_doc.save()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
 
 
 def save_failure_report_to_elasticsearch(
@@ -669,12 +1134,12 @@ def save_failure_report_to_elasticsearch(
     arrival_date_epoch_milliseconds = int(arrival_date.timestamp() * 1000)
 
     if index_suffix is not None:
-        search_index = "dmarc_failure_{0}*,dmarc_forensic_{0}*".format(index_suffix)
+        search_index = f"dmarc_failure_{index_suffix}*,dmarc_forensic_{index_suffix}*"
     else:
         search_index = "dmarc_failure*,dmarc_forensic*"
     if index_prefix is not None:
         search_index = ",".join(
-            "{0}{1}".format(index_prefix, part) for part in search_index.split(",")
+            f"{index_prefix}{part}" for part in search_index.split(",")
         )
     search = Search(index=search_index)
     q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))  # pyright: ignore[reportArgumentType]
@@ -721,13 +1186,13 @@ def save_failure_report_to_elasticsearch(
         subject_query = {"match_phrase": {"sample.headers.subject": subject}}
         q = q & Q(subject_query)  # pyright: ignore[reportArgumentType]
 
-    search.query = q
+    search.query = q  # pyright: ignore[reportAttributeAccessIssue]
     existing = search.execute()
 
     if len(existing) > 0:
         raise AlreadySaved(
-            "A failure sample to {0} from {1} "
-            "with a subject of {2} and arrival date of {3} "
+            "A failure sample to {} from {} "
+            "with a subject of {} and arrival date of {} "
             "already exists in "
             "Elasticsearch".format(
                 to_, from_, subject, failure_report["arrival_date_utc"]
@@ -788,14 +1253,14 @@ def save_failure_report_to_elasticsearch(
 
         index = "dmarc_failure"
         if index_suffix:
-            index = "{0}_{1}".format(index, index_suffix)
+            index = f"{index}_{index_suffix}"
         if index_prefix:
-            index = "{0}{1}".format(index_prefix, index)
+            index = f"{index_prefix}{index}"
         if monthly_indexes:
             index_date = arrival_date.strftime("%Y-%m")
         else:
             index_date = arrival_date.strftime("%Y-%m-%d")
-        index = "{0}-{1}".format(index, index_date)
+        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
@@ -804,10 +1269,10 @@ def save_failure_report_to_elasticsearch(
         try:
             failure_doc.save()
         except Exception as e:
-            raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+            raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
     except KeyError as e:
         raise InvalidFailureReport(
-            "Failure report missing required field: {0}".format(e.__str__())
+            f"Failure report missing required field: {e.__str__()}"
         )
 
 
@@ -854,22 +1319,21 @@ def save_smtp_tls_report_to_elasticsearch(
     end_date_query = Q(dict(match=dict(date_end=end_date)))  # pyright: ignore[reportArgumentType]
 
     if index_suffix is not None:
-        search_index = "smtp_tls_{0}*".format(index_suffix)
+        search_index = f"smtp_tls_{index_suffix}*"
     else:
         search_index = "smtp_tls*"
     if index_prefix is not None:
-        search_index = "{0}{1}".format(index_prefix, search_index)
+        search_index = f"{index_prefix}{search_index}"
     search = Search(index=search_index)
     query = org_name_query & report_id_query
     query = query & begin_date_query & end_date_query
-    search.query = query
+    search.query = query  # pyright: ignore[reportAttributeAccessIssue]
 
     try:
         existing = search.execute()
     except Exception as error_:
         raise ElasticsearchError(
-            "Elasticsearch's search for existing report \
-            error: {}".format(error_.__str__())
+            f"Elasticsearch's search for existing report error: {error_.__str__()}"
         )
 
     if len(existing) > 0:
@@ -883,10 +1347,10 @@ def save_smtp_tls_report_to_elasticsearch(
 
     index = "smtp_tls"
     if index_suffix:
-        index = "{0}_{1}".format(index, index_suffix)
+        index = f"{index}_{index_suffix}"
     if index_prefix:
-        index = "{0}{1}".format(index_prefix, index)
-    index = "{0}-{1}".format(index, index_date)
+        index = f"{index_prefix}{index}"
+    index = f"{index}-{index_date}"
     index_settings = dict(
         number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
     )
@@ -907,6 +1371,16 @@ def save_smtp_tls_report_to_elasticsearch(
             policy_strings = policy["policy_strings"]
         if "mx_host_patterns" in policy:
             mx_host_patterns = policy["mx_host_patterns"]
+        # policies_combined/failure_details_combined: see the field
+        # declarations on _SMTPTLSReportDoc and issue #169. policies and
+        # their failure_details are object arrays with the same
+        # cross-product problem as dkim_results/spf_results, so dashboards
+        # aggregate these composed strings instead of the raw subfields.
+        policy_domain_combined = policy.get("policy_domain") or "none"
+        policy_type_combined = policy.get("policy_type") or "none"
+        smtp_tls_doc.policies_combined.append(
+            f"{policy_domain_combined} / {policy_type_combined}"
+        )
         policy_doc = _SMTPTLSPolicyDoc(
             policy_domain=policy["policy_domain"],
             policy_type=policy["policy_type"],
@@ -927,7 +1401,12 @@ def save_smtp_tls_report_to_elasticsearch(
 
                 if "receiving_mx_hostname" in failure_detail:
                     receiving_mx_hostname = failure_detail["receiving_mx_hostname"]
-                if "additional_information_uri" in failure_detail:
+                # The parser's key is additional_info_uri (see
+                # SMTPTLSFailureDetailsOptional in types.py); accept the
+                # long-form key too for dicts built by other callers.
+                if "additional_info_uri" in failure_detail:
+                    additional_information_uri = failure_detail["additional_info_uri"]
+                elif "additional_information_uri" in failure_detail:
                     additional_information_uri = failure_detail[
                         "additional_information_uri"
                     ]
@@ -952,7 +1431,17 @@ def save_smtp_tls_report_to_elasticsearch(
                     additional_information_uri=additional_information_uri,
                     failure_reason_code=failure_reason_code,
                 )
-        smtp_tls_doc.policies.append(policy_doc)  # pyright: ignore[reportCallIssue]
+                smtp_tls_doc.failure_details_combined.append(
+                    "{} / {} / {} / {} / {} / {}".format(
+                        policy_domain_combined,
+                        policy_type_combined,
+                        failure_detail.get("result_type") or "none",
+                        sending_mta_ip or "none",
+                        receiving_ip or "none",
+                        receiving_mx_hostname or "none",
+                    )
+                )
+        smtp_tls_doc.policies.append(policy_doc)
 
     create_indexes([index], index_settings)
     smtp_tls_doc.meta.index = index  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
@@ -960,7 +1449,7 @@ def save_smtp_tls_report_to_elasticsearch(
     try:
         smtp_tls_doc.save()
     except Exception as e:
-        raise ElasticsearchError("Elasticsearch error: {0}".format(e.__str__()))
+        raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
 
 
 # Backward-compatible aliases

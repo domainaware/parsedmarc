@@ -38,24 +38,35 @@ valid when a message is forwarded without changing the from address, which is
 often caused by a mailbox forwarding rule. This is because DKIM signatures are
 part of the message headers, whereas SPF relies on SMTP session headers.
 
-Underneath the pie charts. you can see graphs of DMARC passage and message
+Underneath the pie charts, you can see graphs of DMARC compliance and message
 disposition over time.
 
 Under the graphs you will find the most useful data tables on the dashboard. On
 the left, there is a list of organizations that are sending you DMARC reports.
 In the center, there is a list of sending servers grouped by the base domain
-in their reverse DNS. On the right, there is a list of email from domains,
-sorted by message volume.
+in their reverse DNS. On the right, there is the "Message volume and DMARC
+compliance by from domain" table, which lists email from domains with their
+message volume and a percentage of those messages that passed DMARC.
 
 By hovering your mouse over a data table value and using the magnifying glass
-icons, you can filter on our filter out different values. Start by looking at
+icons, you can filter on or filter out different values. Start by looking at
 the Message Sources by Reverse DNS table. Find a sender that you recognize,
 such as an email marketing service, hover over it, and click on the plus (+)
 magnifying glass icon, to add a filter that only shows results for that sender.
-Now, look at the Message From Header table to the right. That shows you the
-domains that a sender is sending as, which might tell you which brand/business
-is using a particular service. With that information, you can contact them and
-have them set up DKIM.
+Now, look at the Message volume and DMARC compliance by from domain table to
+the right. That shows you the domains that a sender is sending as, and what
+share of that traffic is passing DMARC, which might tell you which
+brand/business is using a particular service. With that information, you can
+contact them and have them set up DKIM.
+
+:::{note}
+The "Message volume and DMARC compliance by from domain" table is a TSVB
+visualization, used because per-domain compliance percentages require a
+Filter Ratio metric that agg-based data tables can't compute. It renders
+correctly on Kibana 8.x as imported, but *editing* it requires first enabling
+the `metrics:allowStringIndices` advanced setting, since it references the
+`dmarc_aggregate*` index as a string pattern, which Elastic has deprecated.
+:::
 
 :::{note}
 If you have a lot of B2C customers, you may see a high volume of emails as
@@ -71,7 +82,23 @@ Further down the dashboard, you can filter by source country or source IP
 address.
 
 Tables showing SPF and DKIM alignment details are located under the IP address
-table.
+table. Each row of the DKIM details table is one real DKIM signature, shown
+as a combined `selector / domain / result` value; the SPF details table
+shows `scope / domain / result` the same way. Combining the values into one
+column keeps each signature's selector, domain, and result paired together,
+rather than aggregating them as separate columns. Because a message that
+carries multiple DKIM signatures appears once per signature, summing the
+messages column across rows can exceed the total number of messages.
+
+The "Auth result filters" panel above the details tables
+provides dropdowns for the individual auth-result components — DKIM
+selector, DKIM domain, DKIM result, SPF scope, SPF domain, and SPF
+result — and filters the whole dashboard by them. Because components from
+different signatures of the same message are indexed together, combining
+two of these component filters matches documents where any signature
+satisfies each condition individually, not necessarily the same signature;
+the combined `selector / domain / result` (`scope / domain / result`)
+column remains the per-signature source of truth.
 
 :::{note}
 The alignment tables (SPF details, DKIM details) and the per-IP source
@@ -101,3 +128,15 @@ reporting organizations, the policy domains they report on, and the
 specific failure types — certificate expiry, STARTTLS not supported,
 STS policy fetch errors, validation failures, and similar — together with
 the sending and receiving MTA addresses involved.
+
+Like the DKIM and SPF details tables above, the "SMTP TLS domains" and
+"SMTP TLS failure details" tables show one row per policy and one row per
+failure detail, respectively, using combined `policy (domain / type)` and
+`failure detail (domain / type / result / sending mta / receiving ip / mx)`
+columns so that each policy's or failure detail's fields stay paired
+together, rather than aggregating them as separate columns. The
+`successful_sessions` and `failed_sessions` columns are summed per report
+document, though, not per policy: when a single report carries multiple
+policies, a row's session sums include the sibling policies from that
+report as well as its own. Fully attributing session counts to a single
+policy would require restructuring the stored documents.

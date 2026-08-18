@@ -407,7 +407,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  COALESCE(spf.result, 'none') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_spf spf ON spf.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, spf.result\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, '1d') AS time,\n  COALESCE(spf.result, 'none') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_spf spf ON spf.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, spf.result\nORDER BY time",
           "refId": "A"
         }
       ]
@@ -477,7 +477,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  COALESCE(dkim.result, 'none') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_dkim dkim ON dkim.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, dkim.result\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, '1d') AS time,\n  COALESCE(dkim.result, 'none') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nLEFT JOIN dmarc_aggregate_record_dkim dkim ON dkim.record_id = r.id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, dkim.result\nORDER BY time",
           "refId": "A"
         }
       ]
@@ -547,7 +547,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  CASE WHEN r.dmarc_passed THEN 'true' ELSE 'false' END AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, r.dmarc_passed\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, '1d') AS time,\n  CASE WHEN r.dmarc_passed THEN 'true' ELSE 'false' END AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, r.dmarc_passed\nORDER BY time",
           "refId": "A"
         }
       ]
@@ -626,7 +626,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  COALESCE(r.disposition, 'unknown') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, r.disposition\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, '1d') AS time,\n  COALESCE(r.disposition, 'unknown') AS metric,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time, r.disposition\nORDER BY time",
           "refId": "A"
         }
       ]
@@ -675,7 +675,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, $__interval) AS time,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeGroup(rpt.begin_date, '1d') AS time,\n  SUM(r.message_count) AS value\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY time\nORDER BY time",
           "refId": "A"
         }
       ]
@@ -840,6 +840,13 @@
                 "value": { "mode": "gradient", "type": "color-background" }
               }
             ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "% DMARC Compliant" },
+            "properties": [
+              { "id": "custom.width", "value": 160 },
+              { "id": "unit", "value": "percent" }
+            ]
           }
         ]
       },
@@ -851,7 +858,7 @@
         "cellHeight": "sm",
         "footer": { "show": false }
       },
-      "title": "Reports by From Domain",
+      "title": "Message volume and DMARC compliance by from domain",
       "type": "table",
       "targets": [
         {
@@ -861,7 +868,7 @@
           },
           "editorMode": "code",
           "format": "table",
-          "rawSql": "SELECT\n  COALESCE(r.header_from, 'unknown') AS \"From Domain\",\n  SUM(r.message_count) AS \"Messages\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.header_from\nORDER BY \"Messages\" DESC",
+          "rawSql": "SELECT\n  COALESCE(r.header_from, 'unknown') AS \"From Domain\",\n  SUM(r.message_count) AS \"Messages\",\n  ROUND(100.0 * COALESCE(SUM(r.message_count) FILTER (WHERE r.dmarc_passed), 0) / NULLIF(SUM(r.message_count), 0), 1) AS \"% DMARC Compliant\"\nFROM dmarc_aggregate_record r\nJOIN dmarc_aggregate_report rpt ON rpt.id = r.report_id\nWHERE $__timeFilter(rpt.begin_date)\n  AND r.header_from IN ($fromdomain)\nGROUP BY r.header_from\nORDER BY \"Messages\" DESC",
           "refId": "A"
         }
       ]
@@ -1592,7 +1599,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroup(tr.begin_date, $__interval) AS time,\n  'Successful' AS metric,\n  SUM(p.successful_session_count) AS value\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nGROUP BY time\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeGroup(tr.begin_date, '1d') AS time,\n  'Successful' AS metric,\n  SUM(p.successful_session_count) AS value\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nGROUP BY time\nORDER BY time",
           "refId": "A"
         },
         {
@@ -1602,7 +1609,7 @@
           },
           "editorMode": "code",
           "format": "time_series",
-          "rawSql": "SELECT\n  $__timeGroup(tr.begin_date, $__interval) AS time,\n  'Failed' AS metric,\n  SUM(p.failed_session_count) AS value\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nGROUP BY time\nORDER BY time",
+          "rawSql": "SELECT\n  $__timeGroup(tr.begin_date, '1d') AS time,\n  'Failed' AS metric,\n  SUM(p.failed_session_count) AS value\nFROM smtp_tls_report tr\nJOIN smtp_tls_policy p ON p.report_id = tr.id\nWHERE $__timeFilter(tr.begin_date)\nGROUP BY time\nORDER BY time",
           "refId": "B"
         }
       ]

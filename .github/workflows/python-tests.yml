@@ -8,6 +8,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_call:
 
 jobs:
   lint-docs-build:
@@ -94,11 +95,14 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
     - name: Upload test results to Codecov
-       # Feeds Codecov Test Analytics (flaky-test detection, per-test
-       # history). Runs even on test failure so failed cases still get
+      # Feeds Codecov Test Analytics (flaky-test detection, per-test
+      # history). Runs even on test failure so failed cases still get
       # reported. Uses the same CODECOV_TOKEN as the coverage upload.
+      # codecov/test-results-action is deprecated in favor of running
+      # codecov-action a second time with report_type: test_results.
       if: ${{ !cancelled() }}
-      uses: codecov/test-results-action@v1
+      uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
+        report_type: test_results
         files: ./junit.xml

@@ -22,19 +22,15 @@ from typing import TypedDict, cast
 import mailparser
 from expiringdict import ExpiringDict
 
-try:
-    from importlib.resources import files
-except ImportError:
-    # Try backported to PY<3 `importlib_resources`
-    from importlib.resources import files
+from importlib.resources import files
 
 
 import dns.exception
 import dns.resolver
 import dns.reversename
+import httpx
 import maxminddb
 import publicsuffixlist
-import requests
 from dateutil.parser import parse as parse_date
 
 import parsedmarc.resources.ipinfo
@@ -107,10 +103,12 @@ def load_psl_overrides(
         try:
             logger.debug(f"Trying to fetch PSL overrides from {url}...")
             headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers)
+            response = httpx.get(
+                url, headers=headers, timeout=60, follow_redirects=True
+            )
             response.raise_for_status()
             _load_text(response.text)
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch PSL overrides: {e}")
 
     if len(psl_overrides) == 0:
@@ -237,7 +235,7 @@ def query_dns(
     """
     domain = str(domain).lower()
     record_type = record_type.upper()
-    cache_key = "{0}_{1}".format(domain, record_type)
+    cache_key = f"{domain}_{record_type}"
     if cache:
         cached_records = cache.get(cache_key, None)
         if isinstance(cached_records, list):
@@ -451,7 +449,9 @@ def load_ip_db(
         try:
             logger.debug(f"Trying to fetch IP database from {url}...")
             headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers, timeout=60)
+            response = httpx.get(
+                url, headers=headers, timeout=60, follow_redirects=True
+            )
             response.raise_for_status()
             os.makedirs(cache_dir, exist_ok=True)
             tmp_path = cached_path + ".tmp"
@@ -461,7 +461,7 @@ def load_ip_db(
             _IP_DB_PATH = cached_path
             logger.info("IP database updated successfully")
             return
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch IP database: {e}")
         except Exception as e:
             logger.warning(f"Failed to save IP database: {e}")
@@ -527,12 +527,11 @@ def configure_ipinfo_api(
     if not _IPINFO_API_TOKEN or not probe:
         return
 
-    try:
-        _ipinfo_api_lookup("1.1.1.1")
-    except InvalidIPinfoAPIKey:
-        raise
-    except Exception as e:
-        logger.warning(f"IPinfo API probe failed (will fall back per-request): {e}")
+    # _ipinfo_api_lookup() raises InvalidIPinfoAPIKey on 401/403 (which
+    # must propagate) and returns None on any other failure — network
+    # errors, non-2xx responses, malformed bodies.
+    if _ipinfo_api_lookup("1.1.1.1") is None:
+        logger.warning("IPinfo API probe failed (will fall back per-request)")
     else:
         logger.info("IPinfo API configured")
 
@@ -551,10 +550,14 @@ def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
     params = {"token": _IPINFO_API_TOKEN}
     headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
     try:
-        response = requests.get(
-            url, headers=headers, params=params, timeout=_IPINFO_API_TIMEOUT
+        response = httpx.get(
+            url,
+            headers=headers,
+            params=params,
+            timeout=_IPINFO_API_TIMEOUT,
+            follow_redirects=True,
         )
-    except requests.exceptions.RequestException as e:
+    except httpx.HTTPError as e:
         logger.debug(f"IPinfo API request for {ip_address} failed: {e}")
         return None
 
@@ -562,7 +565,7 @@ def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
         raise InvalidIPinfoAPIKey(
             f"IPinfo API rejected the configured token (HTTP {response.status_code})"
         )
-    if not response.ok:
+    if not response.is_success:
         logger.debug(
             f"IPinfo API returned HTTP {response.status_code} for {ip_address}"
         )
@@ -805,12 +808,14 @@ def load_reverse_dns_map(
         try:
             logger.debug(f"Trying to fetch reverse DNS map from {url}...")
             headers = {"User-Agent": USER_AGENT}
-            response = requests.get(url, headers=headers)
+            response = httpx.get(
+                url, headers=headers, timeout=60, follow_redirects=True
+            )
             response.raise_for_status()
             csv_file.write(response.text)
             csv_file.seek(0)
             load_csv(csv_file)
-        except requests.exceptions.RequestException as e:
+        except httpx.HTTPError as e:
             logger.warning(f"Failed to fetch reverse DNS map: {e}")
         except Exception:
             logger.warning("Not a valid CSV file")
@@ -837,6 +842,8 @@ def get_service_from_reverse_dns_base_domain(
     url: str | None = None,
     offline: bool = False,
     reverse_dns_map: ReverseDNSMap | None = None,
+    psl_overrides_path: str | None = None,
+    psl_overrides_url: str | None = None,
 ) -> ReverseDNSService:
     """
     Returns the service name of a given base domain name from reverse DNS.
@@ -845,9 +852,11 @@ def get_service_from_reverse_dns_base_domain(
         base_domain (str): The base domain of the reverse DNS lookup
         always_use_local_file (bool): Always use a local map file
         local_file_path (str): Path to a local map file
-        url (str): URL ro a reverse DNS map
+        url (str): URL to a reverse DNS map
         offline (bool): Use the built-in copy of the reverse DNS map
         reverse_dns_map (dict): A reverse DNS map
+        psl_overrides_path (str): Path to a local PSL overrides file
+        psl_overrides_url (str): URL to a PSL overrides file
     Returns:
         dict: A dictionary containing name and type.
         If the service is unknown, the name will be
@@ -868,6 +877,8 @@ def get_service_from_reverse_dns_base_domain(
             local_file_path=local_file_path,
             url=url,
             offline=offline,
+            psl_overrides_path=psl_overrides_path,
+            psl_overrides_url=psl_overrides_url,
         )
 
     service: ReverseDNSService
@@ -892,6 +903,8 @@ def get_ip_address_info(
     nameservers: list[str] | None = None,
     timeout: float = DEFAULT_DNS_TIMEOUT,
     retries: int = DEFAULT_DNS_MAX_RETRIES,
+    psl_overrides_path: str | None = None,
+    psl_overrides_url: str | None = None,
 ) -> IPAddressInfo:
     """
     Returns reverse DNS and country information for the given IP address
@@ -910,6 +923,8 @@ def get_ip_address_info(
         timeout (float): Sets the DNS timeout in seconds
         retries (int): Number of times to retry on timeout or other transient
             errors
+        psl_overrides_path (str): Path to a local PSL overrides file
+        psl_overrides_url (str): URL to a PSL overrides file
 
     Returns:
         dict: ``ip_address``, ``reverse_dns``, ``country``
@@ -962,6 +977,8 @@ def get_ip_address_info(
                 url=reverse_dns_map_url,
                 always_use_local_file=always_use_local_files,
                 reverse_dns_map=reverse_dns_map,
+                psl_overrides_path=psl_overrides_path,
+                psl_overrides_url=psl_overrides_url,
             )
             info["base_domain"] = base_domain
             info["type"] = service["type"]
@@ -981,6 +998,8 @@ def get_ip_address_info(
                 local_file_path=reverse_dns_map_path,
                 url=reverse_dns_map_url,
                 offline=offline,
+                psl_overrides_path=psl_overrides_path,
+                psl_overrides_url=psl_overrides_url,
             )
         if info["as_domain"] and info["as_domain"] in map_value:
             service = map_value[info["as_domain"]]
@@ -1072,7 +1091,7 @@ def is_mbox(path: str) -> bool:
         if len(mbox.keys()) > 0:
             _is_mbox = True
     except Exception as e:
-        logger.debug("Error checking for MBOX file: {0}".format(e.__str__()))
+        logger.debug(f"Error checking for MBOX file: {e.__str__()}")
 
     return _is_mbox
 
@@ -1158,10 +1177,11 @@ def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -
                     received["date_utc"] = received["date_utc"].replace("T", " ")
 
     if "from" not in parsed_email:
-        if "From" in parsed_email["headers"]:
-            parsed_email["from"] = parsed_email["Headers"]["From"]
-        else:
-            parsed_email["from"] = None
+        # mailparser omits "from" from mail_json when the From header is
+        # present but unparseable (e.g. an empty "From:"); headers_json may
+        # still carry a "From" entry, which can be an empty list — treat
+        # that the same as a missing header.
+        parsed_email["from"] = parsed_email["headers"].get("From") or None
 
     if parsed_email["from"] is not None:
         parsed_email["from"] = parse_email_address(parsed_email["from"][0])
@@ -1223,7 +1243,7 @@ def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -
                             payload = str.encode(payload)
                     attachment["sha256"] = hashlib.sha256(payload).hexdigest()
                 except Exception as e:
-                    logger.debug("Unable to decode attachment: {0}".format(e.__str__()))
+                    logger.debug(f"Unable to decode attachment: {e.__str__()}")
         if strip_attachment_payloads:
             for attachment in parsed_email["attachments"]:
                 if "payload" in attachment:

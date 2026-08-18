@@ -83,7 +83,7 @@
       "id": 28,
       "panels": [
         {
-          "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts. you can see graphs of DMARC passage and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. In the center, there is a list of sending servers grouped by the base domain in their reverse DNS. On the right, there is a list of email from domains, sorted by message volume.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on or filter out different values. Start by looking at the Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message From Header table to the right. That shows you the domains that a sender is sending as, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\n***Note***\r\nYou can add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Failure Samples\r\nThe DMARC Failure Samples section contains information on DMARC failure reports (also known as forensic or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKIM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|\r\n\r\n\r\n# Further Reading\r\n[Demystifying DMARC: A guide to preventing email spoofing](https://seanthegeek.net/459/demystifying-dmarc/amp/)\r\n\r\n[DMARC Manual](https://menainfosec.com/wp-content/uploads/2017/12/DMARC_Service_Manual.pdf)\r\n\r\n[What is “External Destination Verification”?](https://dmarcian.com/what-is-external-destination-verification/)",
+          "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts, you can see graphs of DMARC compliance and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. On the right, there is a list of sending servers grouped by the base domain in their reverse DNS, and below it the Message volume and DMARC compliance by from domain table, which lists email from domains with their message volume and the percentage of those messages that passed DMARC.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on or filter out different values. Start by looking at the Top 2000 Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message volume and DMARC compliance by from domain table below it. That shows you the domains that a sender is sending as, and what share of that traffic is passing DMARC, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\n***Note***\r\nYou can add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Failure Samples\r\nThe DMARC Failure Samples section contains information on DMARC failure reports (also known as forensic or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKIM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|\r\n\r\n\r\n# Further Reading\r\n[Demystifying DMARC: A guide to preventing email spoofing](https://seanthegeek.net/459/demystifying-dmarc/amp/)\r\n\r\n[DMARC Manual](https://menainfosec.com/wp-content/uploads/2017/12/DMARC_Service_Manual.pdf)\r\n\r\n[What is “External Destination Verification”?](https://dmarcian.com/what-is-external-destination-verification/)",
           "datasource": null,
           "fieldConfig": {
             "defaults": {
@@ -101,7 +101,7 @@
           "links": [],
           "mode": "markdown",
           "options": {
-            "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts. you can see graphs of DMARC passage and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. In the center, there is a list of sending servers grouped by the base domain in their reverse DNS. On the right, there is a list of email from domains, sorted by message volume.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on or filter out different values. Start by looking at the Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message From Header table to the right. That shows you the domains that a sender is sending as, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\n***Note***\r\nYou can add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Failure Samples\r\nThe DMARC Failure Samples section contains information on DMARC failure reports (also known as forensic or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKIM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|\r\n\r\n\r\n# Further Reading\r\n[Demystifying DMARC: A guide to preventing email spoofing](https://seanthegeek.net/459/demystifying-dmarc/amp/)\r\n\r\n[DMARC Manual](https://menainfosec.com/wp-content/uploads/2017/12/DMARC_Service_Manual.pdf)\r\n\r\n[What is “External Destination Verification”?](https://dmarcian.com/what-is-external-destination-verification/)",
+            "content": "# DMARC Summary\r\nAs the name suggests, this dashboard is the best place to start reviewing your aggregate DMARC data.\r\n\r\nAcross the top of the dashboard, three pie charts display the percentage of alignment pass/fail for SPF, DKIM, and DMARC. Clicking on any chart segment will filter for that value.\r\n\r\n***Note***\r\nMessages should not be considered malicious just because they failed to pass DMARC; especially if you have just started collecting data. It may be a legitimate service that needs SPF and DKIM configured correctly.\r\n\r\nStart by filtering the results to only show failed DKIM alignment. While DMARC passes if a message passes SPF or DKIM alignment, only DKIM alignment remains valid when a message is forwarded without changing the from address, which is often caused by a mailbox forwarding rule. This is because DKIM signatures are part of the message headers, whereas SPF relies on SMTP session headers.\r\n\r\nUnderneath the pie charts, you can see graphs of DMARC compliance and message disposition over time.\r\n\r\nUnder the graphs you will find the most useful data tables on the dashboard. On the left, there is a list of organizations that are sending you DMARC reports. On the right, there is a list of sending servers grouped by the base domain in their reverse DNS, and below it the Message volume and DMARC compliance by from domain table, which lists email from domains with their message volume and the percentage of those messages that passed DMARC.\r\n\r\nBy hovering your mouse over a data table value and using the magnifying glass icons, you can filter on or filter out different values. Start by looking at the Top 2000 Message Sources by Reverse DNS table. Find a sender that you recognize, such as an email marketing service, hover over it, and click on the plus (+) magnifying glass icon, to add a filter that only shows results for that sender. Now, look at the Message volume and DMARC compliance by from domain table below it. That shows you the domains that a sender is sending as, and what share of that traffic is passing DMARC, which might tell you which brand/business is using a particular service. With that information, you can contact them and have them set up DKIM.\r\n\r\n***Note***\r\nIf you have a lot of B2C customers, you may see a high volume of emails as your domains coming from consumer email services, such as Google/Gmail and Yahoo! This occurs when customers have mailbox rules in place that forward emails from an old account to a new account, which is why DKIM authentication is so important, as mentioned earlier. Similar patterns may be observed with businesses who send from reverse DNS addressees of parent, subsidiary, and outdated brands.\r\n\r\n***Note***\r\nYou can add your own custom temporary filters by clicking on Add Filter at the upper right of the page.\r\n\r\n# DMARC Failure Samples\r\nThe DMARC Failure Samples section contains information on DMARC failure reports (also known as forensic or ruf reports). These reports contain samples of emails that have failed to pass DMARC.\r\n\r\n***Note***\r\nMost recipients do not send failure/ruf reports at all to avoid privacy leaks. Some recipients (notably Chinese webmail services) will only supply the headers of sample emails. Very few provide the entire email.\r\n\r\n# DMARC Alignment Guide\r\nDMARC ensures that SPF and DKIM authentication mechanisms actually authenticate against the same domain that the end user sees.\r\n\r\nA message passes a DMARC check by passing DKIM or SPF, **as long as the related indicators are also in alignment.**\r\n\r\n|           \t| DKIM                                                                                                                                             \t| SPF                                                                                                            \t|\r\n|-----------\t|--------------------------------------------------------------------------------------------------------------------------------------------------\t|----------------------------------------------------------------------------------------------------------------\t|\r\n| **Passing**   \t| The signature in the DKIM header is validated using a public key that is published as a DNS record of the domain name specified in the signature \t| The mail server's IP address is listed in the SPF record of the domain in the SMTP envelope's mail from header \t|\r\n| **Alignment** \t| The signing domain aligns with the domain in the message's from header                                                                           \t| The domain in the SMTP envelope's mail from header aligns with the domain in the message's from header         \t|\r\n\r\n\r\n# Further Reading\r\n[Demystifying DMARC: A guide to preventing email spoofing](https://seanthegeek.net/459/demystifying-dmarc/amp/)\r\n\r\n[DMARC Manual](https://menainfosec.com/wp-content/uploads/2017/12/DMARC_Service_Manual.pdf)\r\n\r\n[What is “External Destination Verification”?](https://dmarcian.com/what-is-external-destination-verification/)",
             "mode": "markdown"
           },
           "pluginVersion": "7.1.0",
@@ -156,7 +156,7 @@
         "y": 2
       },
       "id": 6,
-      "fixed_interval": null,
+      "interval": null,
       "legend": {
         "percentage": false,
         "show": true,
@@ -188,10 +188,10 @@
             },
             {
               "$$hashKey": "object:244",
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -211,7 +211,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -248,7 +248,7 @@
         "y": 2
       },
       "id": 2,
-      "fixed_interval": null,
+      "interval": null,
       "legend": {
         "percentage": false,
         "show": true,
@@ -277,10 +277,10 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -299,7 +299,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -337,7 +337,7 @@
         "y": 2
       },
       "id": 5,
-      "fixed_interval": null,
+      "interval": null,
       "legend": {
         "header": "",
         "percentage": false,
@@ -369,10 +369,10 @@
             },
             {
               "$$hashKey": "object:386",
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -392,12 +392,12 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "DMARC Passage",
+      "title": "DMARC Compliance",
       "transparent": true,
       "type": "grafana-piechart-panel",
       "valueName": "total"
@@ -622,10 +622,10 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -644,7 +644,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -852,10 +852,10 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -874,7 +874,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -977,10 +977,10 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1001,7 +1001,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1104,10 +1104,10 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1128,7 +1128,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1231,10 +1231,10 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1255,12 +1255,12 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "DMARC Passage Over Time",
+      "title": "DMARC Compliance Over Time",
       "type": "timeseries"
     },
     {
@@ -1373,10 +1373,10 @@
               "type": "terms"
             },
             {
-              "field": "date_range",
+              "field": "date_begin",
               "id": "2",
               "settings": {
-                "fixed_interval": "1d",
+                "interval": "1d",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1395,7 +1395,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1439,7 +1439,7 @@
         "y": 38
       },
       "id": 36,
-      "fixed_interval": "$interval",
+      "interval": "$interval",
       "links": [],
       "options": {
         "colorMode": "background",
@@ -1447,9 +1447,7 @@
         "justifyMode": "auto",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": ["sum"],
           "fields": "",
           "values": false
         },
@@ -1463,10 +1461,10 @@
             {
               "$$hashKey": "object:430",
               "fake": true,
-              "field": "date_range",
+              "field": "date_begin",
               "id": "6",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 0,
                 "trimEdges": 0
               },
@@ -1486,7 +1484,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1606,7 +1604,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1756,7 +1754,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         },
         {
           "bucketAggs": [
@@ -1788,7 +1786,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "B",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -1837,7 +1835,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Header From"
+              "options": "From Domain"
             },
             "properties": [
               {
@@ -1845,8 +1843,8 @@
                 "value": [
                   {
                     "targetBlank": true,
-                    "title": "Open ${__data.fields[\"header_from.keyword\"]} in new window",
-                    "url": "https://${__data.fields[\"header_from.keyword\"]}"
+                    "title": "Open ${__data.fields[\"From Domain\"]} in new window",
+                    "url": "https://${__data.fields[\"From Domain\"]}"
                   }
                 ]
               }
@@ -1877,6 +1875,26 @@
                     }
                   ]
                 }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "% DMARC Compliant"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "noValue",
+                "value": "0"
               }
             ]
           }
@@ -1931,21 +1949,85 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
+        },
+        {
+          "bucketAggs": [
+            {
+              "$$hashKey": "object:389",
+              "fake": true,
+              "field": "header_from.keyword",
+              "id": "6",
+              "settings": {
+                "min_doc_count": 1,
+                "missing": "none",
+                "order": "desc",
+                "orderBy": "4",
+                "size": "0"
+              },
+              "type": "terms"
+            }
+          ],
+          "hide": false,
+          "metrics": [
+            {
+              "$$hashKey": "object:387",
+              "field": "message_count",
+              "id": "4",
+              "meta": {},
+              "settings": {},
+              "type": "sum"
+            }
+          ],
+          "query": "header_from.keyword:$fromdomain AND passed_dmarc:true",
+          "refId": "B",
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Message Volume by Header From",
+      "title": "Message volume and DMARC compliance by from domain",
       "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "header_from.keyword",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "% DMARC Compliant",
+            "mode": "binary",
+            "binary": {
+              "left": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Sum 2"
+                }
+              },
+              "operator": "/",
+              "right": {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Sum 1"
+                }
+              }
+            },
+            "replaceFields": false
+          }
+        },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {},
+            "excludeByName": {
+              "Sum 2": true
+            },
             "indexByName": {},
             "renameByName": {
-              "Sum": "Messages",
-              "header_from.keyword": "Header From"
+              "Sum 1": "Messages",
+              "header_from.keyword": "From Domain"
             }
           }
         }
@@ -2020,7 +2102,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -2048,12 +2130,13 @@
               "showLegend": true,
               "style": {
                 "color": {
-                  "fixed": "dark-green"
+                  "fixed": "green"
                 },
-                "opacity": 0.5,
+                "opacity": 0.8,
                 "size": {
+                  "field": "Sum",
                   "fixed": 5,
-                  "min": 2,
+                  "min": 4,
                   "max": 30
                 },
                 "symbol": {
@@ -2198,7 +2281,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -2342,24 +2425,24 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "SPF Auth Result"
+              "options": "SPF Scope / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 115
+                "value": 200
               }
             ]
           },
           {
             "matcher": {
               "id": "byName",
-              "options": "DKIM Auth Result"
+              "options": "DKIM Selector / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 123
+                "value": 260
               }
             ]
           },
@@ -2384,7 +2467,7 @@
         "y": 63
       },
       "id": 41,
-      "fixed_interval": "1d",
+      "interval": "1d",
       "links": [],
       "options": {
         "showHeader": true,
@@ -2514,7 +2597,7 @@
             {
               "$$hashKey": "object:412",
               "fake": true,
-              "field": "spf_results.result.keyword",
+              "field": "spf_results_combined.keyword",
               "id": "16",
               "settings": {
                 "min_doc_count": "1",
@@ -2542,7 +2625,7 @@
             {
               "$$hashKey": "object:461",
               "fake": true,
-              "field": "dkim_results.result.keyword",
+              "field": "dkim_results_combined.keyword",
               "id": "10",
               "settings": {
                 "min_doc_count": "1",
@@ -2567,7 +2650,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -2582,7 +2665,7 @@
               "Sum": 11,
               "disposition.keyword": 4,
               "dkim_aligned": 6,
-              "dkim_results.result.keyword": 9,
+              "dkim_results_combined.keyword": 9,
               "header_from.keyword": 10,
               "org_name.keyword": 7,
               "source_base_domain.keyword": 0,
@@ -2590,16 +2673,14 @@
               "source_ip_address.keyword": 2,
               "source_reverse_dns.keyword": 1,
               "spf_aligned": 5,
-              "spf_results.result.keyword": 8
+              "spf_results_combined.keyword": 8
             },
             "renameByName": {
               "Sum": "Messages",
               "date_range": "Date",
               "disposition.keyword": "Disposition",
               "dkim_aligned": "DKIM",
-              "dkim_results.domain.keyword": "DKIM Domain",
-              "dkim_results.result.keyword": "DKIM Auth Result",
-              "dkim_results.selector.keyword": "DKIM Selector",
+              "dkim_results_combined.keyword": "DKIM Selector / Domain / Result",
               "envelope_from.keyword": "Envelope From",
               "header_from.keyword": "Email Domain",
               "org_name.keyword": "Reporter",
@@ -2608,7 +2689,7 @@
               "source_ip_address.keyword": "Source IP",
               "source_reverse_dns.keyword": "PTR",
               "spf_aligned": "SPF",
-              "spf_results.result.keyword": "SPF Auth Result"
+              "spf_results_combined.keyword": "SPF Scope / Domain / Result"
             }
           }
         }
@@ -2793,7 +2874,7 @@
         "y": 72
       },
       "id": 43,
-      "fixed_interval": "86399",
+      "interval": "86399",
       "links": [],
       "options": {
         "showHeader": true,
@@ -2920,7 +3001,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3088,7 +3169,7 @@
         "y": 81
       },
       "id": 14,
-      "fixed_interval": "",
+      "interval": "",
       "links": [],
       "options": {
         "showHeader": true,
@@ -3173,7 +3254,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3347,7 +3428,7 @@
             {
               "$$hashKey": "object:459",
               "fake": true,
-              "field": "spf_results.result.keyword",
+              "field": "spf_results_combined.keyword",
               "id": "8",
               "settings": {
                 "min_doc_count": 1,
@@ -3400,7 +3481,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3418,7 +3499,7 @@
               "header_from.keyword": "Header From",
               "source_base_domain.keyword": "Reverse DNS Base",
               "spf_aligned": "SPF Aligned",
-              "spf_results.result.keyword": "SPF Result"
+              "spf_results_combined.keyword": "SPF Scope / Domain / Result"
             }
           }
         }
@@ -3506,22 +3587,12 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "DKIM Selector"
+              "options": "DKIM Selector / Domain / Result"
             },
             "properties": [
               {
                 "id": "custom.width",
-                "value": 320
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "targetBlank": true,
-                    "title": "Open dmarcian.com DKIM Record Checker",
-                    "url": "https://dmarcian.com/dkim-inspector/?domain=${__data.fields[\"dkim_results.domain.keyword\"]}&selector=${__data.fields[\"dkim_results.selector.keyword\"]}"
-                  }
-                ]
+                "value": 400
               }
             ]
           }
@@ -3565,39 +3636,11 @@
             {
               "$$hashKey": "object:458",
               "fake": true,
-              "field": "dkim_results.selector.keyword",
+              "field": "dkim_results_combined.keyword",
               "id": "7",
               "settings": {
                 "min_doc_count": "1",
                 "missing": "-",
-                "order": "desc",
-                "orderBy": "4",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "$$hashKey": "object:459",
-              "fake": true,
-              "field": "dkim_results.domain.keyword",
-              "id": "8",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": "-",
-                "order": "desc",
-                "orderBy": "4",
-                "size": "0"
-              },
-              "type": "terms"
-            },
-            {
-              "$$hashKey": "object:460",
-              "fake": true,
-              "field": "dkim_results.result.keyword",
-              "id": "9",
-              "settings": {
-                "min_doc_count": 1,
-                "missing": null,
                 "order": "desc",
                 "orderBy": "4",
                 "size": "0"
@@ -3645,7 +3688,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -3660,14 +3703,11 @@
             "renameByName": {
               "Sum": "Messages",
               "dkim_aligned": "DKIM Aligned",
-              "dkim_results.domain.keyword": "DKIM Domain",
-              "dkim_results.result.keyword": "DKIM Result",
-              "dkim_results.selector.keyword": "DKIM Selector",
+              "dkim_results_combined.keyword": "DKIM Selector / Domain / Result",
               "envelope_from.keyword": "Envelope From",
               "header_from.keyword": "Header From",
               "source_base_domain.keyword": "Reverse DNS Base",
-              "spf_aligned": "SPF Aligned",
-              "spf_results.result.keyword": "SPF Result"
+              "spf_aligned": "SPF Aligned"
             }
           }
         }
@@ -3796,7 +3836,7 @@
               "field": "Arrival Date (UTC)",
               "id": "6",
               "settings": {
-                "fixed_interval": "auto",
+                "interval": "auto",
                 "min_doc_count": 1,
                 "trimEdges": 0
               },
@@ -4558,7 +4598,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -4742,7 +4782,7 @@
           ],
           "query": "header_from.keyword:$fromdomain",
           "refId": "A",
-          "timeField": "date_range"
+          "timeField": "date_begin"
         }
       ],
       "timeFrom": null,
@@ -4769,12 +4809,7 @@
   "refresh": "10s",
   "schemaVersion": 27,
   "style": "dark",
-  "tags": [
-    "DKIM",
-    "SPF",
-    "DMARC",
-    "Email"
-  ],
+  "tags": ["DKIM", "SPF", "DMARC", "Email"],
   "templating": {
     "list": [
       {
@@ -4890,17 +4925,7 @@
       "2h",
       "1d"
     ],
-    "time_options": [
-      "5m",
-      "15m",
-      "1h",
-      "6h",
-      "12h",
-      "24h",
-      "2d",
-      "7d",
-      "30d"
-    ]
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
   },
   "timezone": "",
   "title": "DMARC Reports",

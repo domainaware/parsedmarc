@@ -139,9 +139,11 @@ samples/private
 
 parsedmarc*.ini
 scratch.py
+scratch/
 
 parsedmarc/resources/maps/base_reverse_dns.csv
 parsedmarc/resources/maps/unknown_base_reverse_dns.csv
+parsedmarc/resources/maps/unmapped_as_domains.csv
 parsedmarc/resources/maps/sus_domains.csv
 parsedmarc/resources/maps/unknown_domains.txt
 *.bak
@@ -149,3 +151,8 @@ parsedmarc/resources/maps/unknown_domains.txt
 parsedmarc/resources/maps/domain_info.tsv
 coverage.json
 junit.xml
+dashboard-screenshots/
+
+# Claude Code agent worktrees — untracked repo snapshots; ignoring them
+# keeps repo-root ruff runs and git status clean
+.claude/worktrees/
