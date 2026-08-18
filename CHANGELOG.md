@@ -1,5 +1,11 @@
 # Changelog
 
+## 10.4.3
+
+### Changes
+
+- **Bumped the `mailsuite` floor to `>=2.3.1`**, picking up the fix for `mailsuite.utils.parse_email()` raising `TypeError` instead of `ValueError("Not an email")` on unparseable (non-email) input under mail-parser 4.6.2 and later ([seanthegeek/mailsuite#61](https://github.com/seanthegeek/mailsuite/issues/61)) — a potential crash for anything reading non-email files through that API. mail-parser 4.6.2 changed its contract for unparseable input (it now returns a header-less parse result instead of the input string), so mailsuite's not-an-email detection never fired and parsing crashed on the missing `From` header. Every install of the previous parsedmarc release shipped the affected combination, because mailsuite 2.3.0 — the floor since parsedmarc 10.4.2 — itself requires mail-parser `>=4.6.2`. parsedmarc's own CLI and library report parsing never call that mailsuite API; they use parsedmarc's separate `parse_email` implementation, which rejects non-email input gracefully and behaves identically under both mailsuite versions, so this bump removes the affected combination from installs rather than fixing a parsedmarc crash.
+
 ## 10.4.2
 
 ### Changes
