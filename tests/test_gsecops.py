@@ -311,9 +311,16 @@ class TestGoogleSecOpsClient(unittest.TestCase):
 
         session.post.side_effect = post
         events = [_event("a"), bad_event, _event("c")]
-        with self.assertRaises(GoogleSecOpsError) as raised:
-            client.save_events(events)
+        with self.assertLogs("parsedmarc", level="ERROR") as logs:
+            with self.assertRaises(GoogleSecOpsError) as raised:
+                client.save_events(events)
         self.assertIn("1 of 3", str(raised.exception))
+        # The rejection log identifies the event without dumping its body,
+        # which can carry email addresses and subjects (PII).
+        (rejection_log,) = logs.output
+        self.assertIn("productLogId=bad", rejection_log)
+        self.assertIn("invalid event", rejection_log)
+        self.assertNotIn("'udm'", rejection_log)
         delivered = []
         for call in session.post.call_args_list:
             batch = call.kwargs["json"]["inlineSource"]["events"]

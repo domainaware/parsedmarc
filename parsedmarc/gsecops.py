@@ -384,7 +384,14 @@ class GoogleSecOpsClient(object):
             self._import_events(events[middle:])
             return
         if response.status_code == 400:
-            logger.error(f"Google SecOps rejected event {events[0]}: {response.text}")
+            # Log identifying metadata only: the full event body carries
+            # email addresses and subjects that do not belong in logs.
+            metadata = events[0]["udm"].get("metadata", {})
+            logger.error(
+                "Google SecOps rejected event "
+                f"(productEventType={metadata.get('productEventType')}, "
+                f"productLogId={metadata.get('productLogId')}): {response.text}"
+            )
             self._dropped += 1
             return
         raise GoogleSecOpsError(
