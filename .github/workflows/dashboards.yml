@@ -53,7 +53,7 @@ jobs:
           --health-retries 30
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Wait for Kibana to report ready
         run: |
