@@ -44,6 +44,7 @@ dependencies = [
     "dnspython>=2.0.0",
     "elasticsearch>=8.18,<9",
     "expiringdict>=1.1.4",
+    "google-auth>=2.0.0",
     # The runtime HTTP library (utils.py fetches, webhook and Splunk HEC
     # clients, Graph error handling in cli.py). The floor matches
     # microsoft-kiota-http's own requirement.
