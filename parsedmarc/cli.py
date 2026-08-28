@@ -191,7 +191,7 @@ def _normalize_graph_auth_method(value: str) -> str:
 
 
 def _str_to_list(s):
-    """Converts a comma separated string to a list"""
+    """Converts a comma-separated string to a list"""
     _list = s.split(",")
     return list(map(lambda i: i.lstrip(), _list))
 
@@ -700,7 +700,9 @@ def _load_config(config_file: str | None = None) -> ConfigParser:
         ``PARSEDMARC_*`` environment variables.
 
     Raises:
-        ConfigurationError: If *config_file* is given but does not exist.
+        ConfigurationError: If *config_file* is given but does not exist or
+            is not readable, or if a ``PARSEDMARC_..._FILE`` secret file
+            cannot be read.
     """
     config = ConfigParser(interpolation=None)
     if config_file is not None:
@@ -2082,7 +2084,8 @@ def _main():
         Returns the list of human-readable output-error messages recorded
         along the way -- empty when every destination accepted the reports.
         Callers use that as the "was this batch saved?" signal; see
-        ``mailbox_save_callback()``.
+        ``mailbox_save_callback()``. With ``fail_on_output_error`` enabled,
+        a non-empty list is raised as ``ParserError`` instead of returned.
         """
         output_errors = []
 
@@ -2455,8 +2458,8 @@ def _main():
     arg_parser.add_argument(
         "file_path",
         nargs="*",
-        help="one or more paths to aggregate or failure report files, "
-        "emails, mbox files, or directories containing them",
+        help="one or more paths to aggregate, failure, or SMTP TLS report "
+        "files, emails, mbox files, or directories containing them",
     )
     arg_parser.add_argument(
         "-r",
@@ -2527,7 +2530,7 @@ def _main():
     arg_parser.add_argument(
         "--offline",
         action="store_true",
-        help="do not make online queries for geolocation  or  DNS",
+        help="do not make online queries for geolocation or DNS",
     )
     arg_parser.add_argument(
         "-s", "--silent", action="store_true", help="only print errors"

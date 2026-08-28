@@ -55,13 +55,17 @@ sudo systemctl start elasticsearch.service
 sudo systemctl start kibana.service
 ```
 
-As of Elasticsearch 8.7, activate secure mode (xpack.security.*.ssl)
+Since Elasticsearch 8.0, security is enabled and auto-configured on
+first startup: TLS certificates are generated, the `xpack.security.*`
+settings below are written to `elasticsearch.yml`, and a password is
+generated for the `elastic` user. Verify the settings are present —
+and add them only if your install skipped auto-configuration:
 
 ```bash
 sudo vim /etc/elasticsearch/elasticsearch.yml
 ```
 
-Add the following configuration
+The security configuration looks like this:
 
 ```text
 # Enable security features

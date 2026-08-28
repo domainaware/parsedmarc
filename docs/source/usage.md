@@ -14,8 +14,8 @@ usage: parsedmarc [-h] [-c CONFIG_FILE] [-r] [--strip-attachment-payloads] [-o O
 Parses DMARC reports
 
 positional arguments:
-  file_path             one or more paths to aggregate or failure report files, emails, mbox files, or directories
-                        containing them
+  file_path             one or more paths to aggregate, failure, or SMTP TLS report files, emails, mbox files, or
+                        directories containing them
 
 options:
   -h, --help            show this help message and exit

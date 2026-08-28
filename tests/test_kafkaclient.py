@@ -187,8 +187,10 @@ class TestSaveFailureReportsToKafka(unittest.TestCase):
             return KafkaClient(kafka_hosts=["b:9092"])
 
     def test_sends_full_list_in_one_message(self):
-        """Failure reports go in a single Kafka message — the comment
-        in source code documents the 1MB-per-message default."""
+        """Failure reports are sent as one Kafka message carrying the
+        whole list — unlike aggregate records, which are sent as
+        individual slices to stay under Kafka's default 1MB message
+        cap."""
         client = self._client()
         reports = [{"id": "f1"}, {"id": "f2"}]
         client.save_failure_reports_to_kafka(reports, "dmarc-failure")

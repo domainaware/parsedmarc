@@ -241,8 +241,9 @@ class TestWorkerLogging(_ParallelTestCase):
 
 class TestInitWorkerLogging(unittest.TestCase):
     """_init_worker_logging must be usable directly as a pool initializer:
-    with no log files it just sets the level (adds a console handler),
-    and with log files it attaches a FileHandler per path."""
+    with no log files it sets the level (configure_logging still ensures
+    a console handler), and with log files it attaches a FileHandler per
+    path."""
 
     def setUp(self):
         from parsedmarc.log import logger as plog

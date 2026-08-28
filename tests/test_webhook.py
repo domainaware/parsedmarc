@@ -70,8 +70,8 @@ class TestWebhookClientSaveMethods(unittest.TestCase):
 
 
 class TestWebhookClientDictPayload(unittest.TestCase):
-    """``_send_to_webhook`` accepts ``bytes | str | dict``. httpx only
-    form-encodes a dict via ``data=``; string/bytes payloads must use
+    """``_send_to_webhook`` accepts ``bytes | str | dict``. A dict is
+    form-encoded via httpx's ``data=``; string/bytes payloads must use
     ``content=`` since httpx's ``data=`` is form-encoding only."""
 
     def test_dict_payload_uses_data_kwarg(self):

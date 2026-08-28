@@ -78,9 +78,9 @@ class Test(unittest.TestCase):
         """When neither PTR nor an ASN-map entry resolves, the raw AS name
         is used as source_name with type left null — better than leaving
         the row unattributed."""
-        # 204.79.197.100 is in an ASN whose as_domain is not in the map at
-        # the time of this test (msn.com); this exercises the as_name
-        # fallback branch without depending on a specific map state.
+        # A mocked DB record whose as_domain is not in the reverse-DNS map
+        # exercises the as_name fallback branch without depending on a
+        # specific map state.
         from unittest.mock import patch
 
         with patch(

@@ -93,8 +93,8 @@ def _sample_aggregate_report() -> AggregateReport:
 
 
 class _Handler(logging.Handler):
-    """Capture the (record, extra) of every log emit, so tests can
-    assert on what GelfClient actually pushed."""
+    """Capture the (message, parsedmarc payload) of every log emit, so
+    tests can assert on what GelfClient actually pushed."""
 
     def __init__(self):
         super().__init__()
@@ -212,8 +212,8 @@ class TestGelfClientSaveAggregate(unittest.TestCase):
 
 class TestGelfClientSaveFailure(unittest.TestCase):
     """save_failure_report_to_gelf operates on already-parsed failure
-    reports. Build one through the CSV-row helper to verify GelfClient
-    surfaces the right fields."""
+    reports, flattening each through the CSV-row helper; verify
+    GelfClient surfaces the right fields."""
 
     def _sample_failure_report(self) -> FailureReport:
         report = {

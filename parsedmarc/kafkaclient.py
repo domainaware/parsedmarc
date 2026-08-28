@@ -50,7 +50,7 @@ class KafkaClient(object):
             ssl_context (SSLContext): SSL context options
 
         Notes:
-            ``use_ssl=True`` is implied when a username or password are
+            ``ssl=True`` is implied when a username or password is
             supplied.
 
             When using Azure Event Hubs, the username is literally
@@ -81,7 +81,7 @@ class KafkaClient(object):
     def strip_metadata(report: dict[str, Any]):
         """
         Duplicates org_name, org_email and report_id into JSON root
-        and removes report_metadata key to bring it more inline
+        and removes report_metadata key to bring it more in line
         with Elastic output.
         """
         report["org_name"] = report["report_metadata"]["org_name"]
@@ -94,7 +94,7 @@ class KafkaClient(object):
     @staticmethod
     def generate_date_range(report: dict[str, Any]):
         """
-        Creates a date_range timestamp with format YYYY-MM-DD-T-HH:MM:SS
+        Creates a date_range timestamp with format YYYY-MM-DDTHH:MM:SS
         based on begin and end dates for easier parsing in Kibana.
 
         Move to utils to avoid duplication w/ elastic?
@@ -160,9 +160,7 @@ class KafkaClient(object):
         failure_topic: str,
     ):
         """
-        Saves failure DMARC reports to Kafka, sends individual
-        records (slices) since Kafka requires messages to be <= 1MB
-        by default.
+        Saves failure DMARC reports to Kafka as a single message
 
         Args:
             failure_reports (list):  A list of failure report dicts
@@ -197,9 +195,7 @@ class KafkaClient(object):
         smtp_tls_topic: str,
     ):
         """
-        Saves SMTP TLS reports to Kafka, sends individual
-        records (slices) since Kafka requires messages to be <= 1MB
-        by default.
+        Saves SMTP TLS reports to Kafka as a single message
 
         Args:
             smtp_tls_reports (list):  A list of SMTP TLS report dicts

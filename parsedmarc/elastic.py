@@ -930,6 +930,7 @@ def save_aggregate_report_to_elasticsearch(
 
     Raises:
             AlreadySaved
+            ElasticsearchError
     """
     logger.info("Saving aggregate report to Elasticsearch")
     aggregate_report = aggregate_report.copy()
@@ -1112,6 +1113,8 @@ def save_failure_report_to_elasticsearch(
 
     Raises:
         AlreadySaved
+        ElasticsearchError
+        InvalidFailureReport
 
     """
     logger.info("Saving failure report to Elasticsearch")
@@ -1297,6 +1300,7 @@ def save_smtp_tls_report_to_elasticsearch(
 
     Raises:
             AlreadySaved
+            ElasticsearchError
     """
     logger.info("Saving smtp tls report to Elasticsearch")
     org_name = report["organization_name"]

@@ -27,7 +27,7 @@ classifier (or skim it by hand)" — this script is the regex baseline that
 catches obvious cases at scale and leaves only the genuinely ambiguous to
 manual / LLM review.
 
-Detectors cover all 44 industry types listed in `README.md` (every type
+Detectors cover all 46 industry types listed in `README.md` (every type
 defined for `base_reverse_dns_map.csv`'s `type` column). Every detector
 aims for concept-translation parity across the same broad language pool
 (typically 25–35 languages including major Romance, Germanic, Slavic,
@@ -62,6 +62,11 @@ Outputs:
     --map-out: three-column CSV (domain, name, type) — append to
         base_reverse_dns_map.csv
     --ku-out: one domain per line — append to known_unknown_base_reverse_dns.txt
+    --ambiguous-out: TSV (domain, name, primary_type, alternatives, title) of
+        rows where two or more distinct detector categories fired — not
+        auto-promoted; a human must adjudicate each row
+    --dropped-out: one domain per line — domains silently dropped per the
+        AGENTS.md content rule; remove them from any tracked list files
 
 The HAND dict at the top of the file is an extension point for explicit
 overrides (e.g. acquisition aliases, brand-name corrections). It is empty
@@ -9808,6 +9813,8 @@ def classify_tsv(
       classifier won't auto-promote these — a human must pick one of the
       candidates (or a different category, or reject the row to KU).
     - ``ku`` — domains where no detector fired.
+    - ``dropped`` — domains silently dropped per the AGENTS.md content rule;
+      the caller removes these from any tracked list files.
     - ``stats`` — counters.
 
     ``map_names`` is ``{normalized display name: {existing map keys}}`` as
