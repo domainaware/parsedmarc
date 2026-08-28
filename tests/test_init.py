@@ -126,10 +126,10 @@ def build_failure_report_email(
 def build_raw_failure_report_email(sample, sample_charset="utf-8"):
     """Assembles the MIME source of a failure report by hand.
 
-    ``MIMEText`` re-encodes any non-ASCII body it is handed, so the raw 8bit
-    parts real reporters send cannot be built with it. Writing the source out
-    directly keeps the sample's bytes exactly as a reporter would put them on
-    the wire.
+    ``MIMEText`` re-encodes any non-ASCII body it is handed, so a raw 8bit
+    sample part — non-ASCII text with no transfer encoding declared, which is
+    the case under test — cannot be built with it. Writing the source out
+    directly leaves the sample text unencoded.
     """
     return "\n".join(
         [
