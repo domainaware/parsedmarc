@@ -23,6 +23,8 @@ Run the checks that match your change:
 
 ```bash
 ruff check .
+ruff format --check .
+pyright
 pytest --cov --cov-report=xml tests/
 ```
 

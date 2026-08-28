@@ -16,12 +16,12 @@ check out the sister project,
 
 ### Lookalike domains
 
-DMARC protects against domain spoofing, not lookalike domains. for open source
+DMARC protects against domain spoofing, not lookalike domains. For open source
 lookalike domain monitoring, check out [DomainAware](https://github.com/seanthegeek/domainaware).
 
 ## DMARC Alignment Guide
 
-DMARC ensures that SPF and DKM authentication mechanisms actually authenticate
+DMARC ensures that SPF and DKIM authentication mechanisms actually authenticate
 against the same domain that the end user sees.
 
 A message passes a DMARC check by passing DKIM or SPF, **as long as the related

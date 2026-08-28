@@ -11,7 +11,7 @@ Edits to any of these files should be exported from a running instance after aut
 
 ## The dev stack
 
-[docker-compose.dashboard-dev.yml](../docker-compose.dashboard-dev.yml) brings up every viz target at once so a single dashboard change can be authored and re-exported across all four UIs in one session. It `include:`s [docker-compose.yml](../docker-compose.yml) for the Elasticsearch and OpenSearch backends, then layers on Kibana, OpenSearch Dashboards, Grafana, and Splunk.
+[docker-compose.dashboard-dev.yml](../docker-compose.dashboard-dev.yml) brings up every viz target at once so a single dashboard change can be authored and re-exported across all four UIs in one session. It `include:`s [docker-compose.yml](../docker-compose.yml) for the Elasticsearch and OpenSearch backends, then layers on Kibana, OpenSearch Dashboards, Grafana, Splunk, and a PostgreSQL backend.
 
 | Service               | URL                                              | Credentials                                            |
 | --------------------- | ------------------------------------------------ | ------------------------------------------------------ |
@@ -20,6 +20,7 @@ Edits to any of these files should be exported from a running instance after aut
 | Kibana                | http://localhost:5601                            | (security disabled)                                    |
 | OpenSearch Dashboards | http://localhost:5602                            | `admin` / `$OPENSEARCH_INITIAL_ADMIN_PASSWORD`         |
 | Grafana               | http://localhost:3000                            | `admin` / `$GRAFANA_PASSWORD`                          |
+| PostgreSQL            | localhost:5432                                   | `parsedmarc` / `parsedmarc` (override: `POSTGRESQL_*`) |
 | Splunk Web / HEC      | http://localhost:8000 / https://localhost:8088   | `admin` / `$SPLUNK_PASSWORD`, HEC token `$SPLUNK_HEC_TOKEN` |
 
 All ports bind to `127.0.0.1` only.
@@ -51,7 +52,7 @@ It does, in order:
 
 1. `docker compose -f docker-compose.dashboard-dev.yml up -d` and waits for every service's health endpoint.
 2. Provisions Splunk: creates the `email` index, creates the `DMARC` app, configures the auto-created HEC token to allow the `email` index, and scopes the search-app's "scheduled export" announcement view away from `global` so it stops appearing in the DMARC app's dashboard list.
-3. Seeds Elasticsearch, OpenSearch, and Splunk with parsedmarc-parsed sample reports (from [samples/](../samples/)) so the dashboards render against real data. Skipped when ES already has aggregate docs — pass `RESEED=1` to wipe and re-seed all three backends.
+3. Seeds Elasticsearch, OpenSearch, Splunk, and PostgreSQL with parsedmarc-parsed sample reports (from [samples/](../samples/)) so the dashboards render against real data. Skipped when ES already has aggregate docs — pass `RESEED=1` to wipe and re-seed all four backends.
 4. Imports the dashboard files from this directory into the running services. This step always runs, so the typical edit loop is **edit in the UI → export → save into this directory → re-run the bootstrap script** to verify the file imports cleanly into a fresh service.
 
 VS Code users can run this via the **Dev Dashboard: Bootstrap** task in [.vscode/tasks.json](../.vscode/tasks.json). **Dev Dashboard: Up** brings the stack up without importing or seeding.
@@ -109,7 +110,7 @@ forms driven rather than HTTP basic auth.
 RESEED=1 ./dashboard-dev-bootstrap.sh
 ```
 
-Wipes every `dmarc_aggregate*` / `dmarc_failure*` / `dmarc_forensic*` / `smtp_tls*` index from ES and OS, drops and recreates the Splunk `email` index, then re-runs the parsedmarc CLI against the curated sample list. Use this after changing parsedmarc's enrichment or output schemas.
+Wipes every `dmarc_aggregate*` / `dmarc_failure*` / `dmarc_forensic*` / `smtp_tls*` index from ES and OS, drops and recreates the Splunk `email` index and the PostgreSQL schema, then re-runs the parsedmarc CLI against the curated sample list. Use this after changing parsedmarc's enrichment or output schemas.
 
 ## Tearing the stack down
 

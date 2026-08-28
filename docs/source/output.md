@@ -5,7 +5,7 @@
 Here are the results from parsing the [example](https://dmarc.org/wiki/FAQ#I_need_to_implement_aggregate_reports.2C_what_do_they_look_like.3F)
 report from the dmarc.org wiki. It's actually an older draft of
 the 1.0 report schema standardized in
-[RFC 7480 Appendix C](https://tools.ietf.org/html/rfc7489#appendix-C).
+[RFC 7489 Appendix C](https://tools.ietf.org/html/rfc7489#appendix-C).
 This draft schema is still in wide use.
 
 `parsedmarc` produces consistent, normalized output, regardless

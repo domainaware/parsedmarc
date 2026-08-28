@@ -1,7 +1,7 @@
 # Splunk
 
 Starting in version 4.3.0 `parsedmarc` supports sending aggregate and/or
-failure DMARC data to a Splunk [HTTP Event collector (HEC)].
+failure DMARC data to a Splunk [HTTP Event Collector (HEC)].
 
 The project repository contains [XML files] for premade Splunk
 dashboards for aggregate and failure DMARC reports.
@@ -19,4 +19,4 @@ Kibana dashboards, although the Kibana dashboards have slightly
 easier and more flexible filtering options.
 
 [xml files]: https://github.com/domainaware/parsedmarc/tree/master/dashboards/splunk
-[http event collector (hec)]: http://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC
+[http event collector (hec)]: https://docs.splunk.com/Documentation/Splunk/latest/Data/AboutHEC

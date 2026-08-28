@@ -2,12 +2,12 @@
 
 :::{note}
 Starting in 8.0.0, parsedmarc supports accessing Microsoft/Office 365
-inboxes via the Microsoft Graph API, which is preferred over Davmail.
+inboxes via the Microsoft Graph API, which is preferred over DavMail.
 :::
 
 Some organizations do not allow IMAP or the Microsoft Graph API,
 and only support Exchange Web Services (EWS)/Outlook Web Access (OWA).
-In that case, Davmail will need to be set up
+In that case, DavMail will need to be set up
 as a local EWS/OWA IMAP gateway. It can even work where
 [Modern Auth/multi-factor authentication] is required.
 
@@ -22,7 +22,7 @@ Install Java:
 sudo apt-get install default-jre-headless
 ```
 
-Configure Davmail by creating a `davmail.properties` file
+Configure DavMail by creating a `davmail.properties` file
 
 ```properties
 # DavMail settings, see http://davmail.sourceforge.net/ for documentation
@@ -135,7 +135,7 @@ Then, enable the service
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable parsedmarc.service
+sudo systemctl enable davmail.service
 sudo service davmail restart
 ```
 
@@ -163,7 +163,7 @@ service davmail status
 :::{note}
 In the event of a crash, systemd will restart the service after 5
 minutes, but the `service davmail status` command will only show the
-logs for the current process. To vew the logs for previous runs as
+logs for the current process. To view the logs for previous runs as
 well as the current process (newest to oldest), run:
 
 ```bash
@@ -174,8 +174,8 @@ journalctl -u davmail.service -r
 
 ## Configuring parsedmarc for DavMail
 
-Because you are interacting with DavMail server over the loopback
-(i.e. `127.0.0.1`), add the following options to `parsedmarc.ini`
+Because you are interacting with the DavMail server over the loopback
+(i.e. `127.0.0.1`), add the following options to the `parsedmarc.ini`
 config file:
 
 ```ini

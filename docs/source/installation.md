@@ -61,7 +61,7 @@ On Debian or Ubuntu systems, run:
 sudo apt-get install -y python3-pip python3-venv python3-dev libxml2-dev libxslt-dev
 ```
 
-On CentOS, RHEL, oR Rocky Linux systems, run:
+On CentOS, RHEL, or Rocky Linux systems, run:
 
 ```bash
 sudo dnf install -y python3 python3-pip python3-devel libxml2-devel libxslt-devel

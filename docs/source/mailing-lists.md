@@ -130,7 +130,7 @@ command line instead, for example:
 touch var/templates/lists/list.example.com/en/list:member:regular:footer
 ```
 
-Where `list.example.com` the list ID, and `en` is the language.
+Where `list.example.com` is the list ID, and `en` is the language.
 
 Then restart mailman core.
 
