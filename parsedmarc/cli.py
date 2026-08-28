@@ -1125,9 +1125,9 @@ def _parse_config(config: ConfigParser, opts):
         if "number_of_shards" in elasticsearch_config:
             number_of_shards = elasticsearch_config.getint("number_of_shards")
             opts.elasticsearch_number_of_shards = number_of_shards
-            if "number_of_replicas" in elasticsearch_config:
-                number_of_replicas = elasticsearch_config.getint("number_of_replicas")
-                opts.elasticsearch_number_of_replicas = number_of_replicas
+        if "number_of_replicas" in elasticsearch_config:
+            number_of_replicas = elasticsearch_config.getint("number_of_replicas")
+            opts.elasticsearch_number_of_replicas = number_of_replicas
         if "index_suffix" in elasticsearch_config:
             opts.elasticsearch_index_suffix = elasticsearch_config["index_suffix"]
         if "index_prefix" in elasticsearch_config:
@@ -1174,9 +1174,9 @@ def _parse_config(config: ConfigParser, opts):
         if "number_of_shards" in opensearch_config:
             number_of_shards = opensearch_config.getint("number_of_shards")
             opts.opensearch_number_of_shards = number_of_shards
-            if "number_of_replicas" in opensearch_config:
-                number_of_replicas = opensearch_config.getint("number_of_replicas")
-                opts.opensearch_number_of_replicas = number_of_replicas
+        if "number_of_replicas" in opensearch_config:
+            number_of_replicas = opensearch_config.getint("number_of_replicas")
+            opts.opensearch_number_of_replicas = number_of_replicas
         if "index_suffix" in opensearch_config:
             opts.opensearch_index_suffix = opensearch_config["index_suffix"]
         if "index_prefix" in opensearch_config:
@@ -2515,6 +2515,7 @@ def _main():
     arg_parser.add_argument(
         "-t",
         "--dns_timeout",
+        "--dns-timeout",
         help="number of seconds to wait for an answer from DNS (default: 2.0)",
         type=float,
         default=2.0,

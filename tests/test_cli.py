@@ -1759,11 +1759,21 @@ class TestCliParserConfigWiring(unittest.TestCase):
         self._stdout_patch.stop()
 
     def _run_one_shot_mailbox(
-        self, dns_timeout: float | None = None, dns_retries: int | None = None
+        self,
+        dns_timeout: float | None = None,
+        dns_retries: int | None = None,
+        extra_argv: list[str] | None = None,
     ) -> parsedmarc.ParserConfig:
         """Runs a real one-shot _main() against a mocked IMAP connection and
         mocked get_dmarc_reports_from_mailbox, and returns the ParserConfig
-        the CLI passed as ``config=``."""
+        the CLI passed as ``config=``.
+
+        ``extra_argv``, when given, is appended to the CLI invocation after
+        ``-c <config_path>`` -- e.g. to exercise a command-line flag such as
+        ``--dns-timeout`` without involving the config file's [general]
+        dns_timeout key at all. It defaults to None/no extra arguments, so
+        existing callers are unaffected.
+        """
         config_lines = ["[general]", "silent = true"]
         if dns_timeout is not None:
             config_lines.append(f"dns_timeout = {dns_timeout}")
@@ -1783,6 +1793,8 @@ class TestCliParserConfigWiring(unittest.TestCase):
             cfg_path = cfg.name
         self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
 
+        argv = ["parsedmarc", "-c", cfg_path] + list(extra_argv or [])
+
         with (
             patch("parsedmarc.cli.get_dmarc_reports_from_mailbox") as mock_get_reports,
             patch("parsedmarc.cli.IMAPConnection") as mock_imap,
@@ -1793,7 +1805,7 @@ class TestCliParserConfigWiring(unittest.TestCase):
                 "failure_reports": [],
                 "smtp_tls_reports": [],
             }
-            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+            with patch.object(sys, "argv", argv):
                 parsedmarc.cli._main()
             return mock_get_reports.call_args.kwargs["config"]
 
@@ -1812,6 +1824,25 @@ class TestCliParserConfigWiring(unittest.TestCase):
         cfg = self._run_one_shot_mailbox(dns_timeout=11.5, dns_retries=3)
         self.assertEqual(cfg.dns_timeout, 11.5)
         self.assertEqual(cfg.dns_retries, 3)
+
+    def test_dns_timeout_hyphenated_alias_reaches_parser_config(self):
+        """``--dns-timeout`` (hyphenated) is an alias for ``--dns_timeout``
+        (underscored), which has been the public spelling since 6.0.0. The
+        hyphenated alias exists because ``--dns-retries`` (added in 9.7.1)
+        uses a hyphen while ``--dns_timeout`` predates it and must keep
+        working unchanged, so the change adds ``--dns-timeout`` as an
+        additional option string rather than renaming anything. Both
+        spellings must resolve to the same argparse dest (``dns_timeout``)
+        and reach the same ParserConfig field passed to
+        get_dmarc_reports_from_mailbox — and both halves are exercised
+        here, because dropping the legacy option string would leave the
+        dest (derived from the surviving long option) and every
+        config-file test green while breaking the promised compatibility.
+        """
+        cfg = self._run_one_shot_mailbox(extra_argv=["--dns-timeout", "7"])
+        self.assertEqual(cfg.dns_timeout, 7.0)
+        cfg = self._run_one_shot_mailbox(extra_argv=["--dns_timeout", "9"])
+        self.assertEqual(cfg.dns_timeout, 9.0)
 
     def test_cli_config_binds_module_default_caches(self):
         """The ParserConfig built by the CLI must bind the process-wide
@@ -5882,6 +5913,31 @@ class TestParseConfigElasticsearch(unittest.TestCase):
         self.assertEqual(opts.elasticsearch_password, "secret")
         self.assertEqual(opts.elasticsearch_api_key, "base64key")
 
+    def test_elasticsearch_number_of_replicas_without_shards(self):
+        """Regression test: a [elasticsearch] section that sets only
+        number_of_replicas (no number_of_shards) must still set
+        opts.elasticsearch_number_of_replicas.
+
+        Before this fix, the number_of_replicas check was nested inside the
+        number_of_shards ``if`` block, so a replicas-only config was
+        silently ignored -- docs/source/usage.md lists number_of_shards and
+        number_of_replicas as independent options with no stated
+        dependency, and elastic.py's save functions accept them as
+        independent parameters with independent defaults, shards=1 and
+        replicas=0, but the accidental nesting made replicas silently
+        depend on shards also being set.
+        """
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "elasticsearch",
+            {"hosts": "es:9200", "number_of_replicas": "2"},
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.elasticsearch_number_of_replicas, 2)
+        self.assertFalse(hasattr(opts, "elasticsearch_number_of_shards"))
+
     def test_elasticsearch_apikey_camelcase_alias_pre_8_20(self):
         """`apiKey` (camelCase) is the legacy 8.20-and-earlier name."""
         from parsedmarc.cli import _parse_config
@@ -5998,6 +6054,31 @@ class TestParseConfigOpenSearch(unittest.TestCase):
         self.assertEqual(opts.opensearch_auth_type, "basic")
         self.assertEqual(opts.opensearch_aws_region, "us-east-1")
         self.assertEqual(opts.opensearch_aws_service, "es")
+
+    def test_opensearch_number_of_replicas_without_shards(self):
+        """Regression test: a [opensearch] section that sets only
+        number_of_replicas (no number_of_shards) must still set
+        opts.opensearch_number_of_replicas.
+
+        Before this fix, the number_of_replicas check was nested inside the
+        number_of_shards ``if`` block, so a replicas-only config was
+        silently ignored -- docs/source/usage.md lists number_of_shards and
+        number_of_replicas as independent options with no stated
+        dependency, and opensearch.py's save functions accept them as
+        independent parameters with independent defaults, shards=1 and
+        replicas=0, but the accidental nesting made replicas silently
+        depend on shards also being set.
+        """
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "opensearch",
+            {"hosts": "os:9200", "number_of_replicas": "3"},
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.opensearch_number_of_replicas, 3)
+        self.assertFalse(hasattr(opts, "opensearch_number_of_shards"))
 
     def test_opensearch_authentication_type_legacy_alias(self):
         """`authentication_type` is the legacy spelling of `auth_type`."""
