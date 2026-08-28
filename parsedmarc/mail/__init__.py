@@ -7,7 +7,7 @@ parsedmarc in mailsuite 2.0.0). This module re-exports them so
 ``parsedmarc.mail`` remains a stable import path for downstream consumers.
 
 The Gmail and Microsoft Graph connections require optional extras. Importing
-this module must not: when an extra is missing, its connection class is
+this module must not fail: when an extra is missing, its connection class is
 replaced by a placeholder that raises the same ImportError at construction
 time, so ``import parsedmarc`` works for consumers that only parse reports.
 """
