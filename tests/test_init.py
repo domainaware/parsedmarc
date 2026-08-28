@@ -6,15 +6,21 @@ extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 """
 
 import base64
+import binascii
+import email
 import gzip
 import inspect
 import json
 import logging
 import mailbox
 import os
+import quopri
 import unittest
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from email.mime.multipart import MIMEMultipart
+from email.mime.nonmultipart import MIMENonMultipart
+from email.mime.text import MIMEText
 from glob import glob
 from io import BytesIO
 from pathlib import Path
@@ -43,6 +49,114 @@ def minify_xml(xml_string):
     parser = etree.XMLParser(remove_blank_text=True)
     tree = etree.fromstring(xml_string.encode("utf-8"), parser)
     return etree.tostring(tree, pretty_print=False).decode("utf-8")
+
+
+FEEDBACK_REPORT_HEADERS = (
+    "Feedback-Type: auth-failure\r\n"
+    "User-Agent: parsedmarc-tests/1.0\r\n"
+    "Version: 1\r\n"
+    "Original-Mail-From: <bounce@example.com>\r\n"
+    "Arrival-Date: Thu, 27 Aug 2026 10:00:00 +0000\r\n"
+    "Source-IP: 203.0.113.10\r\n"
+    "Authentication-Results: mx.example.com; dmarc=fail\r\n"
+)
+
+# Long, folded headers, so that quoted-printable encoding of this sample
+# introduces soft line breaks (RFC 2045 section 6.7) that split lines without
+# the RFC 5322 folding whitespace a header parser needs.
+SAMPLE_HEADERS = (
+    "Received: from mail.example.com (mail.example.com [203.0.113.10])\r\n"
+    "\tby mx.example.com with ESMTPS id abc123;\r\n"
+    "\tThu, 27 Aug 2026 10:00:00 +0000\r\n"
+    "DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=example.com;\r\n"
+    "\ts=selector1; h=from:to:subject;\r\n"
+    "\tbh=" + "a" * 76 + "=;\r\n"
+    "\tb=" + "b" * 120 + "\r\n"
+    "From: victim@example.com\r\n"
+    "To: someone@example.org\r\n"
+    "Subject: hello\r\n"
+)
+
+
+def build_failure_report_email(
+    feedback_report=FEEDBACK_REPORT_HEADERS,
+    sample=SAMPLE_HEADERS,
+    feedback_report_cte=None,
+    sample_cte=None,
+):
+    """Builds an RFC 6591 multipart/report failure report message.
+
+    ``feedback_report_cte`` and ``sample_cte`` optionally encode the
+    corresponding part's body and declare a matching
+    ``Content-Transfer-Encoding`` header; ``None`` leaves the part
+    unencoded (7bit).
+    """
+
+    def encode(text, cte):
+        if cte == "quoted-printable":
+            return quopri.encodestring(text.encode()).decode("ascii")
+        if cte == "base64":
+            return base64.b64encode(text.encode()).decode("ascii")
+        raise ValueError(f"Unsupported test encoding: {cte}")
+
+    msg = MIMEMultipart("report", report_type="feedback-report")
+    msg["From"] = "dmarc-noreply@example.org"
+    msg["To"] = "dmarc-reports@example.com"
+    msg["Subject"] = "DMARC Authentication Failure Report"
+    msg.attach(MIMEText("This is a DMARC authentication failure report.", "plain"))
+
+    report_part = MIMENonMultipart("message", "feedback-report")
+    if feedback_report_cte is None:
+        report_part.set_payload(feedback_report)
+    else:
+        report_part.set_payload(encode(feedback_report, feedback_report_cte))
+        report_part["Content-Transfer-Encoding"] = feedback_report_cte
+    msg.attach(report_part)
+
+    sample_part = MIMEText(sample, _subtype="rfc822-headers")
+    if sample_cte is not None:
+        sample_part.set_payload(encode(sample, sample_cte))
+        del sample_part["Content-Transfer-Encoding"]
+        sample_part["Content-Transfer-Encoding"] = sample_cte
+    msg.attach(sample_part)
+
+    return msg.as_string()
+
+
+def build_raw_failure_report_email(sample, sample_charset="utf-8"):
+    """Assembles the MIME source of a failure report by hand.
+
+    ``MIMEText`` re-encodes any non-ASCII body it is handed, so a raw 8bit
+    sample part — non-ASCII text with no transfer encoding declared, which is
+    the case under test — cannot be built with it. Writing the source out
+    directly leaves the sample text unencoded.
+    """
+    return "\n".join(
+        [
+            "From: dmarc-noreply@example.org",
+            "To: dmarc-reports@example.com",
+            "Subject: DMARC Authentication Failure Report",
+            "MIME-Version: 1.0",
+            "Content-Type: multipart/report; report-type=feedback-report;",
+            '\tboundary="BOUNDARY"',
+            "",
+            "--BOUNDARY",
+            "Content-Type: text/plain; charset=us-ascii",
+            "",
+            "This is a DMARC authentication failure report.",
+            "",
+            "--BOUNDARY",
+            "Content-Type: message/feedback-report",
+            "",
+            FEEDBACK_REPORT_HEADERS,
+            "--BOUNDARY",
+            f'Content-Type: text/rfc822-headers; charset="{sample_charset}"',
+            "",
+            sample,
+            "--BOUNDARY--",
+            "",
+        ]
+    )
 
 
 def compare_xml(xml1, xml2):
@@ -224,6 +338,252 @@ class Test(unittest.TestCase):
         assert report["feedback_type"] == "auth-failure"
         assert "authentication_results" in report
         assert report["source"]["ip_address"] == "203.0.113.68"
+
+    def testFailureSampleQuotedPrintableSamplePart(self):
+        """A quoted-printable ``text/rfc822-headers`` sample part is decoded
+        before it is parsed (issue #882).
+
+        ``parse_report_email()`` read part payloads without ``decode=True``,
+        so the sample kept its RFC 2045 section 6.7 soft line breaks (``=``
+        followed by CRLF, with no RFC 5322 folding whitespace). That split the
+        ``From`` header mid-value, leaving it unparseable, and the whole
+        failure report was discarded."""
+        message = build_failure_report_email(sample_cte="quoted-printable")
+        result = parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        self.assertEqual(report["reported_domain"], "example.com")
+        sample_from = report["parsed_sample"].get("from")
+        assert sample_from is not None
+        self.assertEqual(sample_from["address"], "victim@example.com")
+
+    def testFailureSampleBase64SamplePart(self):
+        """A base64 ``text/rfc822-headers`` sample part is decoded before it is
+        parsed (issue #882)."""
+        message = build_failure_report_email(sample_cte="base64")
+        result = parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        self.assertEqual(report["reported_domain"], "example.com")
+        sample_from = report["parsed_sample"].get("from")
+        assert sample_from is not None
+        self.assertEqual(sample_from["address"], "victim@example.com")
+
+    def testFailureQuotedPrintableFeedbackReportPart(self):
+        """A quoted-printable ``message/feedback-report`` part is decoded
+        before its fields are read (issue #882).
+
+        A composite part carrying a real Content-Transfer-Encoding is illegal
+        per RFC 2045 section 6.4, but reporters send them; the standard
+        library nests the still-encoded text as a child message. Without
+        decoding, the report parsed "successfully" with silently corrupted
+        values (``dmarc=3Dfail`` instead of ``dmarc=fail``)."""
+        message = build_failure_report_email(feedback_report_cte="quoted-printable")
+        result = parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        authentication_results = report["authentication_results"]
+        self.assertEqual(authentication_results, "mx.example.com; dmarc=fail")
+        assert authentication_results is not None
+        self.assertNotIn("=3D", authentication_results)
+
+    def testFailureReportFieldsHaveNoTrailingCarriageReturn(self):
+        """Feedback report field values never keep the CR of a CRLF line
+        ending.
+
+        A ``message/feedback-report`` part is a MIME body part, so its lines
+        end with CRLF per RFC 5322 section 2.1. ``re.MULTILINE``'s ``$``
+        matches before the LF but not before the CR, so a greedy ``.+`` value
+        swallows it. This sample's part is base64, and once it is decoded per
+        its Content-Transfer-Encoding (issue #882) the CRLF reaches the field
+        regex intact."""
+        sample_path = "samples/failure/[Netease DMARC Failure Report] Rent Reminder.eml"
+        result = parsedmarc.parse_report_file(sample_path, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        self.assertEqual(report["feedback_type"], "auth-failure")
+        self.assertEqual(report["user_agent"], "NtesDmarcReporter/1.0")
+        self.assertEqual(report["version"], "1")
+        self.assertEqual(report["arrival_date"], "Fri, 28 Sep 2018 16:48:42 +0800")
+        self.assertEqual(report["reported_domain"], "cardinal.com")
+        # "sample" is the raw sample message rather than a feedback report
+        # field, so its line endings are deliberately left alone.
+        for key, value in report.items():
+            if key != "sample" and isinstance(value, str):
+                self.assertNotIn("\r", value, msg=f"carriage return in {key}")
+
+    def testFailureReportWithNoReportedDomainAndNoSampleFrom(self):
+        """A failure report with no ``Reported-Domain`` field whose sample has
+        no usable ``From`` header is rejected with a clear message.
+
+        ``reported_domain`` is a required ``str`` in the ``FailureReport``
+        contract (``parsedmarc/types.py``) and is read directly by the
+        Elasticsearch and OpenSearch outputs, so it cannot be defaulted to
+        ``None``. The error must survive un-wrapped by the generic
+        ``except Exception`` handler in ``parse_failure_report()``."""
+        sample = "To: someone@example.org\r\nSubject: hello\r\n"
+        message = build_failure_report_email(sample=sample)
+        with self.assertRaises(parsedmarc.InvalidFailureReport) as context:
+            parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        error = str(context.exception)
+        self.assertIn("Reported-Domain", error)
+        self.assertIn("From header", error)
+        self.assertNotIn("Unexpected error", error)
+
+    def testFailureBase64FeedbackReportBodyWithoutCTE(self):
+        """A ``message/feedback-report`` part whose body is bare base64 text,
+        with no ``Content-Transfer-Encoding`` declaring it, is still decoded.
+
+        There is nothing for ``_decode_mime_payload()`` to undo here, so the
+        long-standing "no ``Feedback-Type`` in the payload means it is base64"
+        fallback in ``parse_report_email()`` must keep handling it."""
+        encoded = base64.b64encode(FEEDBACK_REPORT_HEADERS.encode()).decode("ascii")
+        message = build_failure_report_email(feedback_report=encoded)
+        result = parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        self.assertEqual(report["feedback_type"], "auth-failure")
+        self.assertEqual(report["authentication_results"], "mx.example.com; dmarc=fail")
+
+    def testFailureQuotedPrintableFeedbackReportMissingFeedbackType(self):
+        """When the base64 fallback in ``parse_report_email()`` fails, the
+        payload it falls back to is the transfer-decoded one (issue #882).
+
+        ``Feedback-Type`` is REQUIRED per RFC 5965 section 3.1, but gateways
+        omit it (issue #332). Without it the parser tries to base64-decode the
+        part, that fails, and the payload is used as-is -- which must be the
+        quoted-printable-decoded text, not the raw ``=3D``-riddled source."""
+        feedback_report = FEEDBACK_REPORT_HEADERS.replace(
+            "Feedback-Type: auth-failure\r\n", ""
+        ).replace("User-Agent: parsedmarc-tests/1.0\r\n", "")
+        # The fallback path under test is only reached because this payload is
+        # not decodable as base64; assert that precondition rather than
+        # relying on it silently.
+        with self.assertRaises(binascii.Error):
+            base64.b64decode(feedback_report)
+        message = build_failure_report_email(
+            feedback_report=feedback_report,
+            feedback_report_cte="quoted-printable",
+        )
+        result = parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        self.assertEqual(report["feedback_type"], "auth-failure")
+        authentication_results = report["authentication_results"]
+        self.assertEqual(authentication_results, "mx.example.com; dmarc=fail")
+        assert authentication_results is not None
+        self.assertNotIn("=3D", authentication_results)
+        self.assertEqual(report["source"]["ip_address"], "203.0.113.10")
+
+    def testFailureSampleNonASCIIWithoutTransferEncoding(self):
+        """A raw 8bit sample part's non-ASCII characters survive intact.
+
+        The message is parsed from a ``str``, so a part with no
+        quoted-printable or base64 Content-Transfer-Encoding has nothing to
+        undo. Asking ``compat32`` for ``get_payload(decode=True)`` there
+        round-trips the already-correct text through ``raw-unicode-escape``
+        bytes, and re-decoding those as the declared charset replaces every
+        non-ASCII character with U+FFFD."""
+        sample = (
+            "From: Jérôme <victim@example.com>\r\n"
+            "To: someone@example.org\r\n"
+            "Subject: café résumé\r\n"
+        )
+        message = build_raw_failure_report_email(sample)
+        result = parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        parsed_sample = report["parsed_sample"]
+        sample_from = parsed_sample.get("from")
+        assert sample_from is not None
+        self.assertEqual(sample_from["display_name"], "Jérôme")
+        self.assertEqual(sample_from["address"], "victim@example.com")
+        self.assertEqual(parsed_sample.get("subject"), "café résumé")
+        self.assertNotIn("�", str(parsed_sample))
+
+    def testFailureQuotedPrintableFeedbackReportSoftLineBreak(self):
+        """A quoted-printable field value split across a soft line break is
+        reassembled whole (issue #882).
+
+        Quoted-printable lines are at most 76 characters (RFC 2045 section
+        6.7), so a long field is split with a trailing ``=``. The standard
+        library parses the still-encoded text as a message, and the
+        continuation line -- no colon, no leading whitespace -- makes it record
+        a ``MissingHeaderBodySeparatorDefect`` and treat the rest as the body,
+        so re-serializing inserts a blank line the encoded text never had.
+        Decoding consumes the soft break but leaves that inserted newline
+        mid-value, truncating it at the first split."""
+        authentication_results = (
+            "mx.example.com; dkim=fail header.d=example.com header.s=selector1 "
+            'reason="signature verification failed"; spf=fail '
+            "smtp.mailfrom=bounce@example.com; dmarc=fail"
+        )
+        feedback_report = FEEDBACK_REPORT_HEADERS.replace(
+            "Authentication-Results: mx.example.com; dmarc=fail\r\n",
+            f"Authentication-Results: {authentication_results}\r\n",
+        )
+        message = build_failure_report_email(
+            feedback_report=feedback_report,
+            feedback_report_cte="quoted-printable",
+        )
+        # The defect under test only appears once the value is long enough to
+        # be split; assert that precondition rather than relying on it.
+        self.assertIn("=\n", message)
+        result = parsedmarc.parse_report_email(message, offline=OFFLINE_MODE)
+        self.assertEqual(result["report_type"], "failure")
+        report = cast(FailureReport, result["report"])
+        parsed_results = report["authentication_results"]
+        self.assertEqual(parsed_results, authentication_results)
+        assert parsed_results is not None
+        self.assertNotIn("=3D", parsed_results)
+
+    def testDecodeMimePayloadUnknownCharset(self):
+        """``_decode_mime_payload()`` falls back to UTF-8 when a part declares
+        a charset Python does not know.
+
+        The part must carry a real transfer encoding, since that is the only
+        case in which the helper decodes bytes and therefore needs a charset
+        at all."""
+        part = MIMEText("hello", _subtype="rfc822-headers")
+        part.set_payload(quopri.encodestring(b"hello").decode("ascii"))
+        del part["Content-Type"]
+        del part["Content-Transfer-Encoding"]
+        part["Content-Type"] = 'text/rfc822-headers; charset="x-not-a-real-charset"'
+        part["Content-Transfer-Encoding"] = "quoted-printable"
+        with self.assertRaises(LookupError):
+            "hello".encode("x-not-a-real-charset")
+        self.assertEqual(parsedmarc._decode_mime_payload(part, "fallback"), "hello")
+
+    def testDecodeMimePayloadWithoutTransferEncodingReturnsFallback(self):
+        """``_decode_mime_payload()`` returns the payload text untouched when
+        the part declares no quoted-printable or base64 transfer encoding."""
+        part = MIMEText("hello", _subtype="rfc822-headers")
+        self.assertEqual(part.get("Content-Transfer-Encoding"), "7bit")
+        self.assertEqual(parsedmarc._decode_mime_payload(part, "fallback"), "fallback")
+
+    def testDecodeMimePayloadUndecodableBase64FallsBack(self):
+        """``_decode_mime_payload()`` returns the fallback unchanged when a
+        nested ``message/*`` part declares base64 but its body cannot be
+        decoded, so a report that parsed before cannot start failing."""
+        outer = MIMEMultipart("report", report_type="feedback-report")
+        inner = MIMENonMultipart("message", "feedback-report")
+        inner.set_payload("AAAAA")
+        inner["Content-Transfer-Encoding"] = "base64"
+        outer.attach(inner)
+        parsed = email.message_from_string(outer.as_string())
+        parts = [
+            part
+            for part in parsed.walk()
+            if part.get_content_type() == "message/feedback-report"
+        ]
+        self.assertEqual(len(parts), 1)
+        # The standard library nests message/* parts, so decode=True is
+        # unavailable and the by-hand base64 decode is what runs -- and fails.
+        self.assertIsNone(parts[0].get_payload(decode=True))
+        self.assertEqual(
+            parsedmarc._decode_mime_payload(parts[0], "AAAAA"),
+            "AAAAA",
+        )
 
     def testFailureReportBackwardCompat(self):
         """Test that old forensic function aliases still work"""
