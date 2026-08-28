@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import binascii
 import email
+import email.errors
+import email.message
 import email.utils
 import functools
 import json
 import logging
 import mailbox
 import os
+import quopri
 import re
 import shutil
 import tempfile
@@ -78,7 +81,11 @@ from parsedmarc.utils import (
 
 logger.debug(f"parsedmarc v{__version__}")
 
-feedback_report_regex = re.compile(r"^([\w\-]+): (.+)$", re.MULTILINE)
+# A message/feedback-report part is a MIME body part, so its lines end with
+# CRLF per RFC 5322 §2.1. In re.MULTILINE, ``$`` matches before the LF but not
+# before the CR, so the value must exclude the line ending explicitly rather
+# than relying on ``.`` — otherwise every field value keeps a trailing CR.
+feedback_report_regex = re.compile(r"^([\w\-]+): ([^\r\n]+)\r?$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*?>", re.MULTILINE)
 xml_schema_regex = re.compile(r"</??xs:schema.*>", re.MULTILINE)
 text_report_regex = re.compile(r"\s*([a-zA-Z\s]+):\s(.+)", re.MULTILINE)
@@ -1695,7 +1702,19 @@ def parse_failure_report(
         )
 
         if "reported_domain" not in parsed_report:
-            parsed_report["reported_domain"] = parsed_sample["from"]["domain"]
+            # reported_domain is a required str in the FailureReport contract
+            # (parsedmarc/types.py) and is read directly by the Elasticsearch
+            # and OpenSearch outputs, so it cannot be defaulted to None. When
+            # the report omits the Reported-Domain field and the sample's From
+            # header is missing or unparseable, the report is unusable.
+            sample_from = parsed_sample.get("from")
+            if not isinstance(sample_from, dict) or not sample_from.get("domain"):
+                raise InvalidFailureReport(
+                    "The failure report has no Reported-Domain field, and no "
+                    "domain could be parsed from the From header of the "
+                    "included sample message"
+                )
+            parsed_report["reported_domain"] = sample_from["domain"]
 
         sample_headers_only = False
         number_of_attachments = len(parsed_sample["attachments"])
@@ -1710,6 +1729,11 @@ def parse_failure_report(
         parsed_report["parsed_sample"] = parsed_sample
 
         return cast(FailureReport, parsed_report)
+
+    except InvalidFailureReport:
+        # Already a clear, specific message; do not re-wrap it as an
+        # "Unexpected error" below.
+        raise
 
     except KeyError as error:
         raise InvalidFailureReport(f"Missing value: {error.__str__()}") from error
@@ -1816,6 +1840,90 @@ def parsed_failure_reports_to_csv(
         csv_writer.writerow(new_row)
 
     return csv_file.getvalue()
+
+
+def _decode_mime_payload(part: email.message.Message, fallback: str) -> str:
+    """
+    Returns a MIME part's payload decoded per its ``Content-Transfer-Encoding``
+
+    Three non-obvious constraints shape this helper:
+
+    - Only ``quoted-printable`` and ``base64`` parts are touched at all. The
+      caller parses the message from a ``str``, so for a part with a 7bit,
+      8bit, or absent ``Content-Transfer-Encoding`` there is nothing to undo,
+      and ``compat32``'s ``get_payload(decode=True)`` would round-trip the
+      already-correct text through ``raw-unicode-escape`` bytes — re-decoding
+      those as the declared charset mangles every non-ASCII character. Such
+      parts return ``fallback``, which is the payload text as-is.
+    - The standard library's email parser nests **every** ``message/*``
+      subtype — including ``message/feedback-report`` and ``message/rfc822`` —
+      as a child ``Message`` object, so ``get_payload(decode=True)`` returns
+      ``None`` for those parts rather than decoded bytes. The caller's
+      re-serialization of that child message is passed in as ``fallback``, and
+      any transfer encoding is undone here instead.
+    - A composite part carrying a real ``Content-Transfer-Encoding`` of
+      ``quoted-printable`` or ``base64`` is illegal per RFC 2045 §6.4, but
+      real reporters send them anyway (issue
+      `#882 <https://github.com/domainaware/parsedmarc/issues/882>`_), and the
+      standard library nests the still-encoded text as-is. Parsing that text
+      as a message can insert a header/body separator that the encoded text
+      never had, which has to be undone before decoding; see below.
+
+    Any unexpected failure returns ``fallback`` unchanged, so a report that
+    parsed before cannot start failing because of this decoding step.
+
+    Args:
+        part: The MIME part
+        fallback: The payload text to use when the part carries no transfer
+            encoding to undo, or cannot be decoded with ``decode=True``
+            (i.e. nested ``message/*`` parts)
+
+    Returns:
+        str: The decoded payload
+    """
+    try:
+        cte = (part.get("Content-Transfer-Encoding") or "").strip().lower()
+        if cte not in ("quoted-printable", "base64"):
+            return fallback
+
+        payload_bytes = part.get_payload(decode=True)
+        if isinstance(payload_bytes, bytes):
+            charset = part.get_content_charset() or "utf-8"
+            try:
+                return payload_bytes.decode(charset, errors="replace")
+            except LookupError:
+                return payload_bytes.decode("utf-8", errors="replace")
+
+        # Nested message/* part: undo the transfer encoding by hand.
+        #
+        # The still-encoded text was parsed as a message first. A soft line
+        # break (RFC 2045 §6.7) splits a long field across lines, and the
+        # continuation line has neither a colon nor leading whitespace, so the
+        # parser records a MissingHeaderBodySeparatorDefect and treats the
+        # remainder as the body -- which makes the re-serialized `fallback`
+        # carry a blank line that the encoded text never had. Decoding then
+        # consumes the soft break and leaves that inserted newline in the
+        # middle of the value, truncating it. Drop exactly that one separator:
+        # a header value cannot contain a blank line, so the first "\n\n" is
+        # the inserted boundary. Text with a genuine separator raises no
+        # defect, and nothing is removed.
+        text = fallback
+        child = part.get_payload()
+        if isinstance(child, list) and child:
+            child = child[0]
+        if isinstance(child, email.message.Message) and any(
+            isinstance(defect, email.errors.MissingHeaderBodySeparatorDefect)
+            for defect in child.defects
+        ):
+            text = fallback.replace("\n\n", "\n", 1)
+
+        if cte == "quoted-printable":
+            return quopri.decodestring(text.encode("utf-8", errors="replace")).decode(
+                "utf-8", errors="replace"
+            )
+        return b64decode(text).decode("utf-8", errors="replace")
+    except Exception:
+        return fallback
 
 
 def parse_report_email(
@@ -1926,18 +2034,19 @@ def parse_report_email(
             continue
         elif content_type == "message/feedback-report":
             is_feedback_report = True
+            decoded_payload = _decode_mime_payload(part, payload)
             try:
-                if "Feedback-Type" in payload:
-                    feedback_report = payload
+                if "Feedback-Type" in decoded_payload:
+                    feedback_report = decoded_payload
                 else:
-                    feedback_report = b64decode(payload).__str__()
+                    feedback_report = b64decode(decoded_payload).__str__()
                 feedback_report = feedback_report.lstrip("b'").rstrip("'")
                 feedback_report = feedback_report.replace("\\r", "")
                 feedback_report = feedback_report.replace("\\n", "\n")
             except (ValueError, TypeError, binascii.Error):
-                feedback_report = payload
+                feedback_report = decoded_payload
         elif is_feedback_report and content_type in EMAIL_SAMPLE_CONTENT_TYPES:
-            sample = payload
+            sample = _decode_mime_payload(part, payload)
         elif content_type == "application/tlsrpt+json":
             if not payload.strip().startswith("{"):
                 payload = b64decode(payload).decode("utf-8", errors="replace")
