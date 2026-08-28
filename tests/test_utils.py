@@ -8,9 +8,15 @@ import unittest
 from datetime import datetime, timezone
 from importlib.resources import files
 from tempfile import NamedTemporaryFile
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import dns.exception
+import dns.message
+import dns.nameserver
+import dns.rdata
+import dns.rdataclass
+import dns.rdatatype
 import dns.resolver
 import httpx
 from expiringdict import ExpiringDict
@@ -1227,6 +1233,235 @@ class TestQueryDnsRetries(unittest.TestCase):
                     retries=2,
                 )
         self.assertEqual(mock_resolve.call_count, 3)
+
+
+class TestEncryptedDnsNameservers(unittest.TestCase):
+    """Tests for the DNS over HTTPS and DNS over TLS transports selected by
+    the form of each ``nameservers`` entry
+    (https://github.com/domainaware/parsedmarc/issues/880). The end-to-end
+    tests mock at the dnspython SDK boundary (``dns.query.https`` /
+    ``dns.query.tls``) and assert on the answer query_dns parses back out of
+    a real DNS response message, so the whole chain — entry mapping,
+    resolver, nameserver object, transport call — is exercised."""
+
+    def setUp(self):
+        # The DoH session is process-wide state; keep test ordering from
+        # leaking a client (or a PID) between tests.
+        self._old_session = parsedmarc.utils._DOH_SESSION
+        self._old_pid = parsedmarc.utils._DOH_SESSION_PID
+        parsedmarc.utils._DOH_SESSION = None
+        parsedmarc.utils._DOH_SESSION_PID = None
+
+        def restore():
+            session = parsedmarc.utils._DOH_SESSION
+            if session is not None and session is not self._old_session:
+                session.close()
+            parsedmarc.utils._DOH_SESSION = self._old_session
+            parsedmarc.utils._DOH_SESSION_PID = self._old_pid
+
+        self.addCleanup(restore)
+
+    @staticmethod
+    def _ptr_responder(captured: list, answer: str = "dns.example."):
+        """Builds a dns.query stand-in that answers any PTR query with
+        ``answer``, recording the keyword arguments it was called with."""
+
+        def responder(request, *args, **kwargs):
+            captured.append(kwargs)
+            response = dns.message.make_response(request)
+            # find_rrset(create=True) rather than appending to
+            # response.answer, so the message's rrset index is updated too —
+            # dnspython looks the answer up through that index.
+            rrset = response.find_rrset(
+                response.answer,
+                request.question[0].name,
+                dns.rdataclass.IN,
+                dns.rdatatype.PTR,
+                create=True,
+            )
+            rrset.add(dns.rdata.from_text("IN", "PTR", answer), 300)
+            return response
+
+        return responder
+
+    def test_plain_ip_entries_are_passed_through_untouched(self):
+        """An IP address is handed to dnspython as the same string object,
+        leaving its own Do53 enrichment (and port defaulting) in charge."""
+        entries = ["1.1.1.1", "2606:4700:4700::1111"]
+        mapped = parsedmarc.utils._nameservers_to_resolver_input(entries)
+        self.assertEqual(len(mapped), 2)
+        for original, result in zip(entries, mapped):
+            self.assertIs(result, original)
+
+    def _map_doh(self, entry: str) -> parsedmarc.utils._SessionDoHNameserver:
+        """Maps one entry and asserts it produced a DoH nameserver."""
+        (mapped,) = parsedmarc.utils._nameservers_to_resolver_input([entry])
+        self.assertIsInstance(mapped, parsedmarc.utils._SessionDoHNameserver)
+        return cast(parsedmarc.utils._SessionDoHNameserver, mapped)
+
+    def _map_dot(self, entry: str) -> dns.nameserver.DoTNameserver:
+        """Maps one entry and asserts it produced a DoT nameserver."""
+        (mapped,) = parsedmarc.utils._nameservers_to_resolver_input([entry])
+        self.assertIsInstance(mapped, dns.nameserver.DoTNameserver)
+        return cast(dns.nameserver.DoTNameserver, mapped)
+
+    def test_https_entry_becomes_a_session_doh_nameserver(self):
+        """An https:// entry maps to the DoH nameserver subclass that
+        queries through parsedmarc's own httpx client."""
+        url = "https://cloudflare-dns.com/dns-query"
+        self.assertEqual(self._map_doh(url).url, url)
+
+    def test_uppercase_scheme_is_recognized(self):
+        """The scheme is compared as urlsplit reports it, which is
+        lowercased, so HTTPS:// selects DoH rather than falling through to
+        dnspython as an unusable string."""
+        self._map_doh("HTTPS://cloudflare-dns.com/dns-query")
+
+    def test_tls_entry_defaults_to_port_853_with_no_hostname(self):
+        """tls://<ip> alone uses DoTNameserver's default port and performs
+        no certificate-identity substitution."""
+        mapped = self._map_dot("tls://9.9.9.9")
+        self.assertEqual(mapped.address, "9.9.9.9")
+        self.assertEqual(mapped.port, 853)
+        self.assertIsNone(mapped.hostname)
+
+    def test_tls_entry_port_and_hostname_are_parsed(self):
+        """tls://ip:port#hostname sets both the port and the TLS
+        certificate identity."""
+        mapped = self._map_dot("tls://9.9.9.9:8853#dns.quad9.net")
+        self.assertEqual(mapped.address, "9.9.9.9")
+        self.assertEqual(mapped.port, 8853)
+        self.assertEqual(mapped.hostname, "dns.quad9.net")
+
+    def test_bracketed_ipv6_tls_entry_is_parsed(self):
+        """An IPv6 address is bracketed so the colon before the port is
+        unambiguous; the brackets are not part of the address."""
+        mapped = self._map_dot("tls://[2620:fe::fe]:853#dns.quad9.net")
+        self.assertEqual(mapped.address, "2620:fe::fe")
+        self.assertEqual(mapped.port, 853)
+
+    def test_mixed_list_preserves_order_and_types(self):
+        """Transports can be mixed in one nameservers list, and the
+        configured order is the failover order dnspython will use."""
+        mapped = parsedmarc.utils._nameservers_to_resolver_input(
+            [
+                "1.1.1.1",
+                "https://cloudflare-dns.com/dns-query",
+                "tls://9.9.9.9#dns.quad9.net",
+            ]
+        )
+        self.assertEqual(mapped[0], "1.1.1.1")
+        self.assertIsInstance(mapped[1], parsedmarc.utils._SessionDoHNameserver)
+        self.assertIsInstance(mapped[2], dns.nameserver.DoTNameserver)
+
+    def test_tls_entry_without_a_host_is_rejected(self):
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.utils._nameservers_to_resolver_input(["tls://"])
+        self.assertIn("tls://", str(ctx.exception))
+
+    def test_tls_entry_with_a_hostname_instead_of_an_ip_is_rejected(self):
+        """DoTNameserver takes an IP address, not a name — it has no
+        resolver of its own to bootstrap with. The certificate identity is
+        supplied by the #hostname suffix instead."""
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.utils._nameservers_to_resolver_input(["tls://dns.quad9.net"])
+        self.assertIn("tls://dns.quad9.net", str(ctx.exception))
+
+    def test_tls_entry_with_an_invalid_port_is_rejected(self):
+        """urlsplit only validates the port when it is read, so the
+        ValueError it raises there is re-raised naming the entry."""
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.utils._nameservers_to_resolver_input(["tls://9.9.9.9:notaport"])
+        self.assertIn("tls://9.9.9.9:notaport", str(ctx.exception))
+
+    def test_tls_entry_with_a_path_is_rejected(self):
+        """tls://9.9.9.9/dns.quad9.net — a plausible slash-for-# typo —
+        must fail at configuration time naming the entry, not parse
+        "successfully" with no TLS certificate identity and then fail at
+        query time with an opaque certificate error. Userinfo and query
+        components are rejected the same way."""
+        for entry in (
+            "tls://9.9.9.9/dns.quad9.net",
+            "tls://user@9.9.9.9",
+            "tls://9.9.9.9?hostname=dns.quad9.net",
+        ):
+            with self.subTest(entry=entry):
+                with self.assertRaises(ValueError) as ctx:
+                    parsedmarc.utils._nameservers_to_resolver_input([entry])
+                self.assertIn(entry, str(ctx.exception))
+
+    def test_unsplittable_entry_is_left_for_dnspython_to_reject(self):
+        """urlsplit itself raises on some malformed input (an unbalanced
+        IPv6 bracket). Such an entry is passed through rather than reported
+        as a DoH/DoT problem, and dnspython rejects it with its own message
+        about what a nameserver may be."""
+        entry = "https://[::1"
+        (mapped,) = parsedmarc.utils._nameservers_to_resolver_input([entry])
+        self.assertIs(mapped, entry)
+        with self.assertRaises(ValueError):
+            dns.resolver.Resolver(configure=False).nameservers = [entry]
+
+    def test_doh_query_returns_answers_through_a_shared_httpx_client(self):
+        """An https:// nameserver resolves through dns.query.https, and the
+        session it is given is the module's shared client, an httpx.Client
+        with trust_env left on — httpx's documented switch for honoring
+        HTTP_PROXY/HTTPS_PROXY/NO_PROXY and SSL_CERT_FILE, which is what a
+        proxy-only network needs (issue #880). dnspython's stock DoH
+        nameserver passes no session at all, and the client dns.query.https
+        builds for itself has a custom transport, which disables environment
+        proxies. Asserting identity with the shared client also observes the
+        connection-reuse half of the claim: a fresh per-query client would
+        satisfy every other assertion here."""
+        captured: list = []
+        with patch("dns.query.https", side_effect=self._ptr_responder(captured)):
+            records = parsedmarc.utils.query_dns(
+                "1.0.0.1.in-addr.arpa",
+                "PTR",
+                cache=ExpiringDict(max_len=10, max_age_seconds=60),
+                nameservers=["https://dns.example/dns-query"],
+                timeout=2,
+            )
+        self.assertEqual(records, ["dns.example"])
+        self.assertEqual(len(captured), 1)
+        session = captured[0]["session"]
+        self.assertIsInstance(session, httpx.Client)
+        self.assertIs(session.trust_env, True)
+        self.assertIs(session, parsedmarc.utils._DOH_SESSION)
+
+    def test_dot_query_returns_answers_and_passes_the_tls_hostname(self):
+        """A tls:// nameserver resolves through dns.query.tls, and the
+        #hostname suffix reaches it as server_hostname — the name the
+        server's certificate is checked against."""
+        captured: list = []
+        with patch("dns.query.tls", side_effect=self._ptr_responder(captured)):
+            records = parsedmarc.utils.query_dns(
+                "1.0.0.1.in-addr.arpa",
+                "PTR",
+                cache=ExpiringDict(max_len=10, max_age_seconds=60),
+                nameservers=["tls://9.9.9.9#dns.quad9.net"],
+                timeout=2,
+            )
+        self.assertEqual(records, ["dns.example"])
+        self.assertEqual(len(captured), 1)
+        self.assertEqual(captured[0]["server_hostname"], "dns.quad9.net")
+        self.assertEqual(captured[0]["port"], 853)
+
+    def test_doh_session_is_reused_within_a_process(self):
+        """Consecutive calls hand back the same client, so DoH lookups
+        reuse the connection instead of renegotiating TLS per query."""
+        first = parsedmarc.utils._get_doh_session()
+        self.assertIs(parsedmarc.utils._get_doh_session(), first)
+
+    def test_doh_session_is_rebuilt_after_a_fork(self):
+        """A forked worker (n_procs) inherits the module globals, including
+        the parent's open sockets. Recording the creating PID makes the
+        child build its own client rather than share the parent's."""
+        parent_session = parsedmarc.utils._get_doh_session()
+        parsedmarc.utils._DOH_SESSION_PID = os.getpid() + 1
+        child_session = parsedmarc.utils._get_doh_session()
+        self.addCleanup(parent_session.close)
+        self.assertIsNot(child_session, parent_session)
+        self.assertEqual(parsedmarc.utils._DOH_SESSION_PID, os.getpid())
 
 
 class TestLoadIpDb(unittest.TestCase):

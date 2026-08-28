@@ -5747,6 +5747,59 @@ class TestParseConfigGeneral(unittest.TestCase):
         self.assertEqual(opts.dns_retries, 2)
         self.assertEqual(opts.nameservers, ["1.1.1.1", "8.8.8.8"])
 
+    def test_general_nameservers_accept_doh_and_dot_entries(self):
+        """A nameservers list may mix DNS over HTTPS URLs and DNS over TLS
+        entries with plain IP addresses (issue #880); _parse_config splits
+        and strips them like any other list value, and hands them to the DNS
+        pre-flight check (mocked here so no network is needed)."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "general",
+            {
+                "dns_test_address": "1.1.1.1",
+                "dns_timeout": "5.0",
+                "nameservers": (
+                    "https://cloudflare-dns.com/dns-query, tls://9.9.9.9#dns.quad9.net"
+                ),
+            },
+        )
+        opts = _opts()
+        with patch(
+            "parsedmarc.cli.get_reverse_dns", return_value="one.one.one.one"
+        ) as mock_reverse_dns:
+            _parse_config(cp, opts)
+        self.assertEqual(
+            opts.nameservers,
+            ["https://cloudflare-dns.com/dns-query", "tls://9.9.9.9#dns.quad9.net"],
+        )
+        self.assertEqual(
+            mock_reverse_dns.call_args.kwargs["nameservers"], opts.nameservers
+        )
+
+    def test_general_nameservers_malformed_dot_entry_fails_pre_flight(self):
+        """A malformed DNS over TLS nameservers entry raises a
+        ConfigurationError at startup, before any mailbox work begins. No
+        mocking is needed: the entry mapper rejects tls://not-an-ip with a
+        ValueError before any query is sent (the pre-flight path passes no
+        cache, so nothing can short-circuit it), and _parse_config wraps
+        any pre-flight failure in a ConfigurationError."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with(
+            "general",
+            {
+                "dns_test_address": "1.1.1.1",
+                "dns_timeout": "2.0",
+                "nameservers": "tls://not-an-ip",
+            },
+        )
+        opts = _opts()
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, opts)
+        self.assertIn("pre-flight", str(ctx.exception))
+        self.assertIn("tls://not-an-ip", str(ctx.exception))
+
     def test_general_normalize_timespan_threshold(self):
         from parsedmarc.cli import _parse_config
 
