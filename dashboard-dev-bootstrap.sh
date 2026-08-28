@@ -227,7 +227,7 @@ else
     #   2. An already-activated virtualenv ($VIRTUAL_ENV).
     #   3. An existing repo venv/ or .venv/.
     #   4. Otherwise a freshly created $REPO_ROOT/venv.
-    # Cases 2-4 run `pip install -e .[all,postgresql]` only when the CLI,
+    # Cases 2-4 run `pip install -e ".[all,postgresql]"` only when the CLI,
     # psycopg, or an [all] integration (elasticsearch stands in for the group)
     # is missing, so it's a no-op once the environment is set up.
     if [ -n "${PARSEDMARC_BIN:-}" ]; then

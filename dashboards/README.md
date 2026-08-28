@@ -37,7 +37,7 @@ All ports bind to `127.0.0.1` only.
    ```
 
    Pick any values you like — these are local-only dev secrets. Both `.env` and `parsedmarc*.ini` are gitignored. The matching values must also appear in [parsedmarc-dev.ini](../parsedmarc-dev.ini), which the bootstrap script feeds to the parsedmarc CLI for sample-data ingestion.
-3. The parsedmarc CLI on `PATH` (or in `./venv/bin/`) — `pip install -e .[all,postgresql]` from the repo root works. The `all` and `postgresql` extras are what the bootstrap script installs, and the seed needs them: the Elasticsearch, OpenSearch, and PostgreSQL outputs each live behind an extra. Override the lookup with `PARSEDMARC_BIN=/path/to/parsedmarc` if needed.
+3. The parsedmarc CLI on `PATH` (or in `./venv/bin/`) — `pip install -e ".[all,postgresql]"` from the repo root works. The `all` and `postgresql` extras are what the bootstrap script installs, and the seed needs them: the Elasticsearch, OpenSearch, and PostgreSQL outputs each live behind an extra. Override the lookup with `PARSEDMARC_BIN=/path/to/parsedmarc` if needed.
 
 ## One-shot bootstrap
 

@@ -10,7 +10,7 @@ Use a virtual environment for local development.
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-pip install .[build,all,postgresql]
+pip install ".[build,all,postgresql]"
 ```
 
 The `all` and `postgresql` extras are what the CI lint job installs: they
