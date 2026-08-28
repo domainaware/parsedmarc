@@ -1,6 +1,9 @@
 """Tests for parsedmarc.cli — CLI entry point, config parsing,
 env-var overrides, mailbox watch wiring, and SIGHUP reload."""
 
+import importlib
+import importlib.abc
+import importlib.machinery
 import io
 import json
 import logging
@@ -11,14 +14,17 @@ import sys
 import tempfile
 import unittest
 import zipfile
+from collections.abc import Iterator, Sequence
 from configparser import ConfigParser
+from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
 import httpx
 from azure.core.exceptions import ClientAuthenticationError
+from kiota_abstractions.api_error import APIError
 from msgraph.generated.models.o_data_errors.inner_error import InnerError
 from msgraph.generated.models.o_data_errors.main_error import MainError
 from msgraph.generated.models.o_data_errors.o_data_error import ODataError
@@ -26,6 +32,8 @@ from msgraph.generated.models.o_data_errors.o_data_error import ODataError
 import parsedmarc
 import parsedmarc.cli
 import parsedmarc.elastic
+import parsedmarc.log
+import parsedmarc.mail
 import parsedmarc.opensearch as opensearch_module
 from parsedmarc.types import AggregateReport, ParsedReport
 
@@ -6981,6 +6989,453 @@ class TestConfigureLogging(unittest.TestCase):
         with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
             _configure_logging(_logging.INFO, log_file="/proc/nonexistent/x.log")
         self.assertTrue(any("Unable to write to log file" in m for m in cm.output))
+
+
+# Top-level module roots pulled in by parsedmarc's optional output and
+# mailbox extras. Blocking all of them makes an install with no extras
+# at all -- the new default (#883) -- look the way it does to the import
+# system.
+OPTIONAL_SDK_ROOTS = (
+    "azure",
+    "boto3",
+    "botocore",
+    "elastic_transport",
+    "elasticsearch",
+    "google",
+    "google_auth_oauthlib",
+    "googleapiclient",
+    "kafka",
+    "kiota_abstractions",
+    "kiota_authentication_azure",
+    "msgraph",
+    "msgraph_core",
+    "opensearchpy",
+    "pygelf",
+)
+
+# The parsedmarc submodules cli.py imports behind the extras guard, in
+# the order their guarded import blocks appear in cli.py.
+GUARDED_CLI_MODULES = (
+    "elastic",
+    "gelf",
+    "kafkaclient",
+    "loganalytics",
+    "opensearch",
+    "s3",
+)
+
+
+class _ImportBlocker(importlib.abc.MetaPathFinder):
+    """A meta path finder that makes chosen module roots unimportable.
+
+    Installed at the head of ``sys.meta_path``, it raises ``ImportError``
+    for any module whose top-level root is blocked, which is what an
+    install without the optional extra looks like to the import system.
+    """
+
+    def __init__(self, roots: frozenset[str]) -> None:
+        self.roots = roots
+
+    def find_spec(
+        self,
+        fullname: str,
+        path: Sequence[str] | None = None,
+        target: ModuleType | None = None,
+    ) -> importlib.machinery.ModuleSpec | None:
+        if fullname.split(".")[0] in self.roots:
+            raise ImportError(f"blocked for test: {fullname}")
+        return None
+
+
+def _is_affected(name: str) -> bool:
+    """Is *name* a module that has to be reloaded while the SDKs are blocked?
+
+    The blocked roots themselves, the whole ``mailsuite`` tree (its
+    ``mailbox`` package caches the ``gmail``/``graph`` submodules as
+    attributes once loaded, so a stale entry would satisfy
+    ``parsedmarc.mail``'s guarded imports without ever reaching a blocked
+    root), and the ``parsedmarc`` submodules that import the blocked SDKs.
+    """
+    root = name.split(".")[0]
+    if root in OPTIONAL_SDK_ROOTS or root == "mailsuite":
+        return True
+    return name in {f"parsedmarc.{m}" for m in (*GUARDED_CLI_MODULES, "mail")}
+
+
+@contextmanager
+def _cli_without_optional_sdks() -> Iterator[ModuleType]:
+    """Reload :mod:`parsedmarc.cli` with every optional SDK unimportable.
+
+    Yields the reloaded module -- the same object as before, since
+    ``importlib.reload`` re-executes in place. On exit, including when
+    the body raises, the finder is removed, anything imported while
+    blocked is discarded, the snapshots are put back, and
+    :mod:`parsedmarc.cli` is reloaded once more so later tests see the
+    real modules again. ``parsedmarc``'s own submodule attributes are
+    snapshotted and deleted too: ``from parsedmarc import elastic``
+    resolves against the package's attributes first, so leaving them in
+    place would satisfy the import without consulting the blocker.
+    """
+    blocker = _ImportBlocker(frozenset(OPTIONAL_SDK_ROOTS))
+    removed_modules: dict[str, ModuleType] = {}
+    for name in list(sys.modules):
+        if _is_affected(name):
+            removed_modules[name] = sys.modules.pop(name)
+    removed_attrs: dict[str, ModuleType] = {}
+    for attr in (*GUARDED_CLI_MODULES, "mail"):
+        if attr in vars(parsedmarc):
+            removed_attrs[attr] = getattr(parsedmarc, attr)
+            delattr(parsedmarc, attr)
+    # Every reload re-runs cli.py's module level, which adds a stream
+    # handler to the parsedmarc logger; restore the original list so the
+    # handlers do not accumulate across tests.
+    handlers = list(parsedmarc.log.logger.handlers)
+    sys.meta_path.insert(0, blocker)
+    try:
+        importlib.invalidate_caches()
+        importlib.reload(parsedmarc.cli)
+        yield parsedmarc.cli
+    finally:
+        sys.meta_path.remove(blocker)
+        for name in list(sys.modules):
+            if _is_affected(name):
+                del sys.modules[name]
+        sys.modules.update(removed_modules)
+        for attr, value in removed_attrs.items():
+            setattr(parsedmarc, attr, value)
+        importlib.invalidate_caches()
+        importlib.reload(parsedmarc.cli)
+        parsedmarc.log.logger.handlers[:] = handlers
+
+
+def _output_client_opts(**overrides) -> SimpleNamespace:
+    """Build the opts namespace ``_init_output_clients`` reads.
+
+    Every option defaults to ``None`` -- falsy, so each output's ``if``
+    guard is skipped -- and *overrides* turn on exactly one output.
+    """
+    names = (
+        "elasticsearch_api_key",
+        "elasticsearch_hosts",
+        "elasticsearch_index_prefix",
+        "elasticsearch_index_suffix",
+        "elasticsearch_password",
+        "elasticsearch_serverless",
+        "elasticsearch_skip_certificate_verification",
+        "elasticsearch_ssl",
+        "elasticsearch_ssl_cert_path",
+        "elasticsearch_timeout",
+        "elasticsearch_username",
+        "gelf_host",
+        "gelf_mode",
+        "gelf_port",
+        "hec",
+        "hec_index",
+        "hec_skip_certificate_verification",
+        "hec_token",
+        "kafka_hosts",
+        "kafka_password",
+        "kafka_skip_certificate_verification",
+        "kafka_username",
+        "la_dce",
+        "opensearch_api_key",
+        "opensearch_auth_type",
+        "opensearch_aws_region",
+        "opensearch_aws_service",
+        "opensearch_hosts",
+        "opensearch_index_prefix",
+        "opensearch_index_suffix",
+        "opensearch_password",
+        "opensearch_skip_certificate_verification",
+        "opensearch_ssl",
+        "opensearch_ssl_cert_path",
+        "opensearch_timeout",
+        "opensearch_username",
+        "postgresql_connection_string",
+        "postgresql_database",
+        "postgresql_host",
+        "postgresql_password",
+        "postgresql_port",
+        "postgresql_user",
+        "s3_access_key_id",
+        "s3_bucket",
+        "s3_endpoint_url",
+        "s3_path",
+        "s3_region_name",
+        "s3_secret_access_key",
+        "save_aggregate",
+        "save_failure",
+        "save_smtp_tls",
+        "syslog_cafile_path",
+        "syslog_certfile_path",
+        "syslog_keyfile_path",
+        "syslog_port",
+        "syslog_protocol",
+        "syslog_retry_attempts",
+        "syslog_retry_delay",
+        "syslog_server",
+        "syslog_timeout",
+        "webhook_aggregate_url",
+        "webhook_failure_url",
+        "webhook_smtp_tls_url",
+        "webhook_timeout",
+    )
+    unknown = set(overrides) - set(names)
+    assert not unknown, f"unknown opts: {sorted(unknown)}"
+    values: dict[str, object] = {name: None for name in names}
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+class TestOptionalIntegrationExtras(unittest.TestCase):
+    """The optional-extras packaging split (#883).
+
+    ``pip install parsedmarc`` no longer ships the Elasticsearch,
+    OpenSearch, Kafka, AWS, Azure, Gmail, or Microsoft Graph SDKs, so
+    ``parsedmarc.cli`` must import without any of them, and a config
+    section whose extra is missing must fail with an actionable
+    ``ConfigurationError`` rather than an ``ImportError`` traceback or an
+    ``AttributeError`` on ``None``.
+    """
+
+    # (cli.py module global, INI section name, extra name, opts that
+    # select that output, the key _init_output_clients() adds for it --
+    # None for Log Analytics, whose client is built per batch in
+    # process_reports() instead)
+    GUARDED_OUTPUTS = (
+        (
+            "elastic",
+            "elasticsearch",
+            "elastic",
+            {"elasticsearch_hosts": ["host:9200"]},
+            "elasticsearch",
+        ),
+        (
+            "opensearch",
+            "opensearch",
+            "opensearch",
+            {"opensearch_hosts": ["host:9200"]},
+            "opensearch",
+        ),
+        (
+            "kafkaclient",
+            "kafka",
+            "kafka",
+            {"kafka_hosts": ["host:9092"]},
+            "kafka_client",
+        ),
+        ("s3", "s3", "s3", {"s3_bucket": "reports"}, "s3_client"),
+        (
+            "gelf",
+            "gelf",
+            "gelf",
+            {"gelf_host": "logger", "gelf_port": 12201},
+            "gelf_client",
+        ),
+        (
+            "loganalytics",
+            "log_analytics",
+            "loganalytics",
+            {"la_dce": "https://dce.example.com"},
+            None,
+        ),
+    )
+
+    def test_cli_imports_with_no_optional_sdk_installed(self):
+        """parsedmarc.cli imports with every optional SDK absent.
+
+        This is the base-install guarantee: the core CLI (file, IMAP,
+        Maildir, and mbox input; CSV/JSON, Splunk HEC, webhook, and
+        syslog output) works with none of the extras installed. Each
+        guarded module becomes ``None``; the eagerly imported outputs,
+        which need only httpx or the standard library, stay real.
+        """
+        with _cli_without_optional_sdks() as blocked_cli:
+            self.assertIs(blocked_cli, sys.modules["parsedmarc.cli"])
+            for name in GUARDED_CLI_MODULES:
+                with self.subTest(module=name):
+                    self.assertIsNone(getattr(blocked_cli, name))
+            for name in ("postgres", "splunk", "syslog", "webhook"):
+                with self.subTest(module=name):
+                    self.assertIsInstance(getattr(blocked_cli, name), ModuleType)
+
+        # The other half: once the SDKs are back, so are the modules --
+        # a guard that left them None would break every later test.
+        for name in GUARDED_CLI_MODULES:
+            with self.subTest(module=name):
+                self.assertIsInstance(getattr(parsedmarc.cli, name), ModuleType)
+
+    def test_graph_error_types_fall_back_to_sentinel_classes(self):
+        """The Graph error handling still works with the msgraph extra absent.
+
+        ``ClientAuthenticationError`` and ``APIError`` appear only in
+        ``except`` tuples and one ``isinstance`` check. Without the extra
+        a Graph connection cannot even be constructed -- its
+        ``parsedmarc.mail`` placeholder raises the extra's ImportError --
+        so those handlers are unreachable, and the placeholders exist
+        purely to keep the module importable. They must be exception
+        classes distinct from the real ones, must never match an
+        unrelated exception, and must leave ``_log_msgraph_failure``'s
+        non-APIError branch intact.
+        """
+        with _cli_without_optional_sdks() as blocked_cli:
+            for name in ("ClientAuthenticationError", "APIError"):
+                with self.subTest(name=name):
+                    sentinel = getattr(blocked_cli, name)
+                    self.assertTrue(issubclass(sentinel, Exception))
+                    self.assertIsNot(sentinel, globals()[name])
+
+            # A real error raised where Graph errors are handled is not
+            # swallowed by the sentinels.
+            with self.assertRaises(ValueError):
+                try:
+                    raise ValueError("boom")
+                except (
+                    blocked_cli.ClientAuthenticationError,
+                    blocked_cli.APIError,
+                    httpx.HTTPError,
+                ):
+                    self.fail("a sentinel caught an unrelated exception")
+
+            with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+                blocked_cli._log_msgraph_failure(
+                    ValueError("no  token"),
+                    stage="connection",
+                    mailbox="reports@example.com",
+                    tenant_id="tenant",
+                    auth_method="ClientSecret",
+                )
+            self.assertIn("ValueError: no token", cm.output[0])
+
+        self.assertIs(
+            parsedmarc.cli.ClientAuthenticationError, ClientAuthenticationError
+        )
+        self.assertIs(parsedmarc.cli.APIError, APIError)
+
+    def test_missing_extra_raises_configuration_error_with_install_hint(self):
+        """A configured output whose module is None names its extra.
+
+        ``None`` is exactly what the import guard leaves behind when the
+        extra is not installed, so patching the module global reproduces
+        that state without reloading. The message must name the INI
+        section and the pip command, and it must be a
+        ``ConfigurationError``: _main() reports those to the user
+        directly, while the ``RuntimeError`` wrappers around each
+        constructor would bury the hint in a traceback.
+        """
+        for module, section, extra, options, _key in self.GUARDED_OUTPUTS:
+            with self.subTest(extra=extra):
+                opts = _output_client_opts(save_aggregate=True, **options)
+                with patch.object(parsedmarc.cli, module, None):
+                    with self.assertRaises(
+                        parsedmarc.cli.ConfigurationError
+                    ) as context:
+                        parsedmarc.cli._init_output_clients(opts)
+                self.assertEqual(
+                    str(context.exception),
+                    f"The [{section}] configuration section requires the {extra} "
+                    f"extra: pip install parsedmarc[{extra}]",
+                )
+
+    def test_present_extra_initializes_without_the_hint(self):
+        """The same config is accepted when the module is importable.
+
+        The negative half of the test above: the check must key on the
+        module being absent, not on the section being configured. The
+        module is replaced by a mock so no client opens a real
+        connection, and the client the section asks for is the only one
+        built.
+        """
+        for module, _section, extra, options, key in self.GUARDED_OUTPUTS:
+            with self.subTest(extra=extra):
+                opts = _output_client_opts(save_aggregate=True, **options)
+                with patch.object(parsedmarc.cli, module, MagicMock()):
+                    clients = parsedmarc.cli._init_output_clients(opts)
+                self.assertEqual(sorted(clients), [key] if key else [])
+
+    def test_log_analytics_extra_is_checked_before_reports_are_parsed(self):
+        """The Log Analytics client is built per batch, checked at startup.
+
+        ``process_reports()`` constructs ``LogAnalyticsClient`` for every
+        batch under ``opts.la_dce``, long after reports have been fetched
+        and parsed. The presence check therefore lives in
+        ``_init_output_clients()``, which runs before any mailbox is
+        opened and again on a SIGHUP reload, so a missing extra is
+        reported immediately instead of once there is data to lose. With
+        no ``la_dce`` configured, a missing module is not an error at all.
+        """
+        with patch.object(parsedmarc.cli, "loganalytics", None):
+            self.assertEqual(
+                parsedmarc.cli._init_output_clients(_output_client_opts()), {}
+            )
+
+    def test_missing_postgresql_extra_raises_configuration_error(self):
+        """A configured [postgresql] section without psycopg fails fast.
+
+        postgres.py guards its own psycopg import, so the module is
+        always importable and ``postgres.psycopg is None`` is exactly the
+        missing-extra state. Without the presence check the constructor's
+        PostgreSQLError became a RuntimeError that the startup retry loop
+        retried for over a minute before exiting; a ConfigurationError
+        exits immediately with the install hint. The negative half:
+        with psycopg present, the same opts build the client.
+        """
+        opts = _output_client_opts(postgresql_host="db.example.com")
+        with patch.object(parsedmarc.cli.postgres, "psycopg", None):
+            with self.assertRaises(parsedmarc.cli.ConfigurationError) as context:
+                parsedmarc.cli._init_output_clients(opts)
+        self.assertEqual(
+            str(context.exception),
+            "The [postgresql] configuration section requires the postgresql "
+            "extra: pip install parsedmarc[postgresql]",
+        )
+        with (
+            patch.object(parsedmarc.cli.postgres, "psycopg", MagicMock()),
+            patch.object(parsedmarc.cli.postgres, "PostgreSQLClient") as mock_client,
+        ):
+            clients = parsedmarc.cli._init_output_clients(opts)
+        self.assertEqual(sorted(clients), ["postgresql_client"])
+        self.assertIs(clients["postgresql_client"], mock_client.return_value)
+
+    def test_missing_mailbox_extras_fail_fast_at_config_time(self):
+        """[msgraph]/[gmail_api] sections without their extra fail in
+        _parse_config with parsedmarc's own install hint.
+
+        Without the extra, parsedmarc.mail binds placeholder connection
+        classes outside the MailboxConnection hierarchy whose
+        construction raises mailsuite's ImportError — which named
+        mailsuite's extra, not parsedmarc's, and surfaced as a logged
+        traceback long after config parsing. The subclass check turns
+        that into an immediate ConfigurationError naming the parsedmarc
+        extra. The check reads parsedmarc.mail's own attributes — the
+        authoritative placeholder state — not cli's rebound names, which
+        other tests replace with MagicMock instances that issubclass()
+        would reject. The negative half — real classes pass the check —
+        is covered by every existing msgraph/gmail_api _parse_config
+        test, which runs with the real mailsuite classes imported.
+        """
+        from parsedmarc.cli import _parse_config
+
+        class _Placeholder:
+            """Stand-in for the parsedmarc.mail missing-extra placeholder."""
+
+        cases = (
+            ("MSGraphConnection", "msgraph", "msgraph"),
+            ("GmailConnection", "gmail_api", "gmail"),
+        )
+        for class_name, section, extra in cases:
+            with self.subTest(section=section):
+                cp = _config_with(section, {})
+                with patch.object(parsedmarc.mail, class_name, _Placeholder):
+                    with self.assertRaises(
+                        parsedmarc.cli.ConfigurationError
+                    ) as context:
+                        _parse_config(cp, _opts())
+                self.assertEqual(
+                    str(context.exception),
+                    f"The [{section}] configuration section requires the {extra} "
+                    f"extra: pip install parsedmarc[{extra}]",
+                )
 
 
 if __name__ == "__main__":

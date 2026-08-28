@@ -36,37 +36,90 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 requires-python = ">=3.10"
+# The base install is the parsing core plus a working core CLI: file,
+# IMAP, Maildir, and mbox input; CSV/JSON, Splunk HEC, webhook, and
+# syslog output. Every other output and mailbox integration lives in an extra
+# below, so a library or small-mail-host install does not have to carry
+# the Elasticsearch, OpenSearch, Kafka, AWS, Azure, Gmail, and Microsoft
+# Graph SDKs (see issue #883).
 dependencies = [
-    "azure-identity>=1.8.0",
-    "azure-monitor-ingestion>=1.0.0",
-    "boto3>=1.16.63",
-    "dateparser>=1.1.1",
     # The [doh] extra supplies the httpx/h2 floors DNS over HTTPS needs;
     # 2.7.0 is the floor verified against the dns.nameserver and
     # dns.query.https(session=...) APIs utils.py builds on.
     "dnspython[doh]>=2.7.0",
-    "elasticsearch>=8.18,<9",
     "expiringdict>=1.1.4",
     # The runtime HTTP library (utils.py fetches, webhook and Splunk HEC
     # clients, Graph error handling in cli.py). The floor matches
     # microsoft-kiota-http's own requirement.
     "httpx>=0.25",
-    "kafka-python>=2.3.2",
     "lxml>=4.4.0",
-    "mailsuite[gmail,msgraph]>=2.3.1",
+    # No extras: the base mailsuite supplies IMAP and Maildir connections
+    # plus mail-parser. Gmail and Microsoft Graph come from the gmail and
+    # msgraph extras below.
+    "mailsuite>=2.3.1",
     "maxminddb>=2.0.0",
-    # Imported directly in cli.py for Graph error handling; otherwise
-    # only a transitive dep of mailsuite[msgraph] -> msgraph-sdk.
-    "microsoft-kiota-abstractions>=1.8.0",
-    "opensearch-py>=2.4.2,<=4.0.0",
     "publicsuffixlist>=0.10.0",
-    "pygelf>=0.4.2",
+    # Imported directly at utils.py:39 (dateutil.parser). It used to
+    # arrive transitively via dateparser, which nothing ever imported.
+    "python-dateutil>=2.8.0",
     "tqdm>=4.31.1",
     "xmltodict>=0.12.0",
     "PyYAML>=6.0.3"
 ]
 
+# Splunk HEC, webhook, and syslog outputs deliberately have no extra:
+# they need only httpx (a base dependency) and the standard library, so
+# do not add empty marker extras for them.
 [project.optional-dependencies]
+elastic = [
+    "elasticsearch>=8.18,<9",
+]
+opensearch = [
+    "opensearch-py>=2.4.2,<=4.0.0",
+    # boto3 supplies the SigV4 signer opensearch.py imports for AWS auth.
+    "boto3>=1.16.63",
+]
+kafka = [
+    "kafka-python>=2.3.2",
+]
+s3 = [
+    "boto3>=1.16.63",
+]
+gelf = [
+    "pygelf>=0.4.2",
+]
+loganalytics = [
+    "azure-identity>=1.8.0",
+    "azure-monitor-ingestion>=1.0.0",
+]
+msgraph = [
+    "mailsuite[msgraph]>=2.3.1",
+    # Imported directly in cli.py for Graph error handling; otherwise
+    # only a transitive dep of mailsuite[msgraph] -> msgraph-sdk.
+    "microsoft-kiota-abstractions>=1.8.0",
+]
+gmail = [
+    "mailsuite[gmail]>=2.3.1",
+]
+# `all` must stay the union of every extra above — and must keep
+# excluding `postgresql`: psycopg's prebuilt binary wheels do not exist
+# for every platform/arch, so folding it in here would make
+# `pip install parsedmarc[all]` fail on platforms it does not cover.
+# Spelled out as an explicit package list rather than a self-referential
+# `parsedmarc[elastic,...]` spec, which would make the project a
+# dependency of itself; keep this list in sync when an extra above
+# gains, drops, or re-floors a package.
+all = [
+    "azure-identity>=1.8.0",
+    "azure-monitor-ingestion>=1.0.0",
+    "boto3>=1.16.63",
+    "elasticsearch>=8.18,<9",
+    "kafka-python>=2.3.2",
+    "mailsuite[gmail,msgraph]>=2.3.1",
+    "microsoft-kiota-abstractions>=1.8.0",
+    "opensearch-py>=2.4.2,<=4.0.0",
+    "pygelf>=0.4.2",
+]
 postgresql = [
     # Optional output backend. psycopg ships prebuilt binary wheels via the
     # [binary] extra, but those wheels don't exist for every platform/arch,
@@ -89,6 +142,10 @@ build = [
     "pyright==1.1.411",
     "pytest",
     "pytest-cov",
+    # Test-only: tests/test_init.py imports pytz for a fixed-offset
+    # timezone. It used to arrive transitively via dateparser, which the
+    # base dependencies no longer declare.
+    "pytz",
     # Used only by the out-of-wheel maintainer script
     # parsedmarc/resources/maps/collect_domain_info.py, which deliberately
     # stays on requests because its permissive-TLS fallback is built on
@@ -163,9 +220,10 @@ select = [
 [tool.pyright]
 # The whole codebase passes pyright with zero errors and warnings; CI
 # enforces this (see .github/workflows/python-tests.yml). Run locally with
-# `pyright` from the repo root. Requires the [postgresql] extra to be
-# installed so the optional psycopg import in parsedmarc/postgres.py
-# resolves.
+# `pyright` from the repo root. Requires the [all] and [postgresql] extras
+# to be installed so the optional integration imports (parsedmarc/cli.py's
+# guarded output modules, the psycopg import in parsedmarc/postgres.py)
+# resolve.
 include = ["parsedmarc", "tests", "docs"]
 typeCheckingMode = "standard"
 

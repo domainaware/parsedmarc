@@ -9,8 +9,8 @@ parsedmarc is a Python module and CLI utility for parsing DMARC aggregate (RUA),
 ## Common Commands
 
 ```bash
-# Install with dev/build dependencies
-pip install .[build]
+# Install with dev/build dependencies and every optional integration
+pip install .[build,all,postgresql]
 
 # Run all tests with coverage
 pytest --cov --cov-report=xml tests/
@@ -26,8 +26,8 @@ ruff check .
 ruff format .
 
 # Type check (config in pyproject.toml [tool.pyright]; CI enforces zero
-# errors/warnings; needs the [postgresql] extra installed so the optional
-# psycopg import resolves)
+# errors/warnings; needs the [all] and [postgresql] extras installed so the
+# optional integration imports resolve)
 pyright
 
 # Test CLI with sample reports

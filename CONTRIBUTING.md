@@ -10,8 +10,12 @@ Use a virtual environment for local development.
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-pip install .[build]
+pip install .[build,all,postgresql]
 ```
+
+The `all` and `postgresql` extras are what the CI lint job installs: they
+pull in every optional integration, so `pyright`, the docs build, and the
+full test suite can all resolve the optional imports.
 
 ## Before opening a pull request
 
@@ -19,7 +23,7 @@ Run the checks that match your change:
 
 ```bash
 ruff check .
-pytest --cov --cov-report=xml tests.py
+pytest --cov --cov-report=xml tests/
 ```
 
 If you changed documentation:

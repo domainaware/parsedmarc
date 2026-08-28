@@ -89,13 +89,64 @@ any files created later are also owned by `parsedmarc`
 ```bash
 sudo -u parsedmarc python3 -m venv /opt/parsedmarc/venv
 sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install --upgrade pip
-sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install --upgrade parsedmarc
+sudo -u parsedmarc /opt/parsedmarc/venv/bin/pip install --upgrade "parsedmarc[all]"
 ```
 
 To upgrade `parsedmarc` later, re-run the last command above and then
 restart the service.
 
-## Optional dependencies
+### Choosing what to install
+
+Starting with the next major release, the integrations that talk to
+external systems live in optional extras, so an install only carries the
+dependencies it actually uses.
+
+`pip install parsedmarc` — the base install — provides:
+
+- the parsing library (aggregate, failure, and SMTP TLS reports),
+- the CLI, reading reports from files, an IMAP mailbox, a Maildir, or an
+  mbox file,
+- and CSV/JSON, Splunk HEC, webhook, and syslog output.
+
+Everything else needs an extra:
+
+| Extra | Enables |
+|---|---|
+| `elastic` | The `[elasticsearch]` output |
+| `opensearch` | The `[opensearch]` output |
+| `kafka` | The `[kafka]` output |
+| `s3` | The `[s3]` output |
+| `gelf` | The `[gelf]` output |
+| `loganalytics` | The `[log_analytics]` (Azure Monitor) output |
+| `msgraph` | The `[msgraph]` mailbox input (Microsoft 365) |
+| `gmail` | The `[gmail_api]` mailbox input |
+| `postgresql` | The `[postgresql]` output |
+
+Extras can be combined: `pip install "parsedmarc[elastic,msgraph]"`.
+
+`pip install "parsedmarc[all]"` installs every extra in the table
+**except** `postgresql`, which stays separate because `psycopg`'s
+prebuilt binary wheels are not available for every platform — folding it
+into `all` would make `parsedmarc[all]` fail to install there. Add it
+explicitly when you need it: `pip install "parsedmarc[all,postgresql]"`.
+
+If a configuration file names a section whose extra is not installed,
+`parsedmarc` exits at startup with an error naming the exact
+`pip install` command to run.
+
+:::{note}
+**Upgrading from 10.x:** every 10.x install carried the Elasticsearch,
+OpenSearch, Kafka, AWS, Azure, Gmail, and Microsoft Graph packages,
+whether or not it used them. They are no longer installed by
+`pip install parsedmarc`, so switch your install command to
+`pip install --upgrade "parsedmarc[all]"` (adding `postgresql` if you
+use it) to keep every integration available. An in-place upgrade does
+not uninstall packages you already have, but a rebuilt virtualenv — or
+any fresh install — gets only what the extras name. Users of the
+prebuilt Docker image are unaffected: it bundles `[all,postgresql]`.
+:::
+
+## Optional system dependencies
 
 If you would like to be able to parse emails saved from Microsoft
 Outlook (i.e. OLE .msg files), install `msgconvert`:

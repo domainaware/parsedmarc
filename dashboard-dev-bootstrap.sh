@@ -220,13 +220,15 @@ else
     fi
 
     # Resolve a Python environment for the seed and make sure parsedmarc plus
-    # the PostgreSQL extra (psycopg) are installed in it, so the same run can
-    # populate Postgres. Precedence:
+    # every output integration ([all]) and the PostgreSQL extra (psycopg) are
+    # installed in it, so the same run can populate Elasticsearch, OpenSearch,
+    # and Postgres. Precedence:
     #   1. An explicit PARSEDMARC_BIN — used as-is, nothing installed.
     #   2. An already-activated virtualenv ($VIRTUAL_ENV).
     #   3. An existing repo venv/ or .venv/.
     #   4. Otherwise a freshly created $REPO_ROOT/venv.
-    # Cases 2-4 run `pip install -e .[postgresql]` only when the CLI or psycopg
+    # Cases 2-4 run `pip install -e .[all,postgresql]` only when the CLI,
+    # psycopg, or an [all] integration (elasticsearch stands in for the group)
     # is missing, so it's a no-op once the environment is set up.
     if [ -n "${PARSEDMARC_BIN:-}" ]; then
         if [ ! -x "$PARSEDMARC_BIN" ]; then
@@ -251,9 +253,9 @@ else
         fi
         PARSEDMARC_BIN="$seed_venv/bin/parsedmarc"
         if [ ! -x "$PARSEDMARC_BIN" ] ||
-            ! "$seed_venv/bin/python" -c 'import psycopg' >/dev/null 2>&1; then
-            echo "  installing parsedmarc[postgresql] into $seed_venv"
-            "$seed_venv/bin/python" -m pip install -q -e "${REPO_ROOT}[postgresql]"
+            ! "$seed_venv/bin/python" -c 'import psycopg, elasticsearch' >/dev/null 2>&1; then
+            echo "  installing parsedmarc[all,postgresql] into $seed_venv"
+            "$seed_venv/bin/python" -m pip install -q -e "${REPO_ROOT}[all,postgresql]"
         fi
     fi
     if [ ! -x "$PARSEDMARC_BIN" ]; then
@@ -309,7 +311,16 @@ else
         # Reached only for an explicit PARSEDMARC_BIN whose env lacks psycopg
         # (the auto-resolved venv path installs the extra above).
         echo "  NOTE: 'psycopg' is not available to ${PARSEDMARC_BIN} — skipping the"
-        echo "        PostgreSQL seed. Enable it with: pip install -e '.[postgresql]'"
+        echo "        PostgreSQL seed. Enable it with: pip install -e '.[all,postgresql]'"
+    fi
+    # Like psycopg above, this is reachable only for an explicit
+    # PARSEDMARC_BIN: without the [all] integrations the seed run below
+    # exits 1 on its ConfigurationError (swallowed by the `|| true`),
+    # leaving every dashboard empty with nothing on the console to say why.
+    if [ -x "$seed_python" ] && ! "$seed_python" -c 'import elasticsearch' >/dev/null 2>&1; then
+        echo "  WARNING: the Elasticsearch/OpenSearch clients are not available to"
+        echo "           ${PARSEDMARC_BIN} — the seed run will fail to initialize its"
+        echo "           outputs. Install them with: pip install -e '.[all,postgresql]'"
     fi
     env "${pg_seed_env[@]}" \
         "$PARSEDMARC_BIN" -t 2.0 --dns-retries 1 -c parsedmarc-dev.ini "${SAMPLE_FILES[@]}" || true

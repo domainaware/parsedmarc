@@ -299,6 +299,9 @@ The full set of configuration options are:
   - `user` - str: The IMAP user
   - `password` - str: The IMAP password
 - `msgraph`
+
+  Requires the `msgraph` extra: `pip install parsedmarc[msgraph]`
+
   - `auth_method` - str: Authentication method, valid types are
       `UsernamePassword`, `DeviceCode`, `ClientSecret`, `Certificate`, or
       `ClientAssertion` (Default: `UsernamePassword`).
@@ -534,6 +537,9 @@ The full set of configuration options are:
     | Invalid/rejected timestamp in the `since`/`receivedDateTime` filter | Historical bug (parsedmarc [#706](https://github.com/domainaware/parsedmarc/pull/706)/[#708](https://github.com/domainaware/parsedmarc/pull/708)): older versions appended a spurious `Z` to an already-UTC-offset ISO timestamp. Fixed since parsedmarc 9.5.1/9.5.5. | Upgrade parsedmarc if you're on a version older than 9.5.5. |
     :::
 - `elasticsearch`
+
+  Requires the `elastic` extra: `pip install parsedmarc[elastic]`
+
   - `hosts` - str: A comma separated list of hostnames and ports
       or URLs (e.g. `127.0.0.1:9200` or
       `https://user:secret@localhost`)
@@ -565,6 +571,9 @@ The full set of configuration options are:
     settings sent at index creation; any other settings (e.g.
     `refresh_interval`) are passed through unchanged (Default: `False`)
 - `opensearch`
+
+  Requires the `opensearch` extra: `pip install parsedmarc[opensearch]`
+
   - `hosts` - str: A comma separated list of hostnames and ports
     or URLs (e.g. `127.0.0.1:9200` or
     `https://user:secret@localhost`)
@@ -600,6 +609,9 @@ The full set of configuration options are:
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
 - `kafka`
+
+  Requires the `kafka` extra: `pip install parsedmarc[kafka]`
+
   - `hosts` - str: A comma separated list of Kafka hosts
   - `user` - str: The Kafka user
   - `passsword` - str: The Kafka password
@@ -655,11 +667,12 @@ The full set of configuration options are:
   The PostgreSQL backend is an optional extra. Install it with
   `pip install parsedmarc[postgresql]` (it pulls in `psycopg`); the
   prebuilt binary wheels are not available for every platform, which is
-  why it is not a mandatory dependency. The prebuilt Docker image
-  (`ghcr.io/domainaware/parsedmarc`) already bundles this extra, so the
-  PostgreSQL backend works out of the box in the container — `psycopg`
-  ships `amd64` and `arm64` binary wheels, both of which the image
-  supports.
+  why it is the one extra that `parsedmarc[all]` deliberately leaves out
+  — combine them with `pip install "parsedmarc[all,postgresql]"`. The
+  prebuilt Docker image (`ghcr.io/domainaware/parsedmarc`) already
+  bundles `[all,postgresql]`, so the PostgreSQL backend works out of the
+  box in the container — `psycopg` ships `amd64` and `arm64` binary
+  wheels, both of which the image supports.
 
   Tables are created automatically on first run using
   `CREATE TABLE IF NOT EXISTS`, so no manual schema migration is needed
@@ -692,6 +705,9 @@ The full set of configuration options are:
   this section is configured.
 
 - `s3`
+
+  Requires the `s3` extra: `pip install parsedmarc[s3]`
+
   - `bucket` - str: The S3 bucket name
   - `path` - str: The path to upload reports to (Default: `/`)
   - `region_name` - str: The region name (Optional)
@@ -755,6 +771,9 @@ The full set of configuration options are:
   ```
 
 - `gmail_api`
+
+  Requires the `gmail` extra: `pip install parsedmarc[gmail]`
+
   - `credentials_file` - str: Path to file containing the
       credentials, None to disable (Default: `None`)
   - `token_file` - str: Path to save the token file
@@ -782,6 +801,9 @@ The full set of configuration options are:
   - `paginate_messages` - bool: When `True`, fetch all applicable Gmail messages.
       When `False`, only fetch up to 100 new messages per run (Default: `True`)
 - `log_analytics`
+
+  Requires the `loganalytics` extra: `pip install parsedmarc[loganalytics]`
+
   - `client_id` - str: The app registration's client ID
   - `client_secret` - str: The app registration's client secret
   - `tenant_id` - str: The tenant id where the app registration resides
@@ -795,6 +817,9 @@ The full set of configuration options are:
     Information regarding the setup of the Data Collection Rule can be found [in the Azure documentation](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
     :::
 - `gelf`
+
+  Requires the `gelf` extra: `pip install parsedmarc[gelf]`
+
   - `host` - str: The GELF server name or IP address
   - `port` - int: The port to use
   - `mode` - str: The GELF transport type to use. Valid modes: `tcp`, `udp`, `tls`
