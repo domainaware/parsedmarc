@@ -137,8 +137,8 @@ def build_raw_failure_report_email(sample, sample_charset="utf-8"):
             "To: dmarc-reports@example.com",
             "Subject: DMARC Authentication Failure Report",
             "MIME-Version: 1.0",
-            "Content-Type: multipart/report; report-type=feedback-report; "
-            'boundary="BOUNDARY"',
+            "Content-Type: multipart/report; report-type=feedback-report;",
+            '\tboundary="BOUNDARY"',
             "",
             "--BOUNDARY",
             "Content-Type: text/plain; charset=us-ascii",
