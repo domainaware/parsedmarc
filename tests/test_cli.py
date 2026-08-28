@@ -570,6 +570,78 @@ hosts = localhost
                 [nested_xml],
             )
 
+    def test_expand_file_path_args_warns_on_nonexistent_path(self):
+        """A file_path argument that matches no files at all -- a plain
+        path that doesn't exist and isn't a glob match -- logs a WARNING
+        naming that argument, instead of silently vanishing as a
+        zero-match glob. The argument still contributes no paths to the
+        returned list.
+
+        Regression test: ``parsedmarc --offline -o out /nonexistent.xml``
+        used to exit 0 with empty results and no message of any kind, so
+        a typo'd path in a cron job "worked" forever while processing
+        nothing.
+        """
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            missing = os.path.join(d, "nonexistent.xml")
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                result = _expand_file_path_args([missing])
+            self.assertEqual(result, [])
+            self.assertTrue(
+                any(missing in line for line in cm.output),
+                f"expected a warning naming {missing}, got: {cm.output}",
+            )
+
+    def test_expand_file_path_args_no_warning_for_matching_path(self):
+        """A file_path argument that matches at least one file logs no
+        warning at all."""
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            report = os.path.join(d, "report.xml")
+            with open(report, "w") as f:
+                f.write("x")
+
+            with self.assertNoLogs("parsedmarc.log", level="WARNING"):
+                result = _expand_file_path_args([report])
+            self.assertEqual(result, [report])
+
+            wildcard = os.path.join(d, "*.xml")
+            with self.assertNoLogs("parsedmarc.log", level="WARNING"):
+                result = _expand_file_path_args([wildcard])
+            self.assertEqual(result, [report])
+
+    def test_expand_file_path_args_empty_list_is_silent(self):
+        """An empty ``paths`` list (e.g. a mailbox-only run with no file
+        arguments) logs nothing."""
+        from parsedmarc.cli import _expand_file_path_args
+
+        with self.assertNoLogs("parsedmarc.log", level="WARNING"):
+            result = _expand_file_path_args([])
+        self.assertEqual(result, [])
+
+    def test_expand_file_path_args_mixed_warns_only_for_unmatched(self):
+        """When some arguments match and others don't, only the
+        unmatched argument produces a warning."""
+        from parsedmarc.cli import _expand_file_path_args
+
+        with tempfile.TemporaryDirectory() as d:
+            report = os.path.join(d, "report.xml")
+            with open(report, "w") as f:
+                f.write("x")
+            missing = os.path.join(d, "nonexistent.xml")
+
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                result = _expand_file_path_args([report, missing])
+
+            self.assertEqual(result, [report])
+            warning_lines = [line for line in cm.output if "WARNING" in line]
+            self.assertEqual(len(warning_lines), 1)
+            self.assertIn(missing, warning_lines[0])
+            self.assertNotIn(report, warning_lines[0])
+
     def test_apply_env_overrides_injects_values(self):
         """Env vars are injected into an existing ConfigParser."""
         from configparser import ConfigParser

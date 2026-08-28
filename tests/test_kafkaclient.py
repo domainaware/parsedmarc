@@ -186,22 +186,33 @@ class TestSaveFailureReportsToKafka(unittest.TestCase):
         with patch("parsedmarc.kafkaclient.KafkaProducer"):
             return KafkaClient(kafka_hosts=["b:9092"])
 
-    def test_sends_full_list_in_one_message(self):
-        """Failure reports are sent as one Kafka message carrying the
-        whole list — unlike aggregate records, which are sent as
-        individual slices to stay under Kafka's default 1MB message
-        cap."""
+    def test_sends_one_message_per_report(self):
+        """Failure reports are sent as one Kafka message per report,
+        mirroring the aggregate saver's per-slice sends, so a large batch
+        is far less likely to exceed Kafka's default 1MB message limit
+        — failure
+        reports carry message samples, so a whole-list send is
+        particularly likely to blow past that cap."""
         client = self._client()
         reports = [{"id": "f1"}, {"id": "f2"}]
         client.save_failure_reports_to_kafka(reports, "dmarc-failure")
-        _producer(client).send.assert_called_once_with("dmarc-failure", reports)
+        producer = _producer(client)
+        self.assertEqual(producer.send.call_count, 2)
+        sent = [call.args for call in producer.send.call_args_list]
+        self.assertEqual(
+            sent, [("dmarc-failure", reports[0]), ("dmarc-failure", reports[1])]
+        )
+        self.assertEqual(producer.flush.call_count, 2)
 
     def test_dict_input_normalized_to_list(self):
+        """A single-report dict is wrapped to a one-element list
+        internally, then sent as that one unwrapped report (not the
+        list itself)."""
         client = self._client()
         client.save_failure_reports_to_kafka({"id": "single"}, "topic")
-        # The send payload is wrapped to a single-element list.
+        self.assertEqual(_producer(client).send.call_count, 1)
         args = _producer(client).send.call_args.args
-        self.assertEqual(args[1], [{"id": "single"}])
+        self.assertEqual(args[1], {"id": "single"})
 
     def test_empty_list_is_a_noop(self):
         client = self._client()
@@ -232,17 +243,29 @@ class TestSaveSmtpTlsReportsToKafka(unittest.TestCase):
         with patch("parsedmarc.kafkaclient.KafkaProducer"):
             return KafkaClient(kafka_hosts=["b:9092"])
 
-    def test_sends_full_list_in_one_message(self):
+    def test_sends_one_message_per_report(self):
+        """SMTP TLS reports are sent as one Kafka message per report,
+        mirroring the aggregate saver's per-slice sends, so a large batch
+        is far less likely to exceed Kafka's default 1MB message
+        limit."""
         client = self._client()
-        reports = [{"organization_name": "x"}]
+        reports = [{"organization_name": "x"}, {"organization_name": "y"}]
         client.save_smtp_tls_reports_to_kafka(reports, "smtp-tls")
-        _producer(client).send.assert_called_once_with("smtp-tls", reports)
+        producer = _producer(client)
+        self.assertEqual(producer.send.call_count, 2)
+        sent = [call.args for call in producer.send.call_args_list]
+        self.assertEqual(sent, [("smtp-tls", reports[0]), ("smtp-tls", reports[1])])
+        self.assertEqual(producer.flush.call_count, 2)
 
     def test_dict_input_normalized_to_list(self):
+        """A single-report dict is wrapped to a one-element list
+        internally, then sent as that one unwrapped report (not the
+        list itself)."""
         client = self._client()
         client.save_smtp_tls_reports_to_kafka({"organization_name": "x"}, "topic")
+        self.assertEqual(_producer(client).send.call_count, 1)
         args = _producer(client).send.call_args.args
-        self.assertEqual(args[1], [{"organization_name": "x"}])
+        self.assertEqual(args[1], {"organization_name": "x"})
 
     def test_empty_list_is_a_noop(self):
         client = self._client()
