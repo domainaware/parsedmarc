@@ -8,8 +8,12 @@ parsedmarc in mailsuite 2.0.0). This module re-exports them so
 
 The Gmail and Microsoft Graph connections require optional extras. Importing
 this module must not fail: when an extra is missing, its connection class is
-replaced by a placeholder that raises the same ImportError at construction
-time, so ``import parsedmarc`` works for consumers that only parse reports.
+replaced by a placeholder that raises an equivalent ImportError — chained to
+the original — at construction time, so ``import parsedmarc`` works for
+consumers that only parse reports. When the msgraph extra is missing,
+``AuthMethod`` is likewise a placeholder that raises that ImportError when a
+non-dunder attribute is accessed, or when it is iterated, called, or
+subscripted.
 """
 
 from typing import TYPE_CHECKING
@@ -33,7 +37,7 @@ else:
             """Placeholder raising the gmail extra's ImportError when used."""
 
             def __init__(self, *args, **kwargs):
-                raise _gmail_import_error
+                raise ImportError(*_gmail_import_error.args) from _gmail_import_error
 
     try:
         from mailsuite.mailbox import MSGraphConnection
@@ -45,9 +49,36 @@ else:
             """Placeholder raising the msgraph extra's ImportError when used."""
 
             def __init__(self, *args, **kwargs):
-                raise _msgraph_import_error
+                raise ImportError(
+                    *_msgraph_import_error.args
+                ) from _msgraph_import_error
 
-        AuthMethod = None
+        class _MissingAuthMethod:
+            """Placeholder raising the msgraph extra's ImportError when used."""
+
+            def __getattr__(self, name: str):
+                if name.startswith("__") and name.endswith("__"):
+                    raise AttributeError(name)
+                raise ImportError(
+                    *_msgraph_import_error.args
+                ) from _msgraph_import_error
+
+            def __iter__(self):
+                raise ImportError(
+                    *_msgraph_import_error.args
+                ) from _msgraph_import_error
+
+            def __call__(self, *args, **kwargs):
+                raise ImportError(
+                    *_msgraph_import_error.args
+                ) from _msgraph_import_error
+
+            def __getitem__(self, name: str):
+                raise ImportError(
+                    *_msgraph_import_error.args
+                ) from _msgraph_import_error
+
+        AuthMethod = _MissingAuthMethod()
 
 __all__ = [
     "AuthMethod",
