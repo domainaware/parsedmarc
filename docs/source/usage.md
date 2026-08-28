@@ -41,7 +41,7 @@ options:
   -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
                         nameservers to query: IP addresses, https:// URLs (DNS over HTTPS), and/or
                         tls://ip[:port][#hostname] (DNS over TLS)
-  -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
+  -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT, --dns-timeout DNS_TIMEOUT
                         number of seconds to wait for an answer from DNS (default: 2.0)
   --dns-retries DNS_RETRIES
                         number of times to retry DNS queries on timeout or other transient errors (default: 0)
