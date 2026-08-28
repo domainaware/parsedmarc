@@ -6507,6 +6507,18 @@ class TestPostgreSQLCliWiring(unittest.TestCase):
     _init_output_clients wiring can't drift apart.
     """
 
+    def setUp(self):
+        # These tests simulate "[postgresql] configured and the SDK
+        # available", mocking PostgreSQLClient at the SDK boundary. CI's
+        # unit-test job deliberately omits the postgresql extra, so the
+        # module-level psycopg handle must be patched present too --
+        # otherwise _init_output_clients' presence check correctly
+        # reports the missing extra and _main exits 1 before any of the
+        # wiring under test runs.
+        patcher = patch.object(parsedmarc.cli.postgres, "psycopg", MagicMock())
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_postgresql_config_constructs_client_and_creates_tables(self):
         config = """[general]
 save_aggregate = true
