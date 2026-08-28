@@ -1200,16 +1200,23 @@ class TestSaveFailureReport(unittest.TestCase):
 
     def test_to_header_with_non_empty_display_joins_with_brackets(self):
         """The other branch: non-empty display joins display+addr
-        with " <" and appends ">", e.g. 'RT <rcpt@example.com>'."""
+        with " <" and appends ">", e.g. 'RT <rcpt@example.com>'.
+        Asserts the joined string actually reaches the saved document
+        (see test_reply_to_header_flattened_and_indexed for the
+        autospec-save pattern), not merely that save ran."""
         report = _failure_report()
         report["parsed_sample"]["headers"]["To"] = [["RT", "rcpt@example.com"]]
         with (
             patch("parsedmarc.elastic.Search", return_value=_empty_search()),
             patch("parsedmarc.elastic.Index"),
-            patch.object(elastic_module._FailureReportDoc, "save") as mock_save,
+            patch.object(
+                elastic_module._FailureReportDoc, "save", autospec=True
+            ) as mock_save,
         ):
             save_failure_report_to_elasticsearch(report)
         mock_save.assert_called_once()
+        doc = mock_save.call_args.args[0]
+        self.assertEqual(doc.sample.headers["to"], "RT <rcpt@example.com>")
 
     def test_sample_address_lists_indexed_for_reply_to_cc_bcc_attachments(self):
         """A failure report sample can carry reply_to / cc / bcc /

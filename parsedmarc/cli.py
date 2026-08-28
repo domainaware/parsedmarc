@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""A CLI for parsing DMARC reports"""
+"""A CLI for parsing DMARC and SMTP TLS reports"""
 
 import atexit
 import functools
@@ -286,9 +286,17 @@ def _expand_file_path_args(paths: list[str], recursive: bool = False) -> list[st
     ``recursive`` also enables ``**`` to match any number of directories
     (including none) in glob patterns supplied directly as arguments, per
     the same stdlib glob semantics.
+
+    A ``path`` argument that matches nothing (a plain path that does
+    not exist and is not a glob match, or a directory/glob pattern
+    with no matches) is logged as a WARNING naming that argument,
+    so a typo'd path in a cron job doesn't silently "succeed" while
+    processing nothing forever. An empty ``paths`` list (e.g. a
+    mailbox-only run with no file arguments) logs nothing.
     """
     expanded: list[str] = []
     for path in paths:
+        before = len(expanded)
         if os.path.isdir(path):
             pattern = os.path.join(glob_escape(path), "**" if recursive else "*")
             for match in sorted(glob(pattern, recursive=recursive)):
@@ -303,6 +311,8 @@ def _expand_file_path_args(paths: list[str], recursive: bool = False) -> list[st
             expanded.append(path)
         else:
             expanded += glob(path, recursive=recursive)
+        if len(expanded) == before:
+            logger.warning("No files matched %s", path)
     return expanded
 
 
@@ -2449,7 +2459,7 @@ def _main():
 
         return output_errors
 
-    arg_parser = ArgumentParser(description="Parses DMARC reports")
+    arg_parser = ArgumentParser(description="Parses DMARC and SMTP TLS reports")
     arg_parser.add_argument(
         "-c",
         "--config-file",

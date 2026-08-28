@@ -11,7 +11,7 @@ usage: parsedmarc [-h] [-c CONFIG_FILE] [-r] [--strip-attachment-payloads] [-o O
                   [-w] [--verbose] [--debug] [--log-file LOG_FILE] [--no-prettify-json] [-v]
                   [file_path ...]
 
-Parses DMARC reports
+Parses DMARC and SMTP TLS reports
 
 positional arguments:
   file_path             one or more paths to aggregate, failure, or SMTP TLS report files, emails, mbox files, or
