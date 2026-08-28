@@ -614,7 +614,7 @@ The full set of configuration options are:
 
   - `hosts` - str: A comma separated list of Kafka hosts
   - `user` - str: The Kafka user
-  - `passsword` - str: The Kafka password
+  - `password` - str: The Kafka password
   - `ssl` - bool: Use an encrypted SSL/TLS connection (Default: `True`)
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)

@@ -7040,9 +7040,12 @@ GUARDED_CLI_MODULES = (
 class _ImportBlocker(importlib.abc.MetaPathFinder):
     """A meta path finder that makes chosen module roots unimportable.
 
-    Installed at the head of ``sys.meta_path``, it raises ``ImportError``
-    for any module whose top-level root is blocked, which is what an
-    install without the optional extra looks like to the import system.
+    Installed at the head of ``sys.meta_path``, it raises
+    ``ModuleNotFoundError`` for any module whose top-level root is
+    blocked — the exact exception a genuinely absent package produces,
+    and the only one cli.py's import guards catch, so a broken-but-
+    present SDK still fails loudly instead of masquerading as a missing
+    extra.
     """
 
     def __init__(self, roots: frozenset[str]) -> None:
@@ -7055,7 +7058,7 @@ class _ImportBlocker(importlib.abc.MetaPathFinder):
         target: ModuleType | None = None,
     ) -> importlib.machinery.ModuleSpec | None:
         if fullname.split(".")[0] in self.roots:
-            raise ImportError(f"blocked for test: {fullname}")
+            raise ModuleNotFoundError(f"blocked for test: {fullname}")
         return None
 
 

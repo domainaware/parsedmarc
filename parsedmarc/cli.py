@@ -57,32 +57,32 @@ if TYPE_CHECKING:
 else:
     try:
         from parsedmarc import elastic
-    except ImportError:
+    except ModuleNotFoundError:
         elastic = None
 
     try:
         from parsedmarc import gelf
-    except ImportError:
+    except ModuleNotFoundError:
         gelf = None
 
     try:
         from parsedmarc import kafkaclient
-    except ImportError:
+    except ModuleNotFoundError:
         kafkaclient = None
 
     try:
         from parsedmarc import loganalytics
-    except ImportError:
+    except ModuleNotFoundError:
         loganalytics = None
 
     try:
         from parsedmarc import opensearch
-    except ImportError:
+    except ModuleNotFoundError:
         opensearch = None
 
     try:
         from parsedmarc import s3
-    except ImportError:
+    except ModuleNotFoundError:
         s3 = None
 
 # Microsoft Graph error types, used only in ``except`` clauses and one
@@ -96,14 +96,14 @@ if TYPE_CHECKING:
 else:
     try:
         from azure.core.exceptions import ClientAuthenticationError
-    except ImportError:
+    except ModuleNotFoundError:
 
         class ClientAuthenticationError(Exception):
             """Never-raised placeholder for the absent msgraph extra."""
 
     try:
         from kiota_abstractions.api_error import APIError
-    except ImportError:
+    except ModuleNotFoundError:
 
         class APIError(Exception):
             """Never-raised placeholder for the absent msgraph extra."""
@@ -158,7 +158,7 @@ def _missing_extra_hint(section: str, extra: str) -> str:
     Args:
         section (str): The INI section name, without brackets.
         extra (str): The name of the extra that provides the section's
-            output module.
+            integration.
 
     Returns:
         str: A message naming the section, the extra, and the exact pip
