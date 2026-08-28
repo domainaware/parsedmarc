@@ -41,7 +41,10 @@ dependencies = [
     "azure-monitor-ingestion>=1.0.0",
     "boto3>=1.16.63",
     "dateparser>=1.1.1",
-    "dnspython>=2.0.0",
+    # The [doh] extra supplies the httpx/h2 floors DNS over HTTPS needs;
+    # 2.7.0 is the floor verified against the dns.nameserver and
+    # dns.query.https(session=...) APIs utils.py builds on.
+    "dnspython[doh]>=2.7.0",
     "elasticsearch>=8.18,<9",
     "expiringdict>=1.1.4",
     # The runtime HTTP library (utils.py fetches, webhook and Splunk HEC

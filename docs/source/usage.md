@@ -39,7 +39,8 @@ options:
   --smtp-tls-csv-filename SMTP_TLS_CSV_FILENAME
                         filename for the SMTP TLS CSV output file
   -n NAMESERVERS [NAMESERVERS ...], --nameservers NAMESERVERS [NAMESERVERS ...]
-                        nameservers to query
+                        nameservers to query: IP addresses, https:// URLs (DNS over HTTPS), and/or
+                        tls://ip[:port][#hostname] (DNS over TLS)
   -t DNS_TIMEOUT, --dns_timeout DNS_TIMEOUT
                         number of seconds to wait for an answer from DNS (default: 2.0)
   --dns-retries DNS_RETRIES
@@ -178,10 +179,15 @@ The full set of configuration options are:
   - `local_psl_overrides_path` - Overrides the default local file path to use for the PSL overrides list
   - `psl_overrides_url` - Overrides the default download URL for the PSL overrides list
   - `nameservers` - str: A comma separated list of
-      DNS resolvers (Default: `[Cloudflare's public resolvers]`)
+      DNS resolvers (Default: `[Cloudflare's public resolvers]`). Each entry
+      is an IP address (DNS over UDP/TCP port 53), an `https://` URL
+      (DNS over HTTPS), or `tls://ip[:port][#hostname]` (DNS over TLS) —
+      see [Encrypted DNS](#encrypted-dns)
   - `dns_test_address` - str: a dummy address used for DNS pre-flight checks
       (Default: 1.1.1.1)
   - `dns_timeout` - float: DNS timeout period
+  - `dns_retries` - int: Number of times to retry a DNS query after a
+      timeout or other transient error (Default: 0)
   - `debug` - bool: Print debugging messages
   - `silent` - bool: Only print errors (Default: `True`)
   - `fail_on_output_error` - bool: Exit with a non-zero status code if
@@ -810,7 +816,8 @@ setting. By default, `parsedmarc` uses
 reliable than Google, Cisco OpenDNS, or even most local resolvers.
 
 The `nameservers` option should only be used if your network
-blocks DNS requests to outside resolvers.
+blocks DNS requests to outside resolvers, or blocks plain DNS
+entirely — see [Encrypted DNS](#encrypted-dns).
 :::
 
 :::{note}
@@ -868,6 +875,52 @@ PUT _cluster/settings
 ```
 
 Increasing this value increases resource usage.
+:::
+
+### Encrypted DNS
+
+Every entry in the `nameservers` list picks its own transport:
+
+- An IP address — plain DNS over UDP and TCP port 53, the default and the
+  behavior of every earlier release.
+- An `https://` URL — DNS over HTTPS (DoH).
+- `tls://ip[:port][#hostname]` — DNS over TLS (DoT). The port defaults to
+  853, and the optional `#hostname` names the TLS certificate identity of
+  the server (SNI), matching systemd-resolved's syntax. The host itself must
+  be an IP address, and an IPv6 address must be wrapped in brackets, so that
+  its colons cannot be mistaken for the port separator —
+  `tls://[2620:fe::fe]#dns.quad9.net`.
+
+Forms can be mixed, and are tried in the order given:
+
+```ini
+[general]
+nameservers = https://cloudflare-dns.com/dns-query, tls://9.9.9.9#dns.quad9.net
+```
+
+On a network where outbound DNS is blocked but an HTTP proxy is available,
+configure DoH nameservers and set the standard proxy environment variables
+([issue #880](https://github.com/domainaware/parsedmarc/issues/880)):
+
+```bash
+export HTTPS_PROXY=http://proxy.example.net:3128
+export NO_PROXY=elasticsearch.example.net,127.0.0.1
+```
+
+parsedmarc's DoH queries honor `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY`,
+and the proxy resolves the DoH server's own hostname on parsedmarc's behalf,
+so such a deployment needs no access to UDP port 53 at all.
+
+If the proxy inspects TLS, point the standard `SSL_CERT_FILE` environment
+variable at your organization's CA bundle so its certificate is trusted:
+
+```bash
+export SSL_CERT_FILE=/etc/ssl/certs/corporate-ca.pem
+```
+
+:::{note}
+parsedmarc's DoT connections are made directly to TCP port 853 and do not
+use a proxy. Use DoH on a proxy-only network.
 :::
 
 ### Mailbox messages are only archived once the reports are saved

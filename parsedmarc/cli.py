@@ -2372,7 +2372,11 @@ def _main():
         default="smtp_tls.csv",
     )
     arg_parser.add_argument(
-        "-n", "--nameservers", nargs="+", help="nameservers to query"
+        "-n",
+        "--nameservers",
+        nargs="+",
+        help="nameservers to query: IP addresses, https:// URLs (DNS over "
+        "HTTPS), and/or tls://ip[:port][#hostname] (DNS over TLS)",
     )
     arg_parser.add_argument(
         "-t",
