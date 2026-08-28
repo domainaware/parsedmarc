@@ -17,11 +17,10 @@ from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 from glob import escape as glob_escape, glob
 from ssl import CERT_NONE, create_default_context
+from typing import TYPE_CHECKING
 
 import httpx
 import yaml
-from azure.core.exceptions import ClientAuthenticationError
-from kiota_abstractions.api_error import APIError
 from tqdm import tqdm
 
 from parsedmarc import (
@@ -32,25 +31,87 @@ from parsedmarc import (
     ParserConfig,
     ParserError,
     __version__,
-    elastic,
     email_results,
     email_results_via_msgraph,
-    gelf,
     get_dmarc_reports_from_mailbox,
     get_dmarc_reports_from_mbox,
-    kafkaclient,
-    loganalytics,
-    opensearch,
     postgres,
-    s3,
     save_output,
     splunk,
     syslog,
     watch_inbox,
     webhook,
 )
+
+# Output integrations that need an optional extra (issue #883). Each one
+# imports a third-party SDK at module level -- elastic.py and
+# opensearch.py define DSL Document classes there, so they cannot guard
+# the import internally the way postgres.py does -- and so the guard
+# lives here, at the import site. A missing module becomes ``None``; the
+# config sections that would use it fail fast in _init_output_clients()
+# with a pip-install hint. splunk, syslog, webhook, and postgres are
+# imported eagerly above: they need only httpx, the standard library, or
+# their own internal guard.
+if TYPE_CHECKING:
+    from parsedmarc import elastic, gelf, kafkaclient, loganalytics, opensearch, s3
+else:
+    try:
+        from parsedmarc import elastic
+    except ModuleNotFoundError:
+        elastic = None
+
+    try:
+        from parsedmarc import gelf
+    except ModuleNotFoundError:
+        gelf = None
+
+    try:
+        from parsedmarc import kafkaclient
+    except ModuleNotFoundError:
+        kafkaclient = None
+
+    try:
+        from parsedmarc import loganalytics
+    except ModuleNotFoundError:
+        loganalytics = None
+
+    try:
+        from parsedmarc import opensearch
+    except ModuleNotFoundError:
+        opensearch = None
+
+    try:
+        from parsedmarc import s3
+    except ModuleNotFoundError:
+        s3 = None
+
+# Microsoft Graph error types, used only in ``except`` clauses and one
+# ``isinstance`` check around Graph mailbox calls. Without the msgraph
+# extra a Graph connection cannot be constructed at all (its
+# parsedmarc.mail placeholder raises the extra's ImportError), so those
+# handlers are unreachable and the placeholders below are never matched.
+if TYPE_CHECKING:
+    from azure.core.exceptions import ClientAuthenticationError
+    from kiota_abstractions.api_error import APIError
+else:
+    try:
+        from azure.core.exceptions import ClientAuthenticationError
+    except ModuleNotFoundError:
+
+        class ClientAuthenticationError(Exception):
+            """Never-raised placeholder for the absent msgraph extra."""
+
+    try:
+        from kiota_abstractions.api_error import APIError
+    except ModuleNotFoundError:
+
+        class APIError(Exception):
+            """Never-raised placeholder for the absent msgraph extra."""
+
+
 from parsedmarc.constants import DEFAULT_DNS_MAX_RETRIES, DEFAULT_DNS_TIMEOUT
 from parsedmarc.log import logger
+import parsedmarc.mail
 from parsedmarc.mail import (
     AuthMethod,
     GmailConnection,
@@ -91,6 +152,24 @@ class ConfigurationError(Exception):
     pass
 
 
+def _missing_extra_hint(section: str, extra: str) -> str:
+    """Return the error message for a config section whose extra is missing.
+
+    Args:
+        section (str): The INI section name, without brackets.
+        extra (str): The name of the extra that provides the section's
+            integration.
+
+    Returns:
+        str: A message naming the section, the extra, and the exact pip
+        command that installs it.
+    """
+    return (
+        f"The [{section}] configuration section requires the {extra} extra: "
+        f"pip install parsedmarc[{extra}]"
+    )
+
+
 def _normalize_graph_auth_method(value: str) -> str:
     """Return the canonical :class:`AuthMethod` member name for *value*.
 
@@ -112,7 +191,7 @@ def _normalize_graph_auth_method(value: str) -> str:
 
 
 def _str_to_list(s):
-    """Converts a comma separated string to a list"""
+    """Converts a comma-separated string to a list"""
     _list = s.split(",")
     return list(map(lambda i: i.lstrip(), _list))
 
@@ -621,7 +700,9 @@ def _load_config(config_file: str | None = None) -> ConfigParser:
         ``PARSEDMARC_*`` environment variables.
 
     Raises:
-        ConfigurationError: If *config_file* is given but does not exist.
+        ConfigurationError: If *config_file* is given but does not exist or
+            is not readable, or if a ``PARSEDMARC_..._FILE`` secret file
+            cannot be read.
     """
     config = ConfigParser(interpolation=None)
     if config_file is not None:
@@ -920,6 +1001,17 @@ def _parse_config(config: ConfigParser, opts):
             )
 
     if "msgraph" in config.sections():
+        # Without the msgraph extra, parsedmarc.mail binds a placeholder
+        # class (outside the MailboxConnection hierarchy) whose
+        # construction raises mailsuite's ImportError — fail fast here
+        # with parsedmarc's own install hint instead. Checked on the
+        # parsedmarc.mail module, the authoritative source of the
+        # placeholder state, not this module's rebound name (which tests
+        # replace with mocks).
+        if not issubclass(
+            parsedmarc.mail.MSGraphConnection, parsedmarc.mail.MailboxConnection
+        ):
+            raise ConfigurationError(_missing_extra_hint("msgraph", "msgraph"))
         graph_config = config["msgraph"]
         opts.graph_token_file = _expand_path(graph_config.get("token_file", ".token"))
 
@@ -1315,6 +1407,11 @@ def _parse_config(config: ConfigParser, opts):
             opts.syslog_retry_delay = 5
 
     if "gmail_api" in config.sections():
+        # Same placeholder detection as the msgraph section above.
+        if not issubclass(
+            parsedmarc.mail.GmailConnection, parsedmarc.mail.MailboxConnection
+        ):
+            raise ConfigurationError(_missing_extra_hint("gmail_api", "gmail"))
         gmail_api_config = config["gmail_api"]
         gmail_creds = gmail_api_config.get("credentials_file")
         opts.gmail_api_credentials_file = (
@@ -1564,6 +1661,12 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
     """
     clients = {}
 
+    # Each check below is deliberately outside the try/except that wraps
+    # its constructor: those handlers re-raise everything as RuntimeError,
+    # which would bury the install hint.
+    if opts.s3_bucket and s3 is None:
+        raise ConfigurationError(_missing_extra_hint("s3", "s3"))
+
     try:
         if opts.s3_bucket:
             logger.debug("Initializing S3 client: bucket=%s", opts.s3_bucket)
@@ -1577,6 +1680,15 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
             )
     except Exception as e:
         raise RuntimeError(f"S3: {e}") from e
+
+    # postgres.py guards its own psycopg import, so the module is always
+    # importable; check the SDK here so a missing extra is a fail-fast
+    # ConfigurationError rather than a PostgreSQLError that the startup
+    # retry loop would retry for over a minute before exiting.
+    if (
+        opts.postgresql_host or opts.postgresql_connection_string
+    ) and postgres.psycopg is None:
+        raise ConfigurationError(_missing_extra_hint("postgresql", "postgresql"))
 
     try:
         if opts.postgresql_host or opts.postgresql_connection_string:
@@ -1635,6 +1747,9 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
         except Exception as e:
             raise RuntimeError(f"Splunk HEC: {e}") from e
 
+    if opts.kafka_hosts and kafkaclient is None:
+        raise ConfigurationError(_missing_extra_hint("kafka", "kafka"))
+
     try:
         if opts.kafka_hosts:
             logger.debug("Initializing Kafka client: hosts=%s", opts.kafka_hosts)
@@ -1652,6 +1767,9 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
             )
     except Exception as e:
         raise RuntimeError(f"Kafka: {e}") from e
+
+    if opts.gelf_host and gelf is None:
+        raise ConfigurationError(_missing_extra_hint("gelf", "gelf"))
 
     try:
         if opts.gelf_host:
@@ -1684,12 +1802,27 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
     except Exception as e:
         raise RuntimeError(f"Webhook: {e}") from e
 
+    # The Log Analytics client is built per batch in process_reports(),
+    # under the same opts.la_dce guard. Checking it here means a missing
+    # extra is reported at startup -- and again on a SIGHUP reload --
+    # rather than once reports are already in hand.
+    if opts.la_dce and loganalytics is None:
+        raise ConfigurationError(_missing_extra_hint("log_analytics", "loganalytics"))
+
     # Elasticsearch and OpenSearch mutate module-level global state via
     # connections.create_connection(), which cannot be rolled back if a later
     # step fails.  Initialise them last so that all other clients are created
     # successfully first; this minimizes the window for partial-init problems
     # during config reload.
     if opts.save_aggregate or opts.save_failure or opts.save_smtp_tls:
+        # Scoped to the same condition as the constructors below, which is
+        # also the condition under which process_reports() dereferences
+        # these modules to save reports.
+        if opts.elasticsearch_hosts and elastic is None:
+            raise ConfigurationError(_missing_extra_hint("elasticsearch", "elastic"))
+        if opts.opensearch_hosts and opensearch is None:
+            raise ConfigurationError(_missing_extra_hint("opensearch", "opensearch"))
+
         try:
             if opts.elasticsearch_hosts:
                 logger.debug(
@@ -1951,7 +2084,8 @@ def _main():
         Returns the list of human-readable output-error messages recorded
         along the way -- empty when every destination accepted the reports.
         Callers use that as the "was this batch saved?" signal; see
-        ``mailbox_save_callback()``.
+        ``mailbox_save_callback()``. With ``fail_on_output_error`` enabled,
+        a non-empty list is raised as ``ParserError`` instead of returned.
         """
         output_errors = []
 
@@ -2324,8 +2458,8 @@ def _main():
     arg_parser.add_argument(
         "file_path",
         nargs="*",
-        help="one or more paths to aggregate or failure report files, "
-        "emails, mbox files, or directories containing them",
+        help="one or more paths to aggregate, failure, or SMTP TLS report "
+        "files, emails, mbox files, or directories containing them",
     )
     arg_parser.add_argument(
         "-r",
@@ -2396,7 +2530,7 @@ def _main():
     arg_parser.add_argument(
         "--offline",
         action="store_true",
-        help="do not make online queries for geolocation  or  DNS",
+        help="do not make online queries for geolocation or DNS",
     )
     arg_parser.add_argument(
         "-s", "--silent", action="store_true", help="only print errors"

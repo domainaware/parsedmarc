@@ -861,6 +861,7 @@ def save_aggregate_report_to_opensearch(
 
     Raises:
             AlreadySaved
+            OpenSearchError
     """
     logger.info("Saving aggregate report to OpenSearch")
     aggregate_report = aggregate_report.copy()
@@ -1040,6 +1041,8 @@ def save_failure_report_to_opensearch(
 
     Raises:
         AlreadySaved
+        OpenSearchError
+        InvalidFailureReport
 
     """
     logger.info("Saving failure report to OpenSearch")
@@ -1223,6 +1226,7 @@ def save_smtp_tls_report_to_opensearch(
 
     Raises:
             AlreadySaved
+            OpenSearchError
     """
     logger.info("Saving SMTP TLS report to OpenSearch")
     org_name = report["organization_name"]

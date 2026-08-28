@@ -89,7 +89,7 @@ def load_psl_overrides(
         always_use_local_file (bool): Always use a local overrides file
         local_file_path (str): Path to a local overrides file
         url (str): URL to a PSL overrides file
-        offline (bool): Use the built-in copy of the overrides
+        offline (bool): Do not make online requests
 
     Returns:
         list[str]: the module-level ``psl_overrides`` list
@@ -195,7 +195,8 @@ def get_base_domain(domain: str) -> str | None:
         domain (str): A domain or subdomain
 
     Returns:
-        str: The base domain of the given domain
+        str: The base domain of the given domain, or ``None`` if one
+        cannot be determined
 
     """
     domain = domain.lower()
@@ -570,7 +571,7 @@ def human_timestamp_to_unix_timestamp(
     Converts a human-readable timestamp into a UNIX timestamp
 
     Args:
-        human_timestamp (str): A timestamp in `YYYY-MM-DD HH:MM:SS`` format
+        human_timestamp (str): A timestamp in ``YYYY-MM-DD HH:MM:SS`` format
         assume_utc (bool): Treat a timestamp that carries no UTC offset as
             UTC wall-clock time instead of local time
 
@@ -599,7 +600,9 @@ def load_ip_db(
 ) -> None:
     """
     Downloads the IP-to-country MMDB database from a URL and caches it
-    locally. Falls back to the bundled copy on failure or when offline.
+    locally. An existing ``local_file_path`` is used as-is, with no
+    download. On download failure (or when offline), a previously cached
+    download is used if available, falling back to the bundled copy.
 
     Args:
         always_use_local_file: Always use a local/bundled database file
@@ -689,9 +692,9 @@ def configure_ipinfo_api(
     """Configure the IPinfo Lite REST API as the primary source for IP lookups.
 
     When a token is configured, ``get_ip_address_db_record()`` hits the API
-    first for every lookup and falls back to the MMDB on network errors. An
-    invalid token raises ``InvalidIPinfoAPIKey`` — the CLI catches that and
-    exits fatally.
+    first for every lookup and falls back to the MMDB on network errors or
+    non-2xx responses. An invalid token raises ``InvalidIPinfoAPIKey`` — the
+    CLI catches that and exits fatally.
 
     Args:
         token: IPinfo API token. ``None`` or empty disables the API.
@@ -718,8 +721,9 @@ def configure_ipinfo_api(
 def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
     """Look up an IP via the IPinfo Lite REST API.
 
-    Returns the normalized record on success, or ``None`` on network error or
-    any non-2xx response (other than 401/403). 401/403 raises
+    Returns the normalized record on success, or ``None`` when no token is
+    configured, on network error, on a malformed response body, or on any
+    non-2xx response other than 401/403. 401/403 raises
     ``InvalidIPinfoAPIKey``.
     """
     if not _IPINFO_API_TOKEN:
@@ -881,13 +885,14 @@ def get_ip_address_db_record(
     """Look up an IP and return country + ASN fields.
 
     If the IPinfo Lite API is configured via ``configure_ipinfo_api()``, the
-    API is queried first; any non-fatal failure (rate limit, quota, network)
-    falls through to the MMDB. An invalid API token raises
-    ``InvalidIPinfoAPIKey`` and is not caught here.
+    API is queried first; any non-fatal failure (a network error, or a
+    non-2xx response other than 401/403) falls through to the MMDB. An
+    invalid API token raises ``InvalidIPinfoAPIKey`` and is not caught here.
 
-    IPinfo Lite carries ``country_code``, ``as_name``, and ``as_domain`` on
-    every record. MaxMind/DBIP country-only databases carry only country, so
-    ``as_name`` / ``as_domain`` come back None for those users.
+    IPinfo Lite carries ``country_code``, ``asn``, ``as_name``, and
+    ``as_domain`` on every record. MaxMind/DBIP country-only databases carry
+    only country, so ``asn`` / ``as_name`` / ``as_domain`` come back None
+    for those users.
     """
     api_record = _ipinfo_api_lookup(ip_address)
     if api_record is not None:
@@ -918,7 +923,8 @@ def get_ip_address_country(
         db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
 
     Returns:
-        str: And ISO country code associated with the given IP address
+        str: An ISO country code associated with the given IP address,
+        or ``None`` if the country is unknown
     """
     return get_ip_address_db_record(ip_address, db_path=db_path)["country"]
 
@@ -936,9 +942,9 @@ def load_reverse_dns_map(
     """
     Loads the reverse DNS map from a URL or local file.
 
-    Clears and repopulates the given map dict in place. If the map is
-    fetched from a URL, that is tried first; on failure (or if offline/local
-    mode is selected) the bundled CSV is used as a fallback.
+    Clears and repopulates the given map dict in place. The URL is tried
+    first; on failure (or when ``offline``/``always_use_local_file`` is set)
+    the local path is used, defaulting to the bundled CSV.
 
     ``psl_overrides.txt`` is reloaded at the same time using the same
     ``offline`` / ``always_use_local_file`` flags (with separate path/URL
@@ -950,7 +956,7 @@ def load_reverse_dns_map(
         always_use_local_file (bool): Always use a local map file
         local_file_path (str): Path to a local map file
         url (str): URL to a reverse DNS map
-        offline (bool): Use the built-in copy of the reverse DNS map
+        offline (bool): Do not make online requests
         psl_overrides_path (str): Path to a local PSL overrides file
         psl_overrides_url (str): URL to a PSL overrides file
     """
@@ -1032,14 +1038,15 @@ def get_service_from_reverse_dns_base_domain(
         always_use_local_file (bool): Always use a local map file
         local_file_path (str): Path to a local map file
         url (str): URL to a reverse DNS map
-        offline (bool): Use the built-in copy of the reverse DNS map
+        offline (bool): Do not make online requests
         reverse_dns_map (dict): A reverse DNS map
         psl_overrides_path (str): Path to a local PSL overrides file
         psl_overrides_url (str): URL to a PSL overrides file
+
     Returns:
         dict: A dictionary containing name and type.
         If the service is unknown, the name will be
-        the supplied reverse_dns_base_domain and the type will be None
+        the supplied ``base_domain`` and the type will be None
     """
 
     base_domain = base_domain.lower().strip()
@@ -1086,14 +1093,15 @@ def get_ip_address_info(
     psl_overrides_url: str | None = None,
 ) -> IPAddressInfo:
     """
-    Returns reverse DNS and country information for the given IP address
+    Returns reverse DNS, country, ASN, and service information for the
+    given IP address
 
     Args:
         ip_address (str): The IP address to check
-        ip_db_path (str): path to a MMDB file from MaxMind or DBIP
+        ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         reverse_dns_map_path (str): Path to a reverse DNS map file
-        reverse_dns_map_url (str): URL to the reverse DNS map file
         always_use_local_files (bool): Do not download files
+        reverse_dns_map_url (str): URL to the reverse DNS map file
         cache (ExpiringDict): Cache storage
         reverse_dns_map (dict): A reverse DNS map
         offline (bool): Do not make online queries for geolocation or DNS
@@ -1106,7 +1114,8 @@ def get_ip_address_info(
         psl_overrides_url (str): URL to a PSL overrides file
 
     Returns:
-        dict: ``ip_address``, ``reverse_dns``, ``country``
+        dict: ``ip_address``, ``reverse_dns``, ``country``, ``base_domain``,
+        ``name``, ``type``, ``asn``, ``as_name``, ``as_domain``
 
     """
     ip_address = ip_address.lower()
@@ -1256,13 +1265,13 @@ def get_filename_safe_string(string: str) -> str:
 
 def is_mbox(path: str) -> bool:
     """
-    Checks if the given content is an MBOX mailbox file
+    Checks if the file at the given path is an mbox mailbox file
 
     Args:
-        path: Content to check
+        path (str): Path to the file to check
 
     Returns:
-        bool: A flag that indicates if the file is an MBOX mailbox file
+        bool: A flag that indicates if the file is an mbox mailbox file
     """
     _is_mbox = False
     try:
@@ -1292,14 +1301,18 @@ def is_outlook_msg(content) -> bool:
 
 def convert_outlook_msg(msg_bytes: bytes) -> bytes:
     """
-    Uses the ``msgconvert`` Perl utility to convert an Outlook MS file to
+    Uses the ``msgconvert`` Perl utility to convert an Outlook MSG file to
     standard RFC 822 format
 
     Args:
         msg_bytes (bytes): the content of the .msg file
 
     Returns:
-        A RFC 822 bytes payload
+        An RFC 822 bytes payload
+
+    Raises:
+        ValueError: The supplied bytes are not an Outlook MSG file
+        EmailParserError: The ``msgconvert`` utility is not installed
     """
     if not is_outlook_msg(msg_bytes):
         raise ValueError("The supplied bytes are not an Outlook MSG file")

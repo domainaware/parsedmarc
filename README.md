@@ -13,10 +13,11 @@ Package](https://img.shields.io/pypi/v/parsedmarc.svg)](https://pypi.org/project
 </p>
 
 `parsedmarc` is a Python module and CLI utility for parsing DMARC
-reports. When used with Elasticsearch and Kibana (or Splunk), it works
-as a self-hosted open-source alternative to commercial DMARC report
-processing services such as Agari Brand Protection, Dmarcian, OnDMARC,
-ProofPoint Email Fraud Defense, and Valimail.
+reports. When used with Elasticsearch and Kibana (or Splunk), or with
+OpenSearch and Grafana, it works as a self-hosted open-source
+alternative to commercial DMARC report processing services such as
+Agari Brand Protection, Dmarcian, OnDMARC, ProofPoint Email Fraud
+Defense, and Valimail.
 
 > [!NOTE]
 > __Domain-based Message Authentication, Reporting, and Conformance__ (DMARC) is an email authentication protocol.

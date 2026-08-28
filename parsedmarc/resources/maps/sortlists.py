@@ -114,8 +114,10 @@ def sort_csv(
 
     - filepath: Path to the CSV to sort.
     - field: The field name to sort by.
+    - sort_field_value_must_be_unique: Require each row's sort-field value to
+      be unique across the file.
     - fields_to_lowercase: Permanently lowercases these field(s) in the data.
-    - strip_whitespace: Remove all whitespace at the beginning and of field values.
+    - strip_whitespace: Remove whitespace at the beginning and end of field values.
     - case_insensitive_sort: Ignore case when sorting without changing values.
     - required_fields: A list of fields that must have data in all rows.
     - allowed_values: A mapping of allowed values for fields.
@@ -205,9 +207,11 @@ def sort_list_file(
     """Read a list from a file, sort it, optionally strip and deduplicate the values,
     then write that list back to the file.
 
-    - Filepath: The path to the file.
+    - filepath: The path to the file.
     - lowercase: Lowercase all values prior to sorting.
-    - remove_blank_lines: Remove any plank lines.
+    - strip: Strip leading and trailing whitespace from each value.
+    - deduplicate: Remove duplicate values.
+    - remove_blank_lines: Remove any blank lines.
     - ending_newline: End the file with a newline, even if remove_blank_lines is true.
     - newline: The newline character to use.
     """

@@ -767,8 +767,8 @@ def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
 def parsed_smtp_tls_reports_to_csv_rows(
     reports: SMTPTLSReport | list[SMTPTLSReport],
 ) -> list[dict[str, Any]]:
-    """Converts one oor more parsed SMTP TLS reports into a list of single
-    layer dict objects suitable for use in a CSV"""
+    """Converts one or more parsed SMTP TLS reports into a list of
+    single-layer dict objects suitable for use in a CSV"""
     if isinstance(reports, dict):
         reports = [reports]
 
@@ -812,10 +812,10 @@ def parsed_smtp_tls_reports_to_csv(
     headers
 
     Args:
-        reports: A parsed aggregate report or list of parsed aggregate reports
+        reports: A parsed SMTP TLS report or list of parsed SMTP TLS reports
 
     Returns:
-        str: Parsed aggregate report data in flat CSV format, including headers
+        str: Parsed SMTP TLS report data in flat CSV format, including headers
     """
 
     fields = [
@@ -1154,16 +1154,16 @@ def parse_aggregate_report_xml(
 
 def extract_report(content: bytes | str | BinaryIO) -> str:
     """
-    Extracts text from a zip or gzip file, as a base64-encoded string,
-    file-like object, or bytes.
+    Extracts report text from zip- or gzip-compressed content, and returns
+    plain XML or JSON content decoded as-is.
 
     Args:
-        content: report file as a base64-encoded string, file-like object or
-        bytes.
+        content: The report as a base64-encoded string, file-like object,
+            or bytes. A string that is not valid base64 is returned
+            unchanged.
 
     Returns:
         str: The extracted text
-
     """
     file_object: BinaryIO | None = None
     header: bytes
@@ -1264,11 +1264,11 @@ def parse_aggregate_report_file(
     normalize_timespan_threshold_hours: float = 24.0,
     config: ParserConfig | None = None,
 ) -> AggregateReport:
-    """Parses a file at the given path, a file-like object. or bytes as an
+    """Parses a file at the given path, a file-like object, or bytes as an
     aggregate DMARC report
 
     Args:
-        _input (str | bytes | IO): A path to a file, a file like object, or bytes
+        _input (str | bytes | IO): A path to a file, a file-like object, or bytes
         offline (bool): Do not query online for geolocation or DNS
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
@@ -1546,12 +1546,13 @@ def parse_failure_report(
     Args:
         feedback_report (str): A message's feedback report as a string
         sample (str): The RFC 822 headers or RFC 822 message sample
+        msg_date (datetime): The message's date, used as the arrival date
+            when the feedback report has no ``Arrival-Date`` field
         ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
         reverse_dns_map_url (str): URL to a reverse DNS map file
         offline (bool): Do not query online for geolocation or DNS
-        msg_date (str): The message's date header
         nameservers (list): A list of one or more nameservers to use
             (Cloudflare's public DNS resolvers by default)
         dns_timeout (float): Sets the DNS timeout in seconds
@@ -1943,7 +1944,7 @@ def parse_report_email(
     config: ParserConfig | None = None,
 ) -> ParsedReport:
     """
-    Parses a DMARC report from an email
+    Parses a DMARC or SMTP TLS report from an email
 
     Args:
         input_: An emailed DMARC report in RFC 822 format, as bytes or a string
@@ -1951,7 +1952,7 @@ def parse_report_email(
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map
         reverse_dns_map_url (str): URL to a reverse DNS map
-        offline (bool): Do not query online for geolocation on DNS
+        offline (bool): Do not query online for geolocation or DNS
         nameservers (list): A list of one or more nameservers to use
         dns_timeout (float): Sets the DNS timeout in seconds
         dns_retries (int): Number of times to retry DNS queries on timeout
@@ -1968,7 +1969,7 @@ def parse_report_email(
 
     Returns:
         dict:
-        * ``report_type``: ``aggregate`` or ``failure``
+        * ``report_type``: ``aggregate``, ``failure``, or ``smtp_tls``
         * ``report``: The parsed report
     """
     cfg = _resolve_config(
@@ -2202,8 +2203,8 @@ def parse_report_file(
     normalize_timespan_threshold_hours: float = 24.0,
     config: ParserConfig | None = None,
 ) -> ParsedReport:
-    """Parses a DMARC aggregate or failure file at the given path, a
-    file-like object. or bytes
+    """Parses a DMARC aggregate report, DMARC failure report, or SMTP TLS
+    report from a file at the given path, a file-like object, or bytes
 
     Args:
         input_ (str | os.PathLike | bytes | BinaryIO): A path to a file,
@@ -2429,7 +2430,7 @@ def get_dmarc_reports_from_mbox(
     config: ParserConfig | None = None,
 ) -> ParsingResults:
     """Parses a mailbox in mbox format containing e-mails with attached
-    DMARC reports
+    DMARC and SMTP TLS reports
 
     Args:
         input_ (str): A path to a mbox file
@@ -2625,7 +2626,7 @@ def get_dmarc_reports_from_mailbox(
     config: ParserConfig | None = None,
 ) -> ParsingResults:
     """
-    Fetches and parses DMARC reports from a mailbox
+    Fetches and parses DMARC and SMTP TLS reports from a mailbox
 
     Args:
         connection: A Mailbox connection object
@@ -2663,7 +2664,7 @@ def get_dmarc_reports_from_mailbox(
         results (dict): Results from the previous run
         batch_size (int): Number of messages to read and process before saving
             (use 0 for no limit)
-        since: Search for messages since certain time
+        since: Search for messages since a certain time
             (units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"})
         create_folders (bool): Whether to create the destination folders
             (not used in watch)
@@ -3184,8 +3185,8 @@ def watch_inbox(
     config: ParserConfig | None = None,
 ):
     """
-    Watches the mailbox for new messages and
-      sends the results to a callback function
+    Watches the mailbox for new messages and sends the results to a
+    callback function
 
     Args:
         mailbox_connection: The mailbox connection object
@@ -3204,7 +3205,7 @@ def watch_inbox(
             then is backend-specific: the Microsoft Graph and Gmail backends
             let it propagate and end the watch, while mailsuite's IMAP and
             Maildir watch loops log it and keep checking.
-        reports_folder (str): The IMAP folder where reports can be found
+        reports_folder (str): The folder where reports can be found
         archive_folder (str): The folder to move processed mail to
         delete (bool): Delete messages after processing them
         delete_aggregate (bool | None): Delete aggregate report messages
@@ -3224,8 +3225,8 @@ def watch_inbox(
             can be inspected for debugging; ``None`` (the default) inherits
             the value of ``delete``
         test (bool): Do not move or delete messages after processing them
-        check_timeout (int): Number of seconds to wait for a IMAP IDLE response
-            or the number of seconds until the next mail check
+        check_timeout (int): Number of seconds to wait for an IMAP IDLE
+            response or the number of seconds until the next mail check
         ip_db_path (str): Path to a MMDB file from IPinfo, MaxMind, or DBIP
         always_use_local_files (bool): Do not download files
         reverse_dns_map_path (str): Path to a reverse DNS map file
@@ -3236,10 +3237,10 @@ def watch_inbox(
         dns_timeout (float): Set the DNS query timeout
         dns_retries (int): Number of times to retry DNS queries on timeout
             or other transient errors
-        strip_attachment_payloads (bool): Replace attachment payloads in
-            failure report samples with None
+        strip_attachment_payloads (bool): Remove attachment payloads from
+            failure report results
         batch_size (int): Number of messages to read and process before saving
-        since: Search for messages since certain time
+        since: Search for messages since a certain time
         normalize_timespan_threshold_hours (float): Normalize timespans beyond this
         config_reloading: Optional callable that returns True when a config
             reload (or shutdown) has been requested (e.g. via SIGHUP/SIGTERM).
@@ -3558,7 +3559,7 @@ def email_results(
         mail_from: The value of the message from header
         mail_to (list): A list of addresses to mail to
         mail_cc (list): A list of addresses to CC
-        mail_bcc (list): A list addresses to BCC
+        mail_bcc (list): A list of addresses to BCC
         port (int): Port to use
         require_encryption (bool): Require a secure connection from the start
         verify (bool): verify the SSL/TLS certificate
@@ -3617,7 +3618,7 @@ def email_results_via_msgraph(
             Graph mailbox connection
         mail_to (list): A list of addresses to mail to
         mail_cc (list): A list of addresses to CC
-        mail_bcc (list): A list addresses to BCC
+        mail_bcc (list): A list of addresses to BCC
         subject (str): Overrides the default message subject
         attachment_filename (str): Override the default attachment filename
         message (str): Override the default plain text body

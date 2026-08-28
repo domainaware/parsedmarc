@@ -28,8 +28,9 @@ from parsedmarc.postgres import (
 
 OFFLINE_MODE = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
 
-# psycopg is an optional dependency and is not installed in CI (which installs
-# only the [build] extra). The save methods mock the connection, but the
+# psycopg is an optional dependency and is not installed in CI (whose
+# unit-test job installs the [build,all] extras, deliberately without
+# postgresql). The save methods mock the connection, but the
 # failure path also references ``psycopg_json.Jsonb`` at module scope, so
 # mock that SDK boundary for the whole module when psycopg is absent.
 _types_patcher = None

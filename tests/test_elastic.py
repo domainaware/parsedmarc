@@ -1213,9 +1213,10 @@ class TestSaveFailureReport(unittest.TestCase):
 
     def test_sample_address_lists_indexed_for_reply_to_cc_bcc_attachments(self):
         """A failure report sample can carry reply_to / cc / bcc /
-        attachments. Each populates a nested InnerDoc on the sample —
-        if the add_* helpers regress, those nested docs would be
-        silently empty in Elasticsearch."""
+        attachments. Each populates a nested InnerDoc on the sample;
+        this drives all four add_* helper paths (nested-doc contents
+        are asserted separately in
+        test_reply_to_header_flattened_and_indexed)."""
         report = _failure_report()
         report["parsed_sample"]["reply_to"] = [
             {"display_name": "RT", "address": "rt@example.com"}

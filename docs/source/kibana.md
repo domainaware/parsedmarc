@@ -28,7 +28,7 @@ will filter for that value.
 
 :::{note}
 Messages should not be considered malicious just because they failed to pass
-DMARC; especially if you have just started collecting data. It may be a
+DMARC, especially if you have just started collecting data. It may be a
 legitimate service that needs SPF and DKIM configured correctly.
 :::
 
@@ -36,7 +36,7 @@ Start by filtering the results to only show failed DKIM alignment. While DMARC
 passes if a message passes SPF or DKIM alignment, only DKIM alignment remains
 valid when a message is forwarded without changing the from address, which is
 often caused by a mailbox forwarding rule. This is because DKIM signatures are
-part of the message headers, whereas SPF relies on SMTP session headers.
+part of the message headers, whereas SPF relies on the SMTP envelope.
 
 Underneath the pie charts, you can see graphs of DMARC compliance and message
 disposition over time.
@@ -74,7 +74,7 @@ your domains coming from consumer email services, such as Google/Gmail and
 Yahoo! This occurs when customers have mailbox rules in place that forward
 emails from an old account to a new account, which is why DKIM
 authentication is so important, as mentioned earlier. Similar patterns may
-be observed with businesses who send from reverse DNS addressees of
+be observed with businesses who send from reverse DNS addresses of
 parent, subsidiary, and outdated brands.
 :::
 

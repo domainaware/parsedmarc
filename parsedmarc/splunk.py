@@ -188,7 +188,7 @@ class HECClient(object):
         self, reports: list[dict[str, Any]] | dict[str, Any]
     ):
         """
-        Saves aggregate DMARC reports to Splunk
+        Saves SMTP TLS reports to Splunk
 
         Args:
             reports: A list of SMTP TLS report dictionaries

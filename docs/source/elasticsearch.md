@@ -55,13 +55,17 @@ sudo systemctl start elasticsearch.service
 sudo systemctl start kibana.service
 ```
 
-As of Elasticsearch 8.7, activate secure mode (xpack.security.*.ssl)
+Since Elasticsearch 8.0, security is enabled and auto-configured on
+first startup: TLS certificates are generated, the `xpack.security.*`
+settings below are written to `elasticsearch.yml`, and a password is
+generated for the `elastic` user. Verify the settings are present —
+and add them only if your install skipped auto-configuration:
 
 ```bash
 sudo vim /etc/elasticsearch/elasticsearch.yml
 ```
 
-Add the following configuration
+The security configuration looks like this:
 
 ```text
 # Enable security features
@@ -92,11 +96,12 @@ openssl req -x509 -nodes -days 365 -newkey rsa:4096 -keyout kibana.key -out kiba
 Or, to create a Certificate Signing Request (CSR) for a CA, run:
 
 ```bash
-openssl req -newkey rsa:4096-nodes -keyout kibana.key -out kibana.csr
+openssl req -newkey rsa:4096 -nodes -keyout kibana.key -out kibana.csr
 ```
 
 Fill in the prompts. Watch out for Common Name (e.g. server FQDN or YOUR
-domain name), which is the IP address or domain name that you will use to access Kibana. it is the most important field.
+domain name), which is the IP address or domain name that you will use to
+access Kibana. It is the most important field.
 
 If you generated a CSR, remove the CSR after you have your certs
 
@@ -129,7 +134,7 @@ server.ssl.key: /etc/kibana/kibana.key
 
 :::{note}
 For more security, you can configure Kibana to use a local network connection
-to elasticsearch :
+to Elasticsearch:
 ```text
 elasticsearch.hosts: ['https://SERVER_IP:9200']
 ```
@@ -149,14 +154,14 @@ Enroll Kibana in Elasticsearch
 sudo /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
 ```
 
-Then access to your web server at `https://SERVER_IP:5601`, accept the self-signed
-certificate and paste the token in the "Enrollment token" field.
+Then access your web server at `https://SERVER_IP:5601`, accept the self-signed
+certificate, and paste the token in the "Enrollment token" field.
 
 ```bash
 sudo /usr/share/kibana/bin/kibana-verification-code
 ```
 
-Then put the verification code to your web browser.
+Then enter the verification code in your web browser.
 
 End Kibana configuration
 
@@ -182,12 +187,12 @@ sudo systemctl restart elasticsearch
 Now that Elasticsearch is up and running, use `parsedmarc` to send data to
 it.
 
-Download (right-click the link and click save as) [export.ndjson].
+Download (right-click the link and click save as) [opensearch_dashboards.ndjson].
 
-Connect to kibana using the "elastic" user and the password you previously provide
-on the console ("End Kibana configuration" part).
+Connect to Kibana using the "elastic" user and the password you previously
+provided on the console ("End Kibana configuration" part).
 
-Import `export.ndjson` the Saved Objects tab of the Stack management
+Import `opensearch_dashboards.ndjson` in the Saved Objects tab of the Stack Management
 page of Kibana. (Hamburger menu -> "Management" -> "Stack Management" ->
 "Kibana" -> "Saved Objects")
 
@@ -198,20 +203,20 @@ the commercial [X-Pack].
 
 ```{image} _static/screenshots/saved-objects.png
 :align: center
-:alt: A screenshot of setting the Saved Objects Stack management UI in Kibana
+:alt: A screenshot of the Saved Objects Stack Management UI in Kibana
 :target: _static/screenshots/saved-objects.png
 ```
 
 ```{image} _static/screenshots/confirm-overwrite.png
 :align: center
-:alt: A screenshot of the overwrite conformation prompt
+:alt: A screenshot of the overwrite confirmation prompt
 :target: _static/screenshots/confirm-overwrite.png
 ```
 
 ## Upgrading Kibana index patterns
 
 `parsedmarc` 5.0.0 makes some changes to the way data is indexed in
-Elasticsearch. if you are upgrading from a previous release of
+Elasticsearch. If you are upgrading from a previous release of
 `parsedmarc`, you need to complete the following steps to replace the
 Kibana index patterns with versions that match the upgraded indexes:
 
@@ -220,10 +225,10 @@ Kibana index patterns with versions that match the upgraded indexes:
 3. Check the checkboxes for the `dmarc_aggregate` and `dmarc_failure`
    index patterns
 4. Click Delete
-5. Click Delete on the conformation message
+5. Click Delete on the confirmation message
 6. Download (right-click the link and click save as)
-   the latest version of [export.ndjson]
-7. Import `export.ndjson` by clicking Import from the Kibana
+   the latest version of [opensearch_dashboards.ndjson]
+7. Import `opensearch_dashboards.ndjson` by clicking Import from the Kibana
    Saved Objects page
 
 ## Backfilling the combined DKIM/SPF result fields
@@ -408,6 +413,6 @@ retention regulations such as GDPR. For more information,
 check out the Elastic guide to [managing time-based indexes efficiently](https://www.elastic.co/blog/managing-time-based-indices-efficiently).
 
 [elasticsearch]: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
-[export.ndjson]: https://raw.githubusercontent.com/domainaware/parsedmarc/master/dashboards/opensearch/opensearch_dashboards.ndjson
+[opensearch_dashboards.ndjson]: https://raw.githubusercontent.com/domainaware/parsedmarc/master/dashboards/opensearch/opensearch_dashboards.ndjson
 [kibana]: https://www.elastic.co/guide/en/kibana/current/rpm.html
 [x-pack]: https://www.elastic.co/products/x-pack

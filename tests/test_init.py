@@ -303,7 +303,7 @@ class Test(unittest.TestCase):
         self.assertEqual(record["policy_evaluated"]["disposition"], "none")
 
     def testEmptySample(self):
-        """Test empty/unparasable report"""
+        """Test empty/unparseable report"""
         with self.assertRaises(parsedmarc.ParserError):
             parsedmarc.parse_report_file("samples/empty.xml", offline=OFFLINE_MODE)
 

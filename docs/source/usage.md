@@ -14,8 +14,8 @@ usage: parsedmarc [-h] [-c CONFIG_FILE] [-r] [--strip-attachment-payloads] [-o O
 Parses DMARC reports
 
 positional arguments:
-  file_path             one or more paths to aggregate or failure report files, emails, mbox files, or directories
-                        containing them
+  file_path             one or more paths to aggregate, failure, or SMTP TLS report files, emails, mbox files, or
+                        directories containing them
 
 options:
   -h, --help            show this help message and exit
@@ -119,21 +119,23 @@ smtp_tls_url = https://smtp_tls_url.example.com
 timeout = 60
 ```
 
-The full set of configuration options are:
+The full set of configuration options is:
 
 - `general`
   - `save_aggregate` - bool: Save aggregate report data to
       Elasticsearch, Splunk and/or S3
   - `save_failure` - bool: Save failure report data to
       Elasticsearch, Splunk and/or S3
-  - `save_smtp_tls` - bool: Save SMTP-STS report data to
+  - `save_smtp_tls` - bool: Save SMTP TLS report data to
       Elasticsearch, Splunk and/or S3
   - `index_prefix_domain_map` - str: Path to a YAML file mapping
       OpenSearch/Elasticsearch index prefixes to domain names
   - `strip_attachment_payloads` - bool: Remove attachment
       payloads from results
-  - `silent` - bool: Set this to `False` to output results to STDOUT
-  - `output` - str: Directory to place JSON and CSV files in.  This is required if you set either of the JSON output file options.
+  - `silent` - bool: Only print errors; set this to `False` to output
+      results to STDOUT (Default: `True`)
+  - `output` - str: Directory to place JSON and CSV files in. The JSON
+      and CSV filename options below only take effect when this is set.
   - `archive_directory` - str: Optional. When set, successfully
       processed report files given as local file/directory path
       arguments are moved into
@@ -156,6 +158,19 @@ The full set of configuration options are:
       JSON output file
   - `failure_json_filename` - str: filename for the failure
       JSON output file
+  - `smtp_tls_json_filename` - str: filename for the SMTP TLS
+      JSON output file
+  - `aggregate_csv_filename` - str: filename for the aggregate
+      CSV output file
+  - `failure_csv_filename` - str: filename for the failure
+      CSV output file
+  - `smtp_tls_csv_filename` - str: filename for the SMTP TLS
+      CSV output file
+  - `prettify_json` - bool: Set this to `False` to output JSON in a
+      single line without indentation (Default: `True`)
+  - `normalize_timespan_threshold_hours` - float: Aggregate reports
+      covering a longer time span than this many hours have their
+      records normalized into per-day records (Default: `24`)
   - `ip_db_path` - str: An optional custom path to a MMDB file
       from IPinfo, MaxMind, or DBIP
   - `ipinfo_url` - str: Overrides the default download URL for the
@@ -172,24 +187,25 @@ The full set of configuration options are:
   - `offline` - bool: Do not use online queries for geolocation
       or DNS. Also disables automatic downloading of the IP-to-country
       database and reverse DNS map.
-  - `always_use_local_files` - Disables the download of the
+  - `always_use_local_files` - bool: Disables the download of the
       IP-to-country database and reverse DNS map
-  - `local_reverse_dns_map_path` - Overrides the default local file path to use for the reverse DNS map
-  - `reverse_dns_map_url` - Overrides the default download URL for the reverse DNS map
-  - `local_psl_overrides_path` - Overrides the default local file path to use for the PSL overrides list
-  - `psl_overrides_url` - Overrides the default download URL for the PSL overrides list
+  - `local_reverse_dns_map_path` - str: Overrides the default local file path to use for the reverse DNS map
+  - `reverse_dns_map_url` - str: Overrides the default download URL for the reverse DNS map
+  - `local_psl_overrides_path` - str: Overrides the default local file path to use for the PSL overrides list
+  - `psl_overrides_url` - str: Overrides the default download URL for the PSL overrides list
   - `nameservers` - str: A comma separated list of
       DNS resolvers (Default: `[Cloudflare's public resolvers]`). Each entry
       is an IP address (DNS over UDP/TCP port 53), an `https://` URL
       (DNS over HTTPS), or `tls://ip[:port][#hostname]` (DNS over TLS) —
       see [Encrypted DNS](#encrypted-dns)
-  - `dns_test_address` - str: a dummy address used for DNS pre-flight checks
-      (Default: 1.1.1.1)
-  - `dns_timeout` - float: DNS timeout period
+  - `dns_test_address` - str: A dummy address used for the DNS pre-flight
+      check that runs when `nameservers` is set (Default: `1.1.1.1`)
+  - `dns_timeout` - float: DNS timeout period in seconds (Default: `2.0`)
   - `dns_retries` - int: Number of times to retry a DNS query after a
-      timeout or other transient error (Default: 0)
+      timeout or other transient error (Default: `0`)
   - `debug` - bool: Print debugging messages
-  - `silent` - bool: Only print errors (Default: `True`)
+  - `verbose` - bool: More verbose output
+  - `warnings` - bool: Print warnings in addition to errors
   - `fail_on_output_error` - bool: Exit with a non-zero status code if
       any configured output destination fails while saving/publishing
       reports (Default: `False`)
@@ -227,8 +243,9 @@ The full set of configuration options are:
       (Default: `INBOX`)
   - `archive_folder` - str: The mailbox folder (or label for
       Gmail) to sort processed emails into (Default: `Archive`)
-  - `watch` - bool: Use the IMAP `IDLE` command to process
-      messages as they arrive or poll MS Graph for new messages
+  - `watch` - bool: Process new messages as they arrive, via the
+      IMAP `IDLE` command or by polling the other mailbox types
+      (Microsoft Graph, Gmail API, Maildir)
   - `delete` - bool: Delete messages after processing them,
       instead of archiving them
   - `delete_aggregate` - bool: Delete aggregate report messages
@@ -271,9 +288,9 @@ The full set of configuration options are:
       runs. See
       [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved)
       below.
-  - `since` - str: Search for messages since certain time. (Examples: `5m|3h|2d|1w`)
+  - `since` - str: Search for messages since a certain time. (Examples: `5m|3h|2d|1w`)
       Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}.
-      Defaults to `1d` if incorrect value is provided.
+      Defaults to `1d` if an incorrect value is provided.
 - `imap`
   - `host` - str: The IMAP server hostname or IP address
   - `port` - int: The IMAP server port (Default: `993`)
@@ -296,9 +313,16 @@ The full set of configuration options are:
       (Default: `True`)
   - `skip_certificate_verification` - bool: Skip certificate
       verification (not recommended)
+  - `timeout` - int: Number of seconds to wait for an IMAP operation
+      (Default: `30`)
+  - `max_retries` - int: Maximum number of retries after an IMAP
+      timeout (Default: `4`)
   - `user` - str: The IMAP user
   - `password` - str: The IMAP password
 - `msgraph`
+
+  Requires the `msgraph` extra: `pip install "parsedmarc[msgraph]"`
+
   - `auth_method` - str: Authentication method, valid types are
       `UsernamePassword`, `DeviceCode`, `ClientSecret`, `Certificate`, or
       `ClientAssertion` (Default: `UsernamePassword`).
@@ -307,7 +331,8 @@ The full set of configuration options are:
   - `password` - str: The user password, required when the auth
       method is UsernamePassword
   - `client_id` - str: The app registration's client ID
-  - `client_secret` - str: The app registration's secret
+  - `client_secret` - str: The app registration's secret. Required when
+      the auth method is `UsernamePassword` or `ClientSecret`
   - `certificate_path` - str: Path to a PEM or PKCS12 certificate
       including the private key. Required when the auth method is
       `Certificate`
@@ -329,8 +354,9 @@ The full set of configuration options are:
   - `mailbox` - str: The mailbox name. This defaults to the
       current user if using the UsernamePassword auth method, but
       could be a shared mailbox if the user has access to the mailbox
-  - `graph_url` - str: Microsoft Graph URL.  Allows for use of National Clouds (ex Azure Gov)
-      (Default: https://graph.microsoft.com)
+  - `graph_url` - str: Microsoft Graph URL. Allows for use of national
+      clouds (e.g. Azure Gov)
+      (Default: `https://graph.microsoft.com`)
 
     :::{warning}
     Setting `graph_url` alone is **not** sufficient for a national/sovereign
@@ -534,6 +560,9 @@ The full set of configuration options are:
     | Invalid/rejected timestamp in the `since`/`receivedDateTime` filter | Historical bug (parsedmarc [#706](https://github.com/domainaware/parsedmarc/pull/706)/[#708](https://github.com/domainaware/parsedmarc/pull/708)): older versions appended a spurious `Z` to an already-UTC-offset ISO timestamp. Fixed since parsedmarc 9.5.1/9.5.5. | Upgrade parsedmarc if you're on a version older than 9.5.5. |
     :::
 - `elasticsearch`
+
+  Requires the `elastic` extra: `pip install "parsedmarc[elastic]"`
+
   - `hosts` - str: A comma separated list of hostnames and ports
       or URLs (e.g. `127.0.0.1:9200` or
       `https://user:secret@localhost`)
@@ -548,7 +577,7 @@ The full set of configuration options are:
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
-  - `cert_path` - str: Path to a trusted certificates
+  - `cert_path` - str: Path to a trusted CA certificates file
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
   - `index_suffix` - str: A suffix to apply to the index names
@@ -565,6 +594,9 @@ The full set of configuration options are:
     settings sent at index creation; any other settings (e.g.
     `refresh_interval`) are passed through unchanged (Default: `False`)
 - `opensearch`
+
+  Requires the `opensearch` extra: `pip install "parsedmarc[opensearch]"`
+
   - `hosts` - str: A comma separated list of hostnames and ports
     or URLs (e.g. `127.0.0.1:9200` or
     `https://user:secret@localhost`)
@@ -583,7 +615,7 @@ The full set of configuration options are:
   - `ssl` - bool: Use an encrypted SSL/TLS connection
     (Default: `True`)
   - `timeout` - float: Timeout in seconds (Default: 60)
-  - `cert_path` - str: Path to a trusted certificates
+  - `cert_path` - str: Path to a trusted CA certificates file
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
   - `index_suffix` - str: A suffix to apply to the index names
@@ -600,14 +632,18 @@ The full set of configuration options are:
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
 - `kafka`
+
+  Requires the `kafka` extra: `pip install "parsedmarc[kafka]"`
+
   - `hosts` - str: A comma separated list of Kafka hosts
   - `user` - str: The Kafka user
-  - `passsword` - str: The Kafka password
+  - `password` - str: The Kafka password
   - `ssl` - bool: Use an encrypted SSL/TLS connection (Default: `True`)
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
   - `aggregate_topic` - str: The Kafka topic for aggregate reports
   - `failure_topic` - str: The Kafka topic for failure reports
+  - `smtp_tls_topic` - str: The Kafka topic for SMTP TLS reports
 - `smtp`
 
   The results email is only sent when at least one aggregate, failure,
@@ -632,7 +668,7 @@ The full set of configuration options are:
   - `to` - list: A list of email addresses to send to
   - `subject` - str: The Subject header to use in the email
     (Default: `parsedmarc report`)
-  - `attachment` - str: The ZIP attachment filenames
+  - `attachment` - str: The ZIP attachment filename
     (Default: `DMARC-<YYYY-MM-DD>.zip`)
   - `message` - str: The email message
     (Default: `Please see the attached DMARC results.`)
@@ -653,13 +689,14 @@ The full set of configuration options are:
     all individual parameters above are ignored.
 
   The PostgreSQL backend is an optional extra. Install it with
-  `pip install parsedmarc[postgresql]` (it pulls in `psycopg`); the
+  `pip install "parsedmarc[postgresql]"` (it pulls in `psycopg`); the
   prebuilt binary wheels are not available for every platform, which is
-  why it is not a mandatory dependency. The prebuilt Docker image
-  (`ghcr.io/domainaware/parsedmarc`) already bundles this extra, so the
-  PostgreSQL backend works out of the box in the container — `psycopg`
-  ships `amd64` and `arm64` binary wheels, both of which the image
-  supports.
+  why it is the one extra that `parsedmarc[all]` deliberately leaves out
+  — combine the two with `pip install "parsedmarc[all,postgresql]"`. The
+  prebuilt Docker image (`ghcr.io/domainaware/parsedmarc`) already
+  bundles `[all,postgresql]`, so the PostgreSQL backend works out of the
+  box in the container — `psycopg` ships `amd64` and `arm64` binary
+  wheels, both of which the image supports.
 
   Tables are created automatically on first run using
   `CREATE TABLE IF NOT EXISTS`, so no manual schema migration is needed
@@ -692,6 +729,9 @@ The full set of configuration options are:
   this section is configured.
 
 - `s3`
+
+  Requires the `s3` extra: `pip install "parsedmarc[s3]"`
+
   - `bucket` - str: The S3 bucket name
   - `path` - str: The path to upload reports to (Default: `/`)
   - `region_name` - str: The region name (Optional)
@@ -755,6 +795,9 @@ The full set of configuration options are:
   ```
 
 - `gmail_api`
+
+  Requires the `gmail` extra: `pip install "parsedmarc[gmail]"`
+
   - `credentials_file` - str: Path to file containing the
       credentials, None to disable (Default: `None`)
   - `token_file` - str: Path to save the token file
@@ -766,7 +809,9 @@ The full set of configuration options are:
       accepted as `delegated_user` for backward compatibility.
 
     :::{note}
-    credentials_file and token_file can be got with [quickstart](https://developers.google.com/gmail/api/quickstart/python).Please change the scope to `https://www.googleapis.com/auth/gmail.modify`.
+    `credentials_file` and `token_file` can be obtained by following the
+    Gmail API [quickstart](https://developers.google.com/gmail/api/quickstart/python).
+    Please change the scope to `https://www.googleapis.com/auth/gmail.modify`.
     :::
     :::{note}
     When `auth_mode = service_account`, `credentials_file` must point to a
@@ -782,6 +827,9 @@ The full set of configuration options are:
   - `paginate_messages` - bool: When `True`, fetch all applicable Gmail messages.
       When `False`, only fetch up to 100 new messages per run (Default: `True`)
 - `log_analytics`
+
+  Requires the `loganalytics` extra: `pip install "parsedmarc[loganalytics]"`
+
   - `client_id` - str: The app registration's client ID
   - `client_secret` - str: The app registration's client secret
   - `tenant_id` - str: The tenant id where the app registration resides
@@ -792,22 +840,27 @@ The full set of configuration options are:
   - `dcr_smtp_tls_stream` - str: The stream name for the SMTP TLS reports in the DCR
 
   :::{note}
-    Information regarding the setup of the Data Collection Rule can be found [in the Azure documentation](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
-    :::
+  Information regarding the setup of the Data Collection Rule can be found [in the Azure documentation](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
+  :::
 - `gelf`
+
+  Requires the `gelf` extra: `pip install "parsedmarc[gelf]"`
+
   - `host` - str: The GELF server name or IP address
   - `port` - int: The port to use
   - `mode` - str: The GELF transport type to use. Valid modes: `tcp`, `udp`, `tls`
 
 - `maildir`
-  - `maildir_path` - str: Full path for mailbox maildir location (Default: `INBOX`)
-  - `maildir_create` - bool: Create maildir if not present (Default: False)
+  - `maildir_path` - str: Full path to the maildir location (the key
+    `path` is accepted as an alias). Required to read from a maildir.
+  - `maildir_create` - bool: Create the maildir if not present
+    (Default: `False`; the key `create` is accepted as an alias)
 
-- `webhook` - Post the individual reports to a webhook url with the report as the JSON body
+- `webhook` - Post the individual reports to a webhook URL with the report as the JSON body
   - `aggregate_url` - str: URL of the webhook which should receive the aggregate reports
   - `failure_url` - str: URL of the webhook which should receive the failure reports
-  - `smtp_tls_url` - str: URL of the webhook which should receive the smtp_tls reports
-  - `timeout` - int: Interval in which the webhook call should timeout
+  - `smtp_tls_url` - str: URL of the webhook which should receive the SMTP TLS reports
+  - `timeout` - int: Timeout in seconds for webhook requests (Default: `60`)
 
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
@@ -847,8 +900,8 @@ known samples you want to save to that folder
 :::
 
 :::{warning}
-Elasticsearch 8 change limits policy for shards, restricting by
-default to 1000. parsedmarc use a shard per analyzed day. If you
+Elasticsearch 8 changed the limits policy for shards, restricting them
+by default to 1000. parsedmarc uses a shard per analyzed day. If you
 have more than ~3 years of data, you will need to update this
 limit.
 Check current usage (from Management -> Dev Tools -> Console):
@@ -863,7 +916,7 @@ GET /_cluster/health?pretty
 }
 ```
 
-Update the limit to 2k per example:
+For example, update the limit to 2000:
 
 ```text
 PUT _cluster/settings
@@ -1123,6 +1176,7 @@ For sections with underscores in the name, the full section name is used:
 | `kafka` | `PARSEDMARC_KAFKA_` |
 | `smtp` | `PARSEDMARC_SMTP_` |
 | `s3` | `PARSEDMARC_S3_` |
+| `postgresql` | `PARSEDMARC_POSTGRESQL_` |
 | `syslog` | `PARSEDMARC_SYSLOG_` |
 | `gmail_api` | `PARSEDMARC_GMAIL_API_` |
 | `maildir` | `PARSEDMARC_MAILDIR_` |
@@ -1207,7 +1261,7 @@ high-volume mailbox processing.
 
 ## Multi-tenant support
 
-Starting in `8.19.0`, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a YAML file that is formatted where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:
+Starting in `8.19.0`, ParseDMARC provides multi-tenant support by placing data into separate OpenSearch or Elasticsearch index prefixes. To set this up, create a YAML file where each key is a tenant name, and the value is a list of domains related to that tenant, not including subdomains, like this:
 
 ```yaml
 example:
@@ -1223,8 +1277,8 @@ Save it to disk where the user running ParseDMARC can read it, then set `index_p
 
 When configured correctly, if ParseDMARC finds that a report is related to a domain in the mapping, the report will be saved in an index name that has the tenant name prefixed to it with a trailing underscore. Then, you can use the security features of OpenSearch or the ELK stack to only grant users access to the indexes that they need.
 
- :::{note}
- A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.
+:::{note}
+A domain cannot be used in multiple tenant lists. Only the first prefix list that contains the matching domain is used.
 :::
 
 Each key must be a tenant name and each value a *list* of domain names, all strings; a file of any other shape is rejected at startup.
@@ -1301,9 +1355,9 @@ sudo service parsedmarc restart
 On `systemctl stop`/`restart` (or Ctrl-C) `parsedmarc` finishes the
 current batch, flushes its outputs, and exits cleanly. Shutdown is
 observed at batch boundaries, so the worst-case delay is roughly
-`mailbox_check_timeout` (default 30s) plus the batch's processing and
+`[mailbox] check_timeout` (default 30s) plus the batch's processing and
 flush time. Keep `TimeoutStopSec` comfortably above
-`mailbox_check_timeout` (≈2×, and raise both together) or systemd will
+`check_timeout` (≈2×, and raise both together) or systemd will
 `SIGKILL` mid-batch. In the foreground, a second Ctrl-C force-quits
 immediately, skipping the output flush.
 :::
@@ -1360,8 +1414,9 @@ service parsedmarc status
 ```
 
 :::{note}
-In the event of a crash, systemd will restart the service after 10
-minutes, but the `service parsedmarc status` command will only show
+In the event of a crash, systemd will restart the service after 5
+minutes (per the `RestartSec` setting above), but the
+`service parsedmarc status` command will only show
 the logs for the current process. To view the logs for previous runs
 as well as the current process (newest to oldest), run:
 

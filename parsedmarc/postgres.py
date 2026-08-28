@@ -443,8 +443,8 @@ class PostgreSQLClient:
         """Saves a parsed aggregate DMARC report to PostgreSQL.
 
         Args:
-            report: A parsed aggregate report dictionary as returned by
-                :func:`parsedmarc.parse_report_file`.
+            report: A parsed aggregate report dictionary (the ``report``
+                value of a :func:`parsedmarc.parse_report_file` result).
 
         Raises:
             AlreadySaved: If an identical report is already present.
@@ -620,8 +620,8 @@ class PostgreSQLClient:
         """Saves a parsed failure (RUF) DMARC report to PostgreSQL.
 
         Args:
-            report: A parsed failure report dictionary as returned by
-                :func:`parsedmarc.parse_report_file`.
+            report: A parsed failure report dictionary (the ``report``
+                value of a :func:`parsedmarc.parse_report_file` result).
 
         Raises:
             AlreadySaved: If a matching failure report is already present.
@@ -759,8 +759,8 @@ class PostgreSQLClient:
         """Saves a parsed SMTP TLS report to PostgreSQL.
 
         Args:
-            report: A parsed SMTP TLS report dictionary as returned by
-                :func:`parsedmarc.parse_report_file`.
+            report: A parsed SMTP TLS report dictionary (the ``report``
+                value of a :func:`parsedmarc.parse_report_file` result).
 
         Raises:
             AlreadySaved: If an identical report is already present.

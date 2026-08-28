@@ -23,9 +23,12 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        # postgresql extra included so pyright can resolve the optional
-        # psycopg import in parsedmarc/postgres.py
-        pip install .[build,postgresql]
+        # all and postgresql extras included so pyright can resolve every
+        # optional import (parsedmarc/cli.py's guarded output modules, the
+        # psycopg import in parsedmarc/postgres.py) and so the docs build
+        # step below can autodoc parsedmarc.elastic and
+        # parsedmarc.opensearch, which import their SDKs at module level
+        pip install .[build,all,postgresql]
     - name: Check code style
       run: |
         ruff check .
@@ -77,13 +80,17 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install .[build]
+        # all extra included because the output-module tests import their
+        # SDKs at module level. postgresql is deliberately left out so
+        # tests/test_postgres.py's absent-psycopg arm stays exercised.
+        pip install .[build,all]
     - name: Run unit tests
       run: |
         python -m pytest --cov --cov-report=xml --junitxml=junit.xml -o junit_family=legacy tests/
     - name: Test sample DMARC reports
       run: |
-        pip install -e .
+        # [all] because ci.ini configures an [elasticsearch] output
+        pip install -e .[all]
         parsedmarc --debug -c ci.ini samples/aggregate/*
         parsedmarc --debug -c ci.ini samples/failure/*
     - name: Test building packages

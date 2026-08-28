@@ -98,9 +98,9 @@ class TestPublishJson(unittest.TestCase):
 class TestPublishResults(unittest.TestCase):
     """publish_results gates each report type behind both a config flag
     (save_aggregate / save_failure / save_smtp_tls) and a configured
-    stream name. Both gates need to work — a missing stream alone is a
-    config bug that should be silent, but an explicit save_*=False
-    means the operator opted out."""
+    stream name. Both gates need to work — a missing stream is skipped
+    silently (a partially configured client is normal), while an
+    explicit save_*=False means the operator opted out."""
 
     def _publish_with(self, results, **flags):
         flags.setdefault("save_aggregate", True)

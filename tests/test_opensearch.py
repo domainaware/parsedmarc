@@ -797,7 +797,7 @@ class TestSaveAggregateReport(unittest.TestCase):
     def test_already_saved_raises_when_search_returns_hit(self):
         """The dedup query is the only thing preventing
         double-indexing on re-run. A regression would silently
-        re-save reports, inflating Kibana counts."""
+        re-save reports, inflating dashboard counts."""
         with (
             patch("parsedmarc.opensearch.Search", return_value=_populated_search()),
             patch("parsedmarc.opensearch.Index"),
@@ -859,8 +859,8 @@ class TestSaveAggregateReport(unittest.TestCase):
         self.assertIn("dmarc_aggregate-2024-01", index_calls)
 
     def test_index_name_honours_suffix_and_prefix(self):
-        """Prefix/suffix support multi-tenant setups where one ES
-        cluster serves several DMARC owners."""
+        """Prefix/suffix support multi-tenant setups where one
+        OpenSearch cluster serves several DMARC owners."""
         with (
             patch("parsedmarc.opensearch.Search", return_value=_empty_search()),
             patch("parsedmarc.opensearch.Index") as mock_index_cls,
@@ -1001,9 +1001,9 @@ class TestAggregateDocCombinedResults(unittest.TestCase):
     def test_add_dkim_result_appends_combined_string(self):
         """Regression guard for issue #169: dkim_results/spf_results are
         arrays of objects that the engine dynamic-maps as plain ``object``
-        (not ``nested``) and flattens, so Kibana/Grafana tables cannot
-        terms-aggregate their subfields without producing a cross-product
-        of selector/domain/result values. The composed
+        (not ``nested``) and flattens, so OpenSearch Dashboards/Grafana
+        tables cannot terms-aggregate their subfields without producing a
+        cross-product of selector/domain/result values. The composed
         "selector / domain / result" string preserves the per-signature
         pairing that the flattened array loses."""
         doc = opensearch_module._AggregateReportDoc()
@@ -1206,9 +1206,10 @@ class TestSaveFailureReport(unittest.TestCase):
 
     def test_sample_address_lists_indexed_for_reply_to_cc_bcc_attachments(self):
         """A failure report sample can carry reply_to / cc / bcc /
-        attachments. Each populates a nested InnerDoc on the sample —
-        if the add_* helpers regress, those nested docs would be
-        silently empty in OpenSearch."""
+        attachments. Each populates a nested InnerDoc on the sample;
+        this drives all four add_* helper paths (nested-doc contents
+        are asserted separately in
+        test_reply_to_header_flattened_and_indexed)."""
         report = _failure_report()
         report["parsed_sample"]["reply_to"] = [
             {"display_name": "RT", "address": "rt@example.com"}

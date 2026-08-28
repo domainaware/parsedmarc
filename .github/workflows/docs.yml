@@ -38,7 +38,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[build]
+          # all extra included so docs/source/api.md can autodoc
+          # parsedmarc.elastic and parsedmarc.opensearch, which import
+          # their SDKs at module level
+          pip install .[build,all]
 
       - name: Build docs
         run: make -C docs html

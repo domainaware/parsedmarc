@@ -27,14 +27,18 @@ COPY --from=build /app/dist/*.whl /tmp/dist/
 RUN set -ex; \
     groupadd --gid ${USER_GID} ${USERNAME}; \
     useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}; \
-    # Install the wheel with the [postgresql] extra so the prebuilt image
-    # ships the PostgreSQL output backend (psycopg). Resolve the globbed wheel
-    # path into a variable first: `*.whl[postgresql]` would otherwise be parsed
-    # as a shell bracket glob rather than a pip extras spec. psycopg[binary]
-    # has prebuilt manylinux wheels for both amd64 and arm64, so this adds no
-    # source-build step on either platform.
+    # Install the wheel with the [all] and [postgresql] extras so the prebuilt
+    # image ships every output and mailbox integration, including the
+    # PostgreSQL backend (psycopg). The image deliberately bundles everything:
+    # container users see no change across the packaging split that made
+    # `pip install parsedmarc` the parsing core plus the base CLI.
+    # Resolve the globbed wheel path into a variable first:
+    # `*.whl[all,postgresql]` would otherwise be parsed as a shell bracket
+    # glob rather than a pip extras spec. psycopg[binary] has prebuilt
+    # manylinux wheels for both amd64 and arm64, so this adds no source-build
+    # step on either platform.
     whl="$(ls /tmp/dist/*.whl)"; \
-    pip install "${whl}[postgresql]"; \
+    pip install "${whl}[all,postgresql]"; \
     rm -rf /tmp/dist
 
 USER $USERNAME
