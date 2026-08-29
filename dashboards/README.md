@@ -27,7 +27,7 @@ All ports bind to `127.0.0.1` only.
 
 ## Prerequisites
 
-1. Docker with the Compose v2 plugin.
+1. Docker or Podman, with a Compose implementation (`docker compose` or `docker-compose`; `podman compose` or `podman-compose`). Compose v2 spec support is required because the compose file uses `include:`.
 2. A repo-root `.env` defining the secrets the compose file references:
 
    ```ini
@@ -48,9 +48,11 @@ All ports bind to `127.0.0.1` only.
 ./dashboard-dev-bootstrap.sh
 ```
 
+It auto-detects the container backend (Docker preferred, Podman as a fallback), which can be forced with `--backend docker|podman` or the `CONTAINER_BACKEND` environment variable. Run `./dashboard-dev-bootstrap.sh --help` for the full option and env var list.
+
 It does, in order:
 
-1. `docker compose -f docker-compose.dashboard-dev.yml up -d` and waits for every service's health endpoint.
+1. Brings up the compose stack with the detected compose command (`docker compose -f docker-compose.dashboard-dev.yml up -d`, or the `docker-compose`/`podman compose`/`podman-compose` equivalent) and waits for every service's health endpoint.
 2. Provisions Splunk: creates the `email` index, creates the `DMARC` app, configures the auto-created HEC token to allow the `email` index, and scopes the search-app's "scheduled export" announcement view away from `global` so it stops appearing in the DMARC app's dashboard list.
 3. Seeds Elasticsearch, OpenSearch, Splunk, and PostgreSQL with parsedmarc-parsed sample reports (from [samples/](../samples/)) so the dashboards render against real data. Skipped when ES already has aggregate docs — pass `RESEED=1` to wipe and re-seed all four backends.
 4. Imports the dashboard files from this directory into the running services. This step always runs, so the typical edit loop is **edit in the UI → export → save into this directory → re-run the bootstrap script** to verify the file imports cleanly into a fresh service.
@@ -118,3 +120,5 @@ Wipes every `dmarc_aggregate*` / `dmarc_failure*` / `dmarc_forensic*` / `smtp_tl
 docker compose -f docker-compose.dashboard-dev.yml down          # stop containers, keep volumes
 docker compose -f docker-compose.dashboard-dev.yml down -v       # also drop volumes (full reset)
 ```
+
+Substitute `podman compose` (or `podman-compose`) for `docker compose` if Podman is the selected backend.

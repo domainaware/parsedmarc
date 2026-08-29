@@ -1,14 +1,121 @@
 #!/usr/bin/env bash
-# Bring up docker-compose.dashboard-dev.yml, import the latest parsedmarc
-# dashboards into each viz system, and seed each backend with sample data so
-# the dashboards have something to render. Idempotent — safe to re-run.
+# Bring up docker-compose.dashboard-dev.yml (works with Docker or Podman),
+# import the latest parsedmarc dashboards into each viz system, and seed each
+# backend with sample data so the dashboards have something to render.
+# Idempotent — safe to re-run.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
 
-COMPOSE=(docker compose -f docker-compose.dashboard-dev.yml --env-file .env)
+usage() {
+    cat <<EOF
+Usage: $(basename "${BASH_SOURCE[0]}") [-b|--backend docker|podman] [-h|--help]
+
+Bring up the dashboard-dev stack, import dashboards, and seed sample data.
+
+Options:
+  -b, --backend docker|podman  Container backend to use (auto-detects when
+                               omitted; Docker is preferred if both work).
+  -h, --help                   Show this help and exit.
+
+Environment variables:
+  CONTAINER_BACKEND   Same as --backend; the flag takes precedence.
+  RESEED=1            Wipe and re-seed sample data.
+  OSD_TENANT          OpenSearch Dashboards tenant for the import (default: global).
+  WAIT_TIMEOUT        Per-service readiness timeout in seconds (default: 180).
+  PARSEDMARC_BIN      Explicit parsedmarc CLI to use for seeding.
+EOF
+}
+
+# A leftover docker CLI with no running daemon must not shadow a working
+# podman: require both the binary and a live `info` call, since `podman info`
+# works daemonless while `docker info` fails without a running daemon.
+engine_works() {
+    local engine="$1"
+    command -v "$engine" >/dev/null 2>&1 && "$engine" info >/dev/null 2>&1
+}
+
+# `podman compose` is a thin wrapper that delegates to an external provider
+# (docker-compose or podman-compose), so the version probe correctly fails
+# when no provider is installed and we fall back to the standalone binary —
+# itself probed with `version` so a broken install is rejected here rather
+# than partway through the run.
+resolve_compose() {
+    local engine="$1"
+    if "$engine" compose version >/dev/null 2>&1; then
+        COMPOSE_CMD=("$engine" compose)
+    elif command -v "${engine}-compose" >/dev/null 2>&1 &&
+        "${engine}-compose" version >/dev/null 2>&1; then
+        COMPOSE_CMD=("${engine}-compose")
+    else
+        return 1
+    fi
+}
+
+BACKEND="${CONTAINER_BACKEND:-}"
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -b|--backend)
+            if [ $# -lt 2 ] || [ -z "$2" ]; then
+                echo "ERROR: $1 requires a value (docker or podman)" >&2
+                usage >&2
+                exit 2
+            fi
+            BACKEND="$2"
+            shift 2
+            ;;
+        --backend=*)
+            BACKEND="${1#*=}"
+            if [ -z "$BACKEND" ]; then
+                echo "ERROR: --backend requires a value (docker or podman)" >&2
+                usage >&2
+                exit 2
+            fi
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "ERROR: unknown argument: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+done
+
+case "$BACKEND" in
+    docker|podman)
+        if ! engine_works "$BACKEND"; then
+            echo "ERROR: backend '$BACKEND' was requested but is not usable (missing, or its 'info' check failed — is it installed and running?)" >&2
+            exit 1
+        fi
+        if ! resolve_compose "$BACKEND"; then
+            echo "ERROR: no compose implementation found for '$BACKEND' (looked for '$BACKEND compose' and '${BACKEND}-compose')" >&2
+            exit 1
+        fi
+        ;;
+    "")
+        if engine_works docker && resolve_compose docker; then
+            BACKEND=docker
+        elif engine_works podman && resolve_compose podman; then
+            BACKEND=podman
+        else
+            echo "ERROR: no working container engine found. Install Docker or Podman with a Compose implementation, or pass --backend." >&2
+            exit 1
+        fi
+        ;;
+    *)
+        echo "ERROR: invalid backend '$BACKEND' from --backend or CONTAINER_BACKEND (expected docker or podman)" >&2
+        exit 1
+        ;;
+esac
+
+COMPOSE=("${COMPOSE_CMD[@]}" -f docker-compose.dashboard-dev.yml --env-file .env)
+echo "container backend: ${BACKEND} (${COMPOSE_CMD[*]})"
 
 # Load .env so this script can use the same secrets compose injects.
 set -a
@@ -48,7 +155,7 @@ wait_for() {
 # ---------------------------------------------------------------------------
 # 1. Bring up the stack
 # ---------------------------------------------------------------------------
-log "Starting docker compose dashboard-dev stack"
+log "Starting dashboard-dev stack (${COMPOSE_CMD[*]})"
 "${COMPOSE[@]}" up -d
 
 # ---------------------------------------------------------------------------
