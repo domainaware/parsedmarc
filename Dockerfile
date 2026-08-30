@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 ARG BASE_IMAGE=python:3.13-slim
 ARG USERNAME=parsedmarc
 ARG USER_UID=1000
@@ -23,8 +24,13 @@ ARG USERNAME
 ARG USER_UID
 ARG USER_GID
 
-COPY --from=build /app/dist/*.whl /tmp/dist/
-RUN set -ex; \
+# The wheel is bind-mounted from the `build` stage rather than COPYed in. A COPY
+# commits it to its own layer, and the `rm -rf /tmp/dist` that used to end this
+# RUN could only write a whiteout on top: a layer that is already committed
+# cannot be removed by a later one, so the wheel shipped in every pull. A bind
+# mount is never committed to a layer, so there is nothing left to remove.
+RUN --mount=type=bind,from=build,source=/app/dist,target=/tmp/dist \
+    set -ex; \
     groupadd --gid ${USER_GID} ${USERNAME}; \
     useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}; \
     # Install the wheel with the [all] and [postgresql] extras so the prebuilt
@@ -38,8 +44,7 @@ RUN set -ex; \
     # manylinux wheels for both amd64 and arm64, so this adds no source-build
     # step on either platform.
     whl="$(ls /tmp/dist/*.whl)"; \
-    pip install "${whl}[all,postgresql]"; \
-    rm -rf /tmp/dist
+    pip install "${whl}[all,postgresql]"
 
 USER $USERNAME
 
