@@ -1241,24 +1241,41 @@ def parse_email_address(original_address: str) -> dict[str, str | None]:
     }
 
 
-def get_filename_safe_string(string: str) -> str:
+def get_filename_safe_string(string: str | None) -> str:
     """
-    Converts a string to a string that is safe for a filename
+    Converts a string to a string that is safe to use as a filename
+
+    The returned string is a single path component, never a path: it
+    contains no path separator (``/`` or ``\\``), no drive separator
+    (``:``), and no NUL byte, so it cannot be absolute, drive-relative, or
+    escape the directory it is joined to. It never ends in ``.`` or a
+    space (Windows drops both when creating a file, which would make two
+    distinct subjects collide on one name), and it is never ``.`` or ``..``
+    (both consist only of stripped characters and collapse to ``""``). It
+    is at most 100 characters long. It can be empty -- when the input is
+    empty, consists only of stripped characters, or is truncated to a run
+    of dots and spaces -- so callers that need a non-empty name must supply
+    their own fallback (e.g. ``get_filename_safe_string(subject) or
+    "sample"``). Windows reserved device names such as ``CON`` are not
+    rewritten.
 
     Args:
-        string (str): A string to make safe for a filename
+        string (str | None): A string to make safe for a filename.
+            ``None`` is treated as the literal string ``"None"``.
 
     Returns:
         str: A string safe for a filename
     """
-    invalid_filename_chars = ["\\", "/", ":", '"', "*", "?", "|", "\n", "\r"]
+    invalid_filename_chars = ["\\", "/", ":", '"', "*", "?", "|", "\n", "\r", "\x00"]
     if string is None:
         string = "None"
     for char in invalid_filename_chars:
         string = string.replace(char, "")
-    string = string.rstrip(".")
 
+    # Truncate before stripping trailing dots and spaces, so that a name cut
+    # off just after one cannot end in it.
     string = (string[:100]) if len(string) > 100 else string
+    string = string.rstrip(". ")
 
     return string
 

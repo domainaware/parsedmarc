@@ -348,8 +348,56 @@ class Test(unittest.TestCase):
 
     def testGetFilenameSafeStringNone(self):
         """get_filename_safe_string with None returns 'None'"""
-        result = parsedmarc.utils.get_filename_safe_string(None)  # type: ignore[arg-type]
+        result = parsedmarc.utils.get_filename_safe_string(None)
         self.assertEqual(result, "None")
+
+    def testGetFilenameSafeStringTraversalSequencesCollapseToEmpty(self):
+        """A subject made only of path separators and dots sanitizes to the
+        empty string, so a caller's `or "sample"` fallback takes over rather
+        than a relative path reaching os.path.join()
+
+        Regression test for GHSA-c284-w5m6-jhjm: `../../../` and `/` are the
+        reporter's proof-of-concept subjects."""
+        for traversal in ("../../../", "/", "..", ".", "..\\..\\", "./../"):
+            with self.subTest(traversal=traversal):
+                self.assertEqual(
+                    parsedmarc.utils.get_filename_safe_string(traversal), ""
+                )
+
+    def testGetFilenameSafeStringStripsNullByte(self):
+        """A NUL byte is stripped, so the result cannot make open() raise
+        ValueError: embedded null byte"""
+        result = parsedmarc.utils.get_filename_safe_string("re\x00port")
+        self.assertEqual(result, "report")
+
+    def testGetFilenameSafeStringHasNoPathSeparators(self):
+        """No os.sep or os.altsep survives a mixed-separator subject"""
+        result = parsedmarc.utils.get_filename_safe_string("a/b\\c:d..\\..\\e/../f")
+        self.assertEqual(result, "abcd....e..f")
+        self.assertNotIn(os.sep, result)
+        if os.altsep is not None:
+            self.assertNotIn(os.altsep, result)
+
+    def testGetFilenameSafeStringTruncatedNameHasNoTrailingDot(self):
+        """Truncation happens before trailing dots are stripped, so a name
+        cut off just after a dot does not end in one
+
+        A trailing dot is silently dropped by Windows when the file is
+        created, which would make two distinct subjects collide on one
+        filename."""
+        subject = f"{'a' * 99}.{'b' * 50}"
+        result = parsedmarc.utils.get_filename_safe_string(subject)
+        self.assertEqual(result, "a" * 99)
+        self.assertFalse(result.endswith("."))
+
+    def testGetFilenameSafeStringStripsTrailingSpaces(self):
+        """Trailing spaces are stripped like trailing dots, and mixed runs of
+        both, because Windows drops them when creating the file"""
+        for subject, expected in (("report ", "report"), ("report . .", "report")):
+            with self.subTest(subject=subject):
+                self.assertEqual(
+                    parsedmarc.utils.get_filename_safe_string(subject), expected
+                )
 
     def testGetFilenameSafeStringLong(self):
         """get_filename_safe_string truncates to 100 chars"""

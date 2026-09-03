@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- **Fixed a path traversal in the failure report sample filenames written by `--output`** ([GHSA-c284-w5m6-jhjm](https://github.com/domainaware/parsedmarc/security/advisories/GHSA-c284-w5m6-jhjm), affects 9.0.6 through 11.0.0). `save_output()` named each failure report's message sample after the sample's `Subject` header, falling back to the raw, unsanitized subject whenever sanitizing it produced an empty string. A subject consisting only of path separators and dots — `../../../` or `/` — sanitizes to nothing, so the raw value reached `os.path.join()` and the `.eml` file was written outside the `samples` directory, or at an absolute path. The subject comes from a message that failed authentication, so anyone who can send mail to a monitored mailbox controls it. The filename is now sanitized at write time and falls back to `sample`, and the `filename_safe_subject` key that a library caller may supply alongside the subject is no longer trusted.
+- **Fixed unbounded decompression of report attachments** ([GHSA-43qf-f35w-2x4r](https://github.com/domainaware/parsedmarc/security/advisories/GHSA-43qf-f35w-2x4r), affects all versions through 11.0.0). `extract_report()` inflated gzip and zip attachments with no limit on the output size. The attachment's content is chosen by whoever sent it, and deflate reaches compression ratios of about 1000:1 on degenerate input, so a 100 KB attachment from any sender a monitored mailbox accepts inflated to 100 MB, with a peak of about twice that. Extraction now stops at 100 MiB of decompressed data and raises `ParserError`. The limit is deliberately not configurable: real DMARC aggregate, failure, and SMTP TLS reports are orders of magnitude smaller.
+
 ## 11.0.0
 
 ### Changes
