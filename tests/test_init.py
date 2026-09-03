@@ -7,6 +7,7 @@ extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 
 import base64
 import binascii
+import csv
 import email
 import gzip
 import inspect
@@ -22,7 +23,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
 from glob import glob
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import rmtree
 from tempfile import NamedTemporaryFile, mkdtemp
@@ -961,6 +962,29 @@ class Test(unittest.TestCase):
                     cast(SMTPTLSReport, result["report"])
                 )
             print("Passed!")
+
+    def testSmtpTlsCsvStripsNulFromFields(self):
+        """A NUL character in an SMTP TLS report text field is stripped
+        from CSV output instead of reaching the ``csv`` writer.
+
+        Python 3.10's ``csv`` module raises ``_csv.Error: need to escape,
+        but no escapechar set`` on any field containing NUL
+        (https://github.com/python/cpython/issues/97503, a 3.10 regression
+        fixed in 3.11). This test fails on unfixed code on 3.10 with that
+        error, and on unfixed code on 3.11+ because the NUL passes through
+        to the CSV text uncleaned."""
+        result = parsedmarc.parse_report_file(
+            "samples/smtp_tls/smtp_tls.json", offline=True
+        )
+        report = cast(SMTPTLSReport, result["report"])
+        report["organization_name"] = "Example\x00Inc."
+
+        csv_text = parsedmarc.parsed_smtp_tls_reports_to_csv(report)
+
+        self.assertNotIn("\x00", csv_text)
+        reader = csv.DictReader(StringIO(csv_text))
+        row = next(reader)
+        self.assertEqual(row["organization_name"], "ExampleInc.")
 
     def testAggregateCsvExposesASNColumns(self):
         """The aggregate CSV output should include source_asn, source_as_name,
@@ -2105,6 +2129,33 @@ class Test(unittest.TestCase):
                 rows = parsedmarc.parsed_failure_reports_to_csv_rows(parsed_report)
                 self.assertTrue(len(rows) > 0)
             print("Passed!")
+
+    def testFailureReportCsvStripsNulFromFields(self):
+        """A NUL character in a failure report text field is stripped from
+        CSV output instead of reaching the ``csv`` writer.
+
+        Python 3.10's ``csv`` module raises ``_csv.Error: need to escape,
+        but no escapechar set`` on any field containing NUL
+        (https://github.com/python/cpython/issues/97503, a 3.10 regression
+        fixed in 3.11). This test fails on unfixed code on 3.10 with that
+        error, and on unfixed code on 3.11+ because the NUL passes through
+        to the CSV text uncleaned."""
+        parsed_report = cast(
+            FailureReport,
+            parsedmarc.parse_report_file(
+                "samples/failure/dmarc_ruf_report_linkedin.eml", offline=True
+            )["report"],
+        )
+        parsed_report["parsed_sample"]["subject"] = "re\x00port"
+        parsed_report["user_agent"] = "Agent\x00X"
+
+        csv_text = parsedmarc.parsed_failure_reports_to_csv(parsed_report)
+
+        self.assertNotIn("\x00", csv_text)
+        reader = csv.DictReader(StringIO(csv_text))
+        row = next(reader)
+        self.assertEqual(row["subject"], "report")
+        self.assertEqual(row["user_agent"], "AgentX")
 
 
 class TestExtractReport(unittest.TestCase):

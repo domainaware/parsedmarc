@@ -776,6 +776,20 @@ def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
         raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
+def _csv_safe(value: Any) -> Any:
+    """Strips NUL characters from a string CSV field.
+
+    Python 3.10's ``csv`` writer raises ``_csv.Error: need to escape, but
+    no escapechar set`` on any field containing NUL (CPython issue 97503,
+    fixed in 3.11). Report text fields come from untrusted mail, so the
+    character is dropped here, matching ``get_filename_safe_string``.
+    Non-string values are returned unchanged.
+    """
+    if isinstance(value, str):
+        return value.replace("\x00", "")
+    return value
+
+
 def parsed_smtp_tls_reports_to_csv_rows(
     reports: SMTPTLSReport | list[SMTPTLSReport],
 ) -> list[dict[str, Any]]:
@@ -857,7 +871,7 @@ def parsed_smtp_tls_reports_to_csv(
     rows = parsed_smtp_tls_reports_to_csv_rows(reports)
 
     for row in rows:
-        writer.writerow(row)
+        writer.writerow({key: _csv_safe(value) for key, value in row.items()})
         csv_file_object.flush()
 
     return csv_file_object.getvalue()
@@ -1574,7 +1588,7 @@ def parsed_aggregate_reports_to_csv(
     rows = parsed_aggregate_reports_to_csv_rows(reports)
 
     for row in rows:
-        writer.writerow(row)
+        writer.writerow({key: _csv_safe(value) for key, value in row.items()})
         csv_file_object.flush()
 
     return csv_file_object.getvalue()
@@ -1893,7 +1907,7 @@ def parsed_failure_reports_to_csv(
     for row in rows:
         new_row: dict[str, Any] = {}
         for key in fields:
-            new_row[key] = row.get(key)
+            new_row[key] = _csv_safe(row.get(key))
         csv_writer.writerow(new_row)
 
     return csv_file.getvalue()
