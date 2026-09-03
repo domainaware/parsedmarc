@@ -72,6 +72,7 @@ from parsedmarc.types import (
 from parsedmarc.utils import (
     convert_outlook_msg,
     get_base_domain,
+    get_filename_safe_string,
     get_ip_address_info,
     human_timestamp_to_datetime,
     is_outlook_msg,
@@ -122,6 +123,17 @@ MAGIC_XML_TAG = b"\x3c"  # '<' - XML starting with an element tag (no declaratio
 # JSON; every in-tree caller happened to pre-guard with its own zip/gzip
 # or "{" check, which masked it.
 MAGIC_JSON = b"\x7b"
+
+# Maximum size, in bytes, of the data extracted from one compressed report
+# attachment. Real reports compress at roughly 10:1, but the attachment's
+# content is chosen by whoever sent it, and deflate (used by both gzip and
+# zip) reaches about 1000:1 on degenerate input, so a 100 KB attachment from
+# any sender a monitored mailbox accepts could inflate to 100 MB -- and the
+# decoded str coexists with the decompressed bytes, so the peak is roughly
+# twice that. Deliberately not configurable: real DMARC aggregate, failure,
+# and SMTP TLS reports are orders of magnitude smaller than 100 MB, so no
+# legitimate deployment needs to change it.
+MAX_DECOMPRESSED_REPORT_SIZE = 100 * 1024 * 1024
 
 # Per-message count of consecutive failed saves, keyed on
 # ``(reports_folder, str(message_uid))``. Populated only when
@@ -764,6 +776,20 @@ def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
         raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
+def _csv_safe(value: Any) -> Any:
+    """Strips NUL characters from a string CSV field.
+
+    Python 3.10's ``csv`` writer raises ``_csv.Error: need to escape, but
+    no escapechar set`` on any field containing NUL (CPython issue 97503,
+    fixed in 3.11). Report text fields come from untrusted mail, so the
+    character is dropped here, matching ``get_filename_safe_string``.
+    Non-string values are returned unchanged.
+    """
+    if isinstance(value, str):
+        return value.replace("\x00", "")
+    return value
+
+
 def parsed_smtp_tls_reports_to_csv_rows(
     reports: SMTPTLSReport | list[SMTPTLSReport],
 ) -> list[dict[str, Any]]:
@@ -845,7 +871,7 @@ def parsed_smtp_tls_reports_to_csv(
     rows = parsed_smtp_tls_reports_to_csv_rows(reports)
 
     for row in rows:
-        writer.writerow(row)
+        writer.writerow({key: _csv_safe(value) for key, value in row.items()})
         csv_file_object.flush()
 
     return csv_file_object.getvalue()
@@ -1152,6 +1178,46 @@ def parse_aggregate_report_xml(
         ) from error
 
 
+def _decompress_gzip_bounded(data: bytes) -> bytes:
+    """
+    Decompresses a gzip stream, refusing to produce more than
+    ``MAX_DECOMPRESSED_REPORT_SIZE`` bytes.
+
+    The limit is read from the module global on every call so that it stays
+    a single source of truth (and can be patched in tests).
+
+    Args:
+        data: The gzip stream
+
+    Returns:
+        bytes: The decompressed data
+
+    Raises:
+        ParserError: The decompressed data exceeds the limit, or the gzip
+            stream ends before the decompressor reaches its end marker.
+        zlib.error: The stream is corrupt (bad header, deflate data, or
+            CRC); ``extract_report()`` wraps it in ``ParserError``.
+    """
+    limit = MAX_DECOMPRESSED_REPORT_SIZE
+    decompressor = zlib.decompressobj(zlib.MAX_WBITS | 16)
+    decompressed = decompressor.decompress(data, max_length=limit + 1)
+    if len(decompressed) > limit:
+        raise ParserError(f"Decompressed report exceeds the {limit} byte limit")
+    # ``flush()`` ignores ``max_length``, so it must not run until the
+    # bounded read above has been accepted. It is bounded here: a bounded
+    # ``decompress()`` that returns fewer than ``max_length`` bytes has
+    # either consumed all of its input or hit the end of the stream (after
+    # which any trailing bytes are ``unused_data``, not input), so nothing
+    # unbounded is left for ``flush()`` to produce.
+    decompressed += decompressor.flush()
+    if not decompressor.eof:
+        # A one-shot zlib.decompress() raises on a stream that ends early;
+        # a decompressobj just stops, so the truncation is detected here.
+        raise ParserError("Incomplete or truncated gzip stream")
+
+    return decompressed
+
+
 def extract_report(content: bytes | str | BinaryIO) -> str:
     """
     Extracts report text from zip- or gzip-compressed content, and returns
@@ -1210,9 +1276,13 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
 
         if header[: len(MAGIC_ZIP)] == MAGIC_ZIP:
             _zip = zipfile.ZipFile(file_object)
-            report = _zip.open(_zip.namelist()[0]).read().decode(errors="ignore")
+            limit = MAX_DECOMPRESSED_REPORT_SIZE
+            member = _zip.open(_zip.namelist()[0]).read(limit + 1)
+            if len(member) > limit:
+                raise ParserError(f"Decompressed report exceeds the {limit} byte limit")
+            report = member.decode(errors="ignore")
         elif header[: len(MAGIC_GZIP)] == MAGIC_GZIP:
-            report = zlib.decompress(file_object.read(), zlib.MAX_WBITS | 16).decode(
+            report = _decompress_gzip_bounded(file_object.read()).decode(
                 errors="ignore"
             )
         elif (
@@ -1518,7 +1588,7 @@ def parsed_aggregate_reports_to_csv(
     rows = parsed_aggregate_reports_to_csv_rows(reports)
 
     for row in rows:
-        writer.writerow(row)
+        writer.writerow({key: _csv_safe(value) for key, value in row.items()})
         csv_file_object.flush()
 
     return csv_file_object.getvalue()
@@ -1837,7 +1907,7 @@ def parsed_failure_reports_to_csv(
     for row in rows:
         new_row: dict[str, Any] = {}
         for key in fields:
-            new_row[key] = row.get(key)
+            new_row[key] = _csv_safe(row.get(key))
         csv_writer.writerow(new_row)
 
     return csv_file.getvalue()
@@ -3382,6 +3452,15 @@ def save_output(
     """
     Save report data in the given directory
 
+    The message sample of each failure report is written to a ``samples``
+    subdirectory, named after the sample's own ``subject`` header run
+    through :func:`parsedmarc.utils.get_filename_safe_string`, falling back
+    to ``sample`` when sanitizing leaves nothing. Since a subject arrives
+    from an untrusted sender, sanitizing happens here, at write time; the
+    ``filename_safe_subject`` key a caller may supply alongside it is not
+    trusted and not used. Names that collide get a ``(1)``, ``(2)``, …
+    suffix.
+
     Args:
         results: Parsing results
         output_directory (str): The path to the directory to save in
@@ -3438,11 +3517,7 @@ def save_output(
         sample = failure_report["sample"]
         message_count = 0
         parsed_sample = failure_report["parsed_sample"]
-        subject = (
-            parsed_sample.get("filename_safe_subject")
-            or parsed_sample.get("subject")
-            or "sample"
-        )
+        subject = get_filename_safe_string(parsed_sample.get("subject")) or "sample"
         filename = subject
 
         while filename in sample_filenames:
