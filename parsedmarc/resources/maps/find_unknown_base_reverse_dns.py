@@ -168,6 +168,7 @@ def _main():
     def load_list(file_path, list_var):
         if not os.path.exists(file_path):
             print(f"Error: {file_path} does not exist")
+            sys.exit(1)
         print(f"Loading {file_path}")
         with open(file_path) as f:
             for line in f.readlines():
@@ -188,6 +189,7 @@ def _main():
     print(f"Indexed {len(as_name_index)} as_names from the MMDB")
     if not os.path.exists(base_reverse_dns_map_file_path):
         print(f"Error: {base_reverse_dns_map_file_path} does not exist")
+        sys.exit(1)
     print(f"Loading {base_reverse_dns_map_file_path}")
     with open(base_reverse_dns_map_file_path) as f:
         for row in csv.DictReader(f):
@@ -201,8 +203,8 @@ def _main():
                 known_domains.append(domain)
             if domain in known_unknown_domains and known_domains:
                 print(
-                    f"Error:{domain} is in {known_unknown_list_file_path} and \
-                        {base_reverse_dns_map_file_path}"
+                    f"Error: {domain} is in {known_unknown_list_file_path} "
+                    f"and {base_reverse_dns_map_file_path}"
                 )
                 sys.exit(1)
     if not os.path.exists(args.input):
