@@ -4,7 +4,14 @@ These scripts are maintainer-only batch tooling — they do not ship in the
 wheel — but they still need regression coverage because they enforce the
 privacy and integrity rules for the reverse-DNS map data files."""
 
+import contextlib
+import io
+import os
+import shutil
+import sys
+import tempfile
 import unittest
+from unittest import mock
 
 
 class TestMapScriptsIPDetection(unittest.TestCase):
@@ -51,6 +58,116 @@ class TestMapScriptsIPDetection(unittest.TestCase):
 
         ov = [".cprapid.com"]
         self.assertEqual(cdi._apply_psl_override("example.com", ov), "example.com")
+
+
+class TestFindUnknownBaseReverseDNS(unittest.TestCase):
+    """Missing-file error paths in find_unknown_base_reverse_dns.py's
+    ``_main()``.
+
+    Both sites below printed the intended ``"Error: ... does not exist"``
+    message but had no ``sys.exit(1)`` after it, so execution fell through
+    into the next ``open()`` call on the same missing path and raised an
+    unhandled ``FileNotFoundError`` instead of the clean, intended exit.
+    """
+
+    def test_missing_known_unknown_list_exits_cleanly(self):
+        """A missing known_unknown_base_reverse_dns.txt must print the
+        intended error message and exit(1), not fall through into an
+        unhandled FileNotFoundError from the subsequent open() call.
+
+        Regression test: the nested ``load_list()`` helper in ``_main()``
+        printed ``f"Error: {file_path} does not exist"`` but had no
+        ``sys.exit(1)`` after it, so execution fell through into
+        ``print(f"Loading {file_path}")`` and then ``open(file_path)`` on
+        the same missing path, raising an unhandled ``FileNotFoundError``
+        instead of the clean, intended error exit. The sibling
+        duplicate-entry check a few lines below (``domain in list_var``)
+        already did print-then-``sys.exit(1)``; this verifies the
+        missing-file check now matches that style. Capturing stdout and
+        asserting on the exact message (rather than only the exit code)
+        pins the exit to this specific site, not just any ``sys.exit(1)``
+        in the function.
+        """
+        import parsedmarc.resources.maps.find_unknown_base_reverse_dns as fu
+
+        old_cwd = os.getcwd()
+        tmp_dir = tempfile.mkdtemp()
+        # Register rmtree first so, under LIFO cleanup ordering, chdir back
+        # to old_cwd always runs before rmtree removes tmp_dir -- and, since
+        # unittest runs each addCleanup independently, rmtree still runs
+        # even if os.chdir were to raise.
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        self.addCleanup(os.chdir, old_cwd)
+        os.chdir(tmp_dir)
+
+        stdout = io.StringIO()
+        with mock.patch.object(sys, "argv", ["find_unknown_base_reverse_dns.py"]):
+            with contextlib.redirect_stdout(stdout):
+                with self.assertRaises(SystemExit) as cm:
+                    fu._main()
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn(
+            "Error: known_unknown_base_reverse_dns.txt does not exist",
+            stdout.getvalue(),
+        )
+
+    def test_missing_base_reverse_dns_map_exits_cleanly(self):
+        """A missing base_reverse_dns_map.csv must print the intended error
+        message and exit(1), not fall through into an unhandled
+        FileNotFoundError from the subsequent open() call.
+
+        Regression test for the second site fixed alongside the
+        ``load_list()`` one above: ``_main()`` printed
+        ``f"Error: {base_reverse_dns_map_file_path} does not exist"`` but
+        had no ``sys.exit(1)`` after it. Reaching this check requires
+        getting past the MMDB load first. ``_load_as_name_index`` does its
+        external work entirely through ``maxminddb.open_database()`` --
+        the actual SDK boundary per AGENTS.md's "mock at SDK boundaries"
+        rule -- so that call is mocked to a context manager over an empty
+        iterable instead of loading the real, ~23MB bundled MMDB or
+        mocking an internal helper of this codebase.
+        """
+        import parsedmarc.resources.maps.find_unknown_base_reverse_dns as fu
+
+        old_cwd = os.getcwd()
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        self.addCleanup(os.chdir, old_cwd)
+
+        maps_dir = os.path.join(tmp_dir, "maps")
+        ipinfo_dir = os.path.join(tmp_dir, "ipinfo")
+        os.makedirs(maps_dir)
+        os.makedirs(ipinfo_dir)
+        # Both lists are loaded before the MMDB check and must exist, but
+        # their content isn't exercised by this test.
+        open(os.path.join(maps_dir, "known_unknown_base_reverse_dns.txt"), "w").close()
+        open(os.path.join(maps_dir, "psl_overrides.txt"), "w").close()
+        # A placeholder for the MMDB: only os.path.exists() touches this
+        # path directly, since maxminddb.open_database() itself is mocked
+        # below and never actually reads the file.
+        open(os.path.join(ipinfo_dir, "ipinfo_lite.mmdb"), "w").close()
+        # base_reverse_dns_map.csv is deliberately NOT created -- that's
+        # the missing-file condition under test.
+
+        os.chdir(maps_dir)
+
+        class _EmptyMMDBReader:
+            def __enter__(self):
+                return iter(())
+
+            def __exit__(self, *exc_info):
+                return False
+
+        stdout = io.StringIO()
+        with mock.patch.object(sys, "argv", ["find_unknown_base_reverse_dns.py"]):
+            with mock.patch("maxminddb.open_database", return_value=_EmptyMMDBReader()):
+                with contextlib.redirect_stdout(stdout):
+                    with self.assertRaises(SystemExit) as cm:
+                        fu._main()
+        self.assertEqual(cm.exception.code, 1)
+        self.assertIn(
+            "Error: base_reverse_dns_map.csv does not exist", stdout.getvalue()
+        )
 
 
 class TestDetectPSLOverrides(unittest.TestCase):
