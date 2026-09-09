@@ -6,6 +6,10 @@
 
 - **The prebuilt Docker image (`ghcr.io/domainaware/parsedmarc`) is roughly 40% smaller to pull** ([#893](https://github.com/domainaware/parsedmarc/pull/893)). The runtime stage copied the built wheel out of the build stage and deleted it again at the end of the next `RUN`, but a `RUN` can only write a whiteout over a layer an earlier instruction already committed: the wheel shipped in every published image and every `docker pull` downloaded it (10,713,473 bytes of the 11.0.0 image, on both architectures). The wheel is now bind-mounted from the build stage instead, and a bind mount is never committed to a layer. `pip install` also runs with `--no-cache-dir`, which drops a further ~99 MB of pip's download cache that the image had been carrying in the same layer as `site-packages`. Measured on linux/amd64: 272,138,724 compressed bytes across six layers before, 163,757,439 across five after.
 
+### Bug fixes
+
+- **`parse_report_file()` now closes the file handle it opens itself for a path input if reading it raises.** When `input_` is a path, the function opened the file, read it, and closed it with no exception handling in between; an exception raised by `read()` (e.g. an `OSError` from the underlying storage) skipped the close, so the descriptor was left to be released only when Python's garbage collector eventually finalized the object — CPython's `io.IOBase.__del__` closes an unclosed file on finalization (<https://docs.python.org/3/library/io.html>) — rather than being closed deterministically. This is the pattern CodeQL's `py/file-not-closed` query flags, found in a local code-quality scan. The path branch now opens the file with a `with` block, so the handle is closed on both the success and exception paths. A file-like object or bytes buffer supplied by the caller is unaffected: as before, it is closed only after a successful read, and left open if `read()` raises.
+
 ## 11.0.1
 
 ### Security

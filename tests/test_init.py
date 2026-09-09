@@ -2754,6 +2754,83 @@ class TestParseReportFile(unittest.TestCase):
         finally:
             logger.setLevel(previous)
 
+    def testParseReportFileClosesHandleOnReadError(self):
+        """A file opened internally by parse_report_file is closed even
+        when reading it raises (the pattern CodeQL's py/file-not-closed
+        query flags, found in a local code-quality scan).
+
+        parse_report_file's path branch does `open(file_path, "rb")` and
+        then `.read()`; before the fix, `.close()` sat on the line after
+        `.read()` with no try/finally (and no `with`), so a read()-time
+        exception skipped close() and leaked the descriptor. Patch
+        builtins.open (the SDK boundary) to return a handle whose read()
+        raises, and assert the handle was still closed. The fake handle
+        implements the context-manager protocol itself (mirroring a real
+        file object's __exit__ calling close()), rather than relying on
+        MagicMock's default __enter__/__exit__, which would return a
+        different mock object from __enter__ and never call close().
+        """
+
+        class _RaisingHandle:
+            def __init__(self):
+                self.closed = False
+
+            def read(self):
+                raise OSError("boom")
+
+            def close(self):
+                self.closed = True
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                self.close()
+                return False
+
+        fake_handle = _RaisingHandle()
+
+        with patch("builtins.open", return_value=fake_handle) as mock_open:
+            with self.assertRaises(OSError):
+                parsedmarc.parse_report_file("some/path.xml", offline=True)
+
+        mock_open.assert_called_once_with("some/path.xml", "rb")
+        self.assertTrue(fake_handle.closed)
+
+    def testParseReportFileLeavesCallerHandleOpenOnReadError(self):
+        """A caller-supplied file-like object is left open (not closed)
+        when reading it raises, preserving parse_report_file's
+        long-standing contract for handles it did not open itself.
+
+        Only a path input (opened internally by parse_report_file) is
+        closed on the exception path; a handle the caller passed in is
+        closed on success only, exactly as before the fix for the
+        internally-opened-path leak.
+
+        A plain class is used instead of MagicMock because MagicMock
+        auto-implements ``__fspath__`` (supported since Python 3.8's
+        unittest.mock), which would make ``isinstance(fake, os.PathLike)``
+        true and route the object through the path branch instead of the
+        caller-supplied-object branch this test targets.
+        """
+
+        class _RaisingCallerHandle:
+            def __init__(self):
+                self.close_called = False
+
+            def read(self):
+                raise OSError("boom")
+
+            def close(self):
+                self.close_called = True
+
+        fake_handle = _RaisingCallerHandle()
+
+        with self.assertRaises(OSError):
+            parsedmarc.parse_report_file(cast(BinaryIO, fake_handle), offline=True)
+
+        self.assertFalse(fake_handle.close_called)
+
 
 class TestParseReportEmail(unittest.TestCase):
     """Tests for parse_report_email edge cases"""
@@ -3699,7 +3776,11 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self._inbox = mailbox.Maildir(self._maildir, create=True)
 
     def _deliver(self, source):
-        raw = open(source, "rb").read() if isinstance(source, str) else source
+        if isinstance(source, str):
+            with open(source, "rb") as f:
+                raw = f.read()
+        else:
+            raw = source
         self._inbox.add(mailbox.MaildirMessage(raw))
         self._inbox.flush()
 
