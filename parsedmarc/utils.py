@@ -1407,35 +1407,29 @@ def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -
     # single representation, matching how "to"/"cc"/"bcc" are handled.
     if "reply-to" in parsed_email:
         parsed_email["reply_to"] = list(
-            map(lambda x: parse_email_address(x), parsed_email.pop("reply-to"))
+            map(parse_email_address, parsed_email.pop("reply-to"))
         )
     else:
         parsed_email["reply_to"] = []
 
     if "to" in parsed_email:
-        parsed_email["to"] = list(
-            map(lambda x: parse_email_address(x), parsed_email["to"])
-        )
+        parsed_email["to"] = list(map(parse_email_address, parsed_email["to"]))
     else:
         parsed_email["to"] = []
 
     if "cc" in parsed_email:
-        parsed_email["cc"] = list(
-            map(lambda x: parse_email_address(x), parsed_email["cc"])
-        )
+        parsed_email["cc"] = list(map(parse_email_address, parsed_email["cc"]))
     else:
         parsed_email["cc"] = []
 
     if "bcc" in parsed_email:
-        parsed_email["bcc"] = list(
-            map(lambda x: parse_email_address(x), parsed_email["bcc"])
-        )
+        parsed_email["bcc"] = list(map(parse_email_address, parsed_email["bcc"]))
     else:
         parsed_email["bcc"] = []
 
     if "delivered-to" in parsed_email:
         parsed_email["delivered_to"] = list(
-            map(lambda x: parse_email_address(x), parsed_email.pop("delivered-to"))
+            map(parse_email_address, parsed_email.pop("delivered-to"))
         )
 
     if "attachments" not in parsed_email:

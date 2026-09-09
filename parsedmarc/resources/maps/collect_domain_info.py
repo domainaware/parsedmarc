@@ -611,6 +611,9 @@ def _extract_metadata(domain: str, body: bytes, encoding: str) -> dict:
     try:
         parser.feed(text)
     except Exception:
+        # Defensive guard against malformed markup partway through a page;
+        # keep whatever title/description/body text it already extracted
+        # before the failure rather than losing the whole page's data.
         pass
     out["title"] = parser.title
     out["description"] = parser.description

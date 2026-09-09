@@ -1791,7 +1791,7 @@ class Test(unittest.TestCase):
         )
         report = cast(AggregateReport, result["report"])
         rows = parsedmarc.parsed_aggregate_reports_to_csv_rows(report)
-        self.assertTrue(len(rows) > 0)
+        self.assertGreater(len(rows), 0)
         row = rows[0]
         self.assertIn("np", row)
         self.assertIn("testing", row)
@@ -1986,7 +1986,7 @@ class Test(unittest.TestCase):
         )
         parsed = parsedmarc.parse_smtp_tls_report_json(report_json)
         rows = parsedmarc.parsed_smtp_tls_reports_to_csv_rows(parsed)
-        self.assertTrue(len(rows) >= 2)
+        self.assertGreaterEqual(len(rows), 2)
         self.assertEqual(rows[0]["organization_name"], "Org")
         self.assertEqual(rows[0]["policy_domain"], "example.com")
 
@@ -2000,7 +2000,7 @@ class Test(unittest.TestCase):
         report = cast(AggregateReport, result["report"])
         # Pass as a list
         rows = parsedmarc.parsed_aggregate_reports_to_csv_rows([report])
-        self.assertTrue(len(rows) > 0)
+        self.assertGreater(len(rows), 0)
         # Verify non-str/int/bool values are cleaned
         for row in rows:
             for v in row.values():
@@ -2051,7 +2051,7 @@ class Test(unittest.TestCase):
         report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
         self.assertTrue(report["report_metadata"]["timespan_requires_normalization"])
         # Records should be split across days
-        self.assertTrue(len(report["records"]) > 1)
+        self.assertGreater(len(report["records"]), 1)
         total = sum(r["count"] for r in report["records"])
         self.assertEqual(total, 90)
         for r in report["records"]:
@@ -2127,7 +2127,7 @@ class Test(unittest.TestCase):
                 self.assertIsNotNone(csv_output)
                 self.assertIn(",", csv_output)
                 rows = parsedmarc.parsed_failure_reports_to_csv_rows(parsed_report)
-                self.assertTrue(len(rows) > 0)
+                self.assertGreater(len(rows), 0)
             print("Passed!")
 
     def testFailureReportCsvStripsNulFromFields(self):
@@ -2581,7 +2581,7 @@ class TestPolicyPublishedEdgeCases(unittest.TestCase):
 </feedback>"""
         report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
         # At least the valid record should be parsed
-        self.assertTrue(len(report["records"]) >= 1)
+        self.assertGreaterEqual(len(report["records"]), 1)
 
 
 class TestParseReportFile(unittest.TestCase):
@@ -3163,7 +3163,7 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
             path = f.name
         try:
             results = parsedmarc.get_dmarc_reports_from_mbox(path, offline=True)
-            self.assertTrue(len(results["aggregate_reports"]) >= 1)
+            self.assertGreaterEqual(len(results["aggregate_reports"]), 1)
         finally:
             os.remove(path)
 
