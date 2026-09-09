@@ -520,7 +520,7 @@ The full set of configuration options is:
 
     `ClientSecret` (app-only):
     ```ini
-    [msgraph]
+  - `password` - str: The Kafka password
     auth_method = ClientSecret
     client_id = ...
     tenant_id = ...
