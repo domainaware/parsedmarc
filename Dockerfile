@@ -23,8 +23,12 @@ ARG USERNAME
 ARG USER_UID
 ARG USER_GID
 
-COPY --from=build /app/dist/*.whl /tmp/dist/
-RUN set -ex; \
+# The wheel is bind-mounted from the `build` stage rather than copied in with
+# COPY: a COPY commits the wheel to its own layer, which a later `rm` can only
+# write a whiteout over, so the wheel would ship in every pull. A bind mount is
+# never committed to a layer.
+RUN --mount=type=bind,from=build,source=/app/dist,target=/tmp/dist \
+    set -ex; \
     groupadd --gid ${USER_GID} ${USERNAME}; \
     useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME}; \
     # Install the wheel with the [all] and [postgresql] extras so the prebuilt
@@ -38,8 +42,7 @@ RUN set -ex; \
     # manylinux wheels for both amd64 and arm64, so this adds no source-build
     # step on either platform.
     whl="$(ls /tmp/dist/*.whl)"; \
-    pip install "${whl}[all,postgresql]"; \
-    rm -rf /tmp/dist
+    pip install --no-cache-dir "${whl}[all,postgresql]"
 
 USER $USERNAME
 
