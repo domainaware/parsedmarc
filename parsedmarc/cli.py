@@ -231,7 +231,7 @@ def _log_msgraph_failure(
     fetch, send, or watch failure, identifying the mailbox/tenant/auth
     method and the Graph request-id/client-request-id when available.
     The full traceback is preserved at --debug via a follow-up DEBUG
-    record. Never calls exit() - the call site keeps its own exit(1)."""
+    record. Never calls sys.exit() - the call site keeps its own sys.exit(1)."""
     if isinstance(error, APIError):
         detail = getattr(error, "primary_message", None) or error.message or str(error)
         detail = " ".join(str(detail).split())
@@ -2766,7 +2766,7 @@ def _main():
             index_prefix_domain_map = _parse_config(config, opts)
         except ConfigurationError as e:
             logger.critical(str(e))
-            exit(-1)
+            sys.exit(-1)
 
     logger.setLevel(logging.ERROR)
 
@@ -2798,7 +2798,7 @@ def _main():
         and len(opts.file_path) == 0
     ):
         logger.error("You must supply input files or a mailbox connection")
-        exit(1)
+        sys.exit(1)
 
     logger.info("Starting parsedmarc")
 
@@ -2814,7 +2814,7 @@ def _main():
             configure_ipinfo_api(opts.ipinfo_api_token)
         except InvalidIPinfoAPIKey as e:
             logger.critical(str(e))
-            exit(1)
+            sys.exit(1)
 
     load_psl_overrides(
         always_use_local_file=opts.always_use_local_files,
@@ -2835,7 +2835,7 @@ def _main():
             break
         except ConfigurationError as e:
             logger.critical(str(e))
-            exit(1)
+            sys.exit(1)
         except Exception as error_:
             if attempt < max_retries:
                 logger.warning(
@@ -2849,10 +2849,10 @@ def _main():
                 retry_delay *= 2
             else:
                 logger.error(f"Output client error: {error_}")
-                exit(1)
+                sys.exit(1)
 
     # Always close output clients on the way out (normal return,
-    # exit(N), uncaught exception, or SystemExit from a signal-driven
+    # sys.exit(N), uncaught exception, or SystemExit from a signal-driven
     # shutdown). atexit does NOT fire on os._exit(130) — that's
     # intentional for the SIGINT double-tap. The lambda closes whatever
     # `clients` currently points at, so a SIGHUP reload that swaps the
@@ -2992,7 +2992,7 @@ def _main():
                 logger.error(
                     "IMAP user and password must be specified if host is specified"
                 )
-                exit(1)
+                sys.exit(1)
 
             ssl = True
             verify = True
@@ -3022,7 +3022,7 @@ def _main():
 
         except Exception:
             logger.exception("IMAP Error")
-            exit(1)
+            sys.exit(1)
 
     if opts.graph_client_id:
         try:
@@ -3088,10 +3088,10 @@ def _main():
                 tenant_id=opts.graph_tenant_id,
                 auth_method=opts.graph_auth_method,
             )
-            exit(1)
+            sys.exit(1)
         except Exception:
             logger.exception("MS Graph Error")
-            exit(1)
+            sys.exit(1)
 
     if opts.gmail_api_credentials_file:
         # Any effective delete flag needs the deletion scope: the per-report-type
@@ -3135,7 +3135,7 @@ def _main():
 
         except Exception:
             logger.exception("Gmail API Error")
-            exit(1)
+            sys.exit(1)
 
     if opts.maildir_path:
         try:
@@ -3145,7 +3145,7 @@ def _main():
             )
         except Exception:
             logger.exception("Maildir Error")
-            exit(1)
+            sys.exit(1)
 
     if mailbox_connection:
         mailbox_batch_size_value = (
@@ -3219,10 +3219,10 @@ def _main():
                     tenant_id=opts.graph_tenant_id,
                     auth_method=opts.graph_auth_method,
                 )
-            exit(1)
+            sys.exit(1)
         except Exception:
             logger.exception("Mailbox Error")
-            exit(1)
+            sys.exit(1)
 
     # Filtered here rather than relying on process_reports()'s in-place
     # filtering: the dicts it filters are the file snapshot and the mailbox
@@ -3286,7 +3286,7 @@ def _main():
             )
         except Exception:
             logger.exception("Failed to email results")
-            exit(1)
+            sys.exit(1)
     elif msgraph_connection is not None and smtp_to_value:
         try:
             email_results_via_msgraph(
@@ -3305,10 +3305,10 @@ def _main():
                 tenant_id=opts.graph_tenant_id,
                 auth_method=opts.graph_auth_method,
             )
-            exit(1)
+            sys.exit(1)
         except Exception:
             logger.exception("Failed to email results via Microsoft Graph")
-            exit(1)
+            sys.exit(1)
 
     if mailbox_connection and opts.mailbox_watch:
         logger.info("Watching for email - Ctrl-C once to quit, twice to force")
@@ -3346,10 +3346,10 @@ def _main():
                 )
             except FileExistsError as error:
                 logger.error(f"{error.__str__()}")
-                exit(1)
+                sys.exit(1)
             except ParserError as error:
                 logger.error(error.__str__())
-                exit(1)
+                sys.exit(1)
             except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
                 if msgraph_connection is None:
                     logger.exception("Mailbox Error")
@@ -3361,7 +3361,7 @@ def _main():
                         tenant_id=opts.graph_tenant_id,
                         auth_method=opts.graph_auth_method,
                     )
-                exit(1)
+                sys.exit(1)
 
             # Prioritize shutdown over reload if both flags are set (e.g.
             # SIGHUP followed by SIGTERM). atexit closes output clients.
@@ -3426,7 +3426,7 @@ def _main():
                     )
                 except InvalidIPinfoAPIKey as e:
                     logger.critical(str(e))
-                    exit(1)
+                    sys.exit(1)
 
                 for k, v in vars(new_opts).items():
                     setattr(opts, k, v)
@@ -3492,7 +3492,7 @@ def _main():
 
     # Close output clients on the success path (one-shot or graceful
     # watch-loop exit). atexit-registered above is the safety net for
-    # exit(1) / uncaught-exception paths.
+    # sys.exit(1) / uncaught-exception paths.
     _close_output_clients(clients)
 
 

@@ -941,11 +941,6 @@ def save_aggregate_report_to_elasticsearch(
     begin_date = human_timestamp_to_datetime(metadata["begin_date"], to_utc=True)
     end_date = human_timestamp_to_datetime(metadata["end_date"], to_utc=True)
 
-    if monthly_indexes:
-        index_date = begin_date.strftime("%Y-%m")
-    else:
-        index_date = begin_date.strftime("%Y-%m-%d")
-
     org_name_query = Q(dict(match_phrase=dict(org_name=org_name)))  # type: ignore
     report_id_query = Q(dict(match_phrase=dict(report_id=report_id)))  # pyright: ignore[reportArgumentType]
     domain_query = Q(dict(match_phrase={"published_policy.domain": domain}))  # pyright: ignore[reportArgumentType]
