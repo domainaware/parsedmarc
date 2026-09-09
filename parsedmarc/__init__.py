@@ -2319,14 +2319,20 @@ def parse_report_file(
     if isinstance(input_, (str, os.PathLike)):
         file_path = os.fspath(input_)
         logger.debug(f"Parsing {file_path}")
-        file_object = open(file_path, "rb")
-    elif isinstance(input_, (bytes, bytearray, memoryview)):
-        file_object = BytesIO(bytes(input_))
+        # A path is a handle we opened ourselves, so it must be closed on
+        # both the success and exception paths.
+        with open(file_path, "rb") as file_object:
+            content = file_object.read()
     else:
-        file_object = input_
-
-    content = file_object.read()
-    file_object.close()
+        if isinstance(input_, (bytes, bytearray, memoryview)):
+            file_object = BytesIO(bytes(input_))
+        else:
+            # A caller-supplied file-like object is only closed on success,
+            # matching long-standing behavior; it is left open if read()
+            # raises.
+            file_object = input_
+        content = file_object.read()
+        file_object.close()
     if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
         content = extract_report(content)
 

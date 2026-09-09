@@ -11,6 +11,10 @@
 
 - `find_unknown_base_reverse_dns.py`'s missing-file checks for `base_reverse_dns_map.csv` and the `known_unknown`/PSL-override lists printed a clean error message but fell through into an unhandled `FileNotFoundError` traceback instead of exiting.
 
+### Bug fixes
+
+- **`parse_report_file()` now closes the file handle it opens itself for a path input if reading it raises.** When `input_` is a path, the function opened the file, read it, and closed it with no exception handling in between; an exception raised by `read()` (e.g. an `OSError` from the underlying storage) skipped the close, so the descriptor was left to be released only when Python's garbage collector eventually finalized the object — CPython's `io.IOBase.__del__` closes an unclosed file on finalization (<https://docs.python.org/3/library/io.html>) — rather than being closed deterministically. This is the pattern CodeQL's `py/file-not-closed` query flags, found in a local code-quality scan. The path branch now opens the file with a `with` block, so the handle is closed on both the success and exception paths. A file-like object or bytes buffer supplied by the caller is unaffected: as before, it is closed only after a successful read, and left open if `read()` raises.
+
 ## 11.0.1
 
 ### Security
