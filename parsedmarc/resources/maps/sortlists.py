@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import csv
 import re
+import sys
 from pathlib import Path
 from collections.abc import Mapping, Iterable, Collection
 
@@ -243,23 +244,23 @@ def _main():
 
     if not os.path.exists(readme_file):
         print(f"Error: {readme_file} does not exist")
-        exit(1)
+        sys.exit(1)
     try:
         types = normalize_types_in_readme(readme_file)
     except ValueError as e:
         print(f"Error: {e}")
-        exit(1)
+        sys.exit(1)
 
     map_allowed_values = {"type": types}
 
     for list_file in list_files:
         if not os.path.exists(list_file):
             print(f"Error: {list_file} does not exist")
-            exit(1)
+            sys.exit(1)
         sort_list_file(list_file)
     if not os.path.exists(map_file):
         print(f"Error: {map_file} does not exist")
-        exit(1)
+        sys.exit(1)
     try:
         sort_csv(
             map_file,

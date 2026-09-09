@@ -174,7 +174,7 @@ def _main():
                 domain = line.lower().strip()
                 if domain in list_var:
                     print(f"Error: {domain} is in {file_path} multiple times")
-                    exit(1)
+                    sys.exit(1)
                 elif domain != "":
                     list_var.append(domain)
 
@@ -182,7 +182,7 @@ def _main():
     load_list(psl_overrides_file_path, psl_overrides)
     if not os.path.exists(mmdb_file_path):
         print(f"Error: {mmdb_file_path} does not exist")
-        exit(1)
+        sys.exit(1)
     print(f"Loading {mmdb_file_path}")
     as_name_index = _load_as_name_index(mmdb_file_path)
     print(f"Indexed {len(as_name_index)} as_names from the MMDB")
@@ -196,7 +196,7 @@ def _main():
                 print(
                     f"Error: {domain} is in {base_reverse_dns_map_file_path} multiple times"
                 )
-                exit()
+                sys.exit(1)
             else:
                 known_domains.append(domain)
             if domain in known_unknown_domains and known_domains:
@@ -204,10 +204,10 @@ def _main():
                     f"Error:{domain} is in {known_unknown_list_file_path} and \
                         {base_reverse_dns_map_file_path}"
                 )
-                exit(1)
+                sys.exit(1)
     if not os.path.exists(args.input):
         print(f"Error: {args.input} does not exist")
-        exit(1)
+        sys.exit(1)
     for row in _read_input_rows(args.input):
         domain = row["source_name"].lower().strip()
         if domain == "":
