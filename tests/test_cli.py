@@ -24,6 +24,7 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 from azure.core.exceptions import ClientAuthenticationError
+from elasticsearch import Elasticsearch
 from kiota_abstractions.api_error import APIError
 from msgraph.generated.models.o_data_errors.inner_error import InnerError
 from msgraph.generated.models.o_data_errors.main_error import MainError
@@ -4171,6 +4172,185 @@ watch = true
 
         kafka_client.close.assert_called_once()
         es_client.close.assert_called_once()
+
+
+class _FakeSearchConnection:
+    """Stand-in for an Elasticsearch/OpenSearch client held in the real
+    connection registry. Records close() calls and nothing else, so no
+    network is touched while the registry itself stays real -- it is the
+    SDK boundary these handles are written against."""
+
+    def __init__(self, name: str):
+        self.name = name
+        self.close_count = 0
+
+    def __repr__(self):
+        return f"<fake {self.name} connection, closed {self.close_count}x>"
+
+    def close(self):
+        self.close_count += 1
+
+
+class _RaisingSearchConnection(_FakeSearchConnection):
+    """A client whose close() fails, e.g. because the transport is already
+    broken. The handles treat closing as best-effort."""
+
+    def close(self):
+        super().close()
+        raise RuntimeError("transport already closed")
+
+
+class TestSearchBackendHandles(unittest.TestCase):
+    """_ElasticsearchHandle / _OpenSearchHandle must close the client they
+    were built for, not whatever holds the ``default`` alias at close time.
+
+    A SIGHUP reload calls _init_output_clients -- which re-registers the
+    ``default`` alias with the replacement client -- before it calls
+    _close_output_clients on the old clients (the order is deliberate, so a
+    broken new config leaves the old clients running). A handle that
+    re-resolved the alias when closing therefore closed the *new* client and
+    then dropped the alias entirely: both SDKs' Connections.remove_connection()
+    deletes the alias from ``_conns`` and ``_kwargs`` outright, so every later
+    save raised KeyError("There is no connection with alias 'default'.") and
+    the original client was never closed.
+    """
+
+    def _isolate_default_alias(self, connections):
+        """Restore whatever the process-wide registry held under the
+        ``default`` alias, so these tests cannot leak into other tests
+        regardless of ordering."""
+        try:
+            previous = connections.get_connection("default")
+        except KeyError:
+            previous = None
+
+        def restore():
+            try:
+                connections.remove_connection("default")
+            except KeyError:
+                # Already gone: the test under this cleanup removed the
+                # alias itself, which is the state we are restoring to.
+                pass
+            if previous is not None:
+                connections.add_connection("default", previous)
+
+        self.addCleanup(restore)
+
+    def testElasticsearchHandleClosesItsOwnConnectionAfterReload(self):
+        connections = parsedmarc.elastic.connections
+        self._isolate_default_alias(connections)
+        old_conn = _FakeSearchConnection("old")
+        new_conn = _FakeSearchConnection("new")
+
+        connections.add_connection("default", cast(Elasticsearch, old_conn))
+        handle = parsedmarc.cli._ElasticsearchHandle(
+            connections.get_connection("default")
+        )
+        # What a reload does before the old handle is closed: the new
+        # client takes over the alias.
+        connections.add_connection("default", cast(Elasticsearch, new_conn))
+
+        handle.close()
+
+        self.assertEqual(old_conn.close_count, 1)
+        self.assertEqual(new_conn.close_count, 0)
+        self.assertIs(connections.get_connection("default"), new_conn)
+
+    def testElasticsearchHandleReleasesAliasOnShutdown(self):
+        """The normal teardown path still frees the alias it owns."""
+        connections = parsedmarc.elastic.connections
+        self._isolate_default_alias(connections)
+        conn = _FakeSearchConnection("only")
+
+        connections.add_connection("default", cast(Elasticsearch, conn))
+        handle = parsedmarc.cli._ElasticsearchHandle(
+            connections.get_connection("default")
+        )
+
+        handle.close()
+
+        self.assertEqual(conn.close_count, 1)
+        with self.assertRaises(KeyError):
+            connections.get_connection("default")
+
+    def testElasticsearchHandleCloseIsBestEffort(self):
+        """A client whose close() raises must not keep the handle from
+        releasing its alias. A second close() still calls the client's
+        close() again -- which raises and is swallowed -- even though the
+        alias-release step is now a no-op, since get_connection() raises
+        KeyError with the alias already gone."""
+        connections = parsedmarc.elastic.connections
+        self._isolate_default_alias(connections)
+        conn = _RaisingSearchConnection("raiser")
+
+        connections.add_connection("default", cast(Elasticsearch, conn))
+        handle = parsedmarc.cli._ElasticsearchHandle(
+            connections.get_connection("default")
+        )
+
+        handle.close()
+
+        self.assertEqual(conn.close_count, 1)
+        with self.assertRaises(KeyError):
+            connections.get_connection("default")
+
+        handle.close()
+
+        self.assertEqual(conn.close_count, 2)
+
+    def testOpenSearchHandleClosesItsOwnConnectionAfterReload(self):
+        connections = opensearch_module.connections
+        self._isolate_default_alias(connections)
+        old_conn = _FakeSearchConnection("old")
+        new_conn = _FakeSearchConnection("new")
+
+        connections.add_connection("default", old_conn)
+        handle = parsedmarc.cli._OpenSearchHandle(connections.get_connection("default"))
+        connections.add_connection("default", new_conn)
+
+        handle.close()
+
+        self.assertEqual(old_conn.close_count, 1)
+        self.assertEqual(new_conn.close_count, 0)
+        self.assertIs(connections.get_connection("default"), new_conn)
+
+    def testOpenSearchHandleReleasesAliasOnShutdown(self):
+        """The normal teardown path still frees the alias it owns."""
+        connections = opensearch_module.connections
+        self._isolate_default_alias(connections)
+        conn = _FakeSearchConnection("only")
+
+        connections.add_connection("default", conn)
+        handle = parsedmarc.cli._OpenSearchHandle(connections.get_connection("default"))
+
+        handle.close()
+
+        self.assertEqual(conn.close_count, 1)
+        with self.assertRaises(KeyError):
+            connections.get_connection("default")
+
+    def testOpenSearchHandleCloseIsBestEffort(self):
+        """A client whose close() raises must not keep the handle from
+        releasing its alias. A second close() still calls the client's
+        close() again -- which raises and is swallowed -- even though the
+        alias-release step is now a no-op, since get_connection() raises
+        KeyError with the alias already gone."""
+        connections = opensearch_module.connections
+        self._isolate_default_alias(connections)
+        conn = _RaisingSearchConnection("raiser")
+
+        connections.add_connection("default", conn)
+        handle = parsedmarc.cli._OpenSearchHandle(connections.get_connection("default"))
+
+        handle.close()
+
+        self.assertEqual(conn.close_count, 1)
+        with self.assertRaises(KeyError):
+            connections.get_connection("default")
+
+        handle.close()
+
+        self.assertEqual(conn.close_count, 2)
 
 
 def _domain_map_tls_reports():

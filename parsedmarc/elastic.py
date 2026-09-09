@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from elasticsearch import Elasticsearch
 from elasticsearch.dsl import (
     Boolean,
     Date,
@@ -591,7 +592,7 @@ def set_hosts(
     api_key: str | None = None,
     timeout: float = 60.0,
     serverless: bool = False,
-):
+) -> Elasticsearch:
     """
     Sets the Elasticsearch hosts to use
 
@@ -610,6 +611,11 @@ def set_hosts(
             ``create_indexes`` strips ``number_of_shards`` / ``number_of_replicas``
             from its settings (which Serverless rejects with HTTP 400) and passes
             any other settings through unchanged.
+
+    Returns:
+        Elasticsearch: The client registered under the ``default`` connection
+        alias. Callers that need to close this exact client later (rather than
+        whatever holds the alias at that point) should hold on to it.
     """
     # Module-global; see the _SERVERLESS comment at the top of the module.
     global _SERVERLESS
@@ -630,7 +636,7 @@ def set_hosts(
         conn_params["basic_auth"] = (username, password)
     if api_key:
         conn_params["api_key"] = api_key
-    connections.create_connection(**conn_params)
+    return connections.create_connection(**conn_params)
 
 
 def create_indexes(names: list[str], settings: dict[str, Any] | None = None):

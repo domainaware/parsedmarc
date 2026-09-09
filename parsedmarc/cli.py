@@ -17,7 +17,7 @@ from argparse import ArgumentParser, Namespace
 from configparser import ConfigParser
 from glob import escape as glob_escape, glob
 from ssl import CERT_NONE, create_default_context
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import httpx
 import yaml
@@ -1516,13 +1516,25 @@ def _parse_config(config: ConfigParser, opts):
 
 
 class _ElasticsearchHandle:
-    """Sentinel so Elasticsearch participates in _close_output_clients."""
+    """Owns the Elasticsearch client so it participates in _close_output_clients.
+
+    Holds the client that ``elastic.set_hosts()`` registered under the
+    ``default`` connection alias, rather than re-resolving that alias when
+    it is closed. _close_output_clients is not only a shutdown path: the
+    SIGHUP reload in _main deliberately builds the replacement clients
+    *before* closing the old ones, and building them re-registers the
+    ``default`` alias, so by close time the alias names the new client.
+
+    Args:
+        connection: The client returned by ``elastic.set_hosts()``.
+    """
+
+    def __init__(self, connection: Any):
+        self._connection = connection
 
     def close(self):
         try:
-            conn = elastic.connections.get_connection()
-            if not isinstance(conn, str):
-                conn.close()
+            self._connection.close()
         except Exception:
             # Best-effort, and deliberately silent: this is the first of
             # two independent teardown steps, and swallowing here is what
@@ -1531,7 +1543,13 @@ class _ElasticsearchHandle:
             # raises, which it cannot while this handler swallows.
             pass
         try:
-            elastic.connections.remove_connection("default")
+            # Give up the alias only while it still names our own client.
+            # elasticsearch.dsl's Connections.remove_connection() deletes
+            # the alias outright, so removing it after a reload had pointed
+            # it at a new client would leave that client unreachable, with
+            # every later save raising KeyError.
+            if elastic.connections.get_connection("default") is self._connection:
+                elastic.connections.remove_connection("default")
         except Exception:
             # Best-effort and silent for the same reason as above: a
             # failure to give up the alias is not actionable during
@@ -1540,13 +1558,22 @@ class _ElasticsearchHandle:
 
 
 class _OpenSearchHandle:
-    """Sentinel so OpenSearch participates in _close_output_clients."""
+    """Owns the OpenSearch client so it participates in _close_output_clients.
+
+    Holds the client that ``opensearch.set_hosts()`` registered under the
+    ``default`` connection alias; see _ElasticsearchHandle for why the
+    alias is not re-resolved at close time.
+
+    Args:
+        connection: The client returned by ``opensearch.set_hosts()``.
+    """
+
+    def __init__(self, connection: Any):
+        self._connection = connection
 
     def close(self):
         try:
-            conn = opensearch.connections.get_connection()
-            if not isinstance(conn, str):
-                conn.close()
+            self._connection.close()
         except Exception:
             # Best-effort, and deliberately silent: this is the first of
             # two independent teardown steps, and swallowing here is what
@@ -1555,7 +1582,10 @@ class _OpenSearchHandle:
             # raises, which it cannot while this handler swallows.
             pass
         try:
-            opensearch.connections.remove_connection("default")
+            # Only while the alias still names our own client; see
+            # _ElasticsearchHandle.close().
+            if opensearch.connections.get_connection("default") is self._connection:
+                opensearch.connections.remove_connection("default")
         except Exception:
             # Best-effort and silent for the same reason as above: a
             # failure to give up the alias is not actionable during
@@ -1889,7 +1919,7 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
                     if opts.elasticsearch_timeout is not None
                     else 60.0
                 )
-                elastic.set_hosts(
+                elasticsearch_connection = elastic.set_hosts(
                     opts.elasticsearch_hosts,
                     use_ssl=opts.elasticsearch_ssl,
                     ssl_cert_path=opts.elasticsearch_ssl_cert_path,
@@ -1914,7 +1944,9 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
                     smtp_tls_indexes=es_smtp_tls_indexes,
                     legacy_fo_indexes=es_legacy_fo_indexes,
                 )
-                clients["elasticsearch"] = _ElasticsearchHandle()
+                clients["elasticsearch"] = _ElasticsearchHandle(
+                    elasticsearch_connection
+                )
         except Exception as e:
             raise RuntimeError(f"Elasticsearch: {e}") from e
 
@@ -1958,7 +1990,7 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
                     if opts.opensearch_timeout is not None
                     else 60.0
                 )
-                opensearch.set_hosts(
+                opensearch_connection = opensearch.set_hosts(
                     opts.opensearch_hosts,
                     use_ssl=opts.opensearch_ssl,
                     ssl_cert_path=opts.opensearch_ssl_cert_path,
@@ -1985,7 +2017,7 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
                     smtp_tls_indexes=os_smtp_tls_indexes,
                     legacy_fo_indexes=os_legacy_fo_indexes,
                 )
-                clients["opensearch"] = _OpenSearchHandle()
+                clients["opensearch"] = _OpenSearchHandle(opensearch_connection)
         except Exception as e:
             raise RuntimeError(f"OpenSearch: {e}") from e
 
