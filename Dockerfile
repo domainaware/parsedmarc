@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 ARG BASE_IMAGE=python:3.13-slim
 ARG USERNAME=parsedmarc
 ARG USER_UID=1000
@@ -24,11 +23,10 @@ ARG USERNAME
 ARG USER_UID
 ARG USER_GID
 
-# The wheel is bind-mounted from the `build` stage rather than COPYed in. A COPY
-# commits it to its own layer, and the `rm -rf /tmp/dist` that used to end this
-# RUN could only write a whiteout on top: a layer that is already committed
-# cannot be removed by a later one, so the wheel shipped in every pull. A bind
-# mount is never committed to a layer, so there is nothing left to remove.
+# The wheel is bind-mounted from the `build` stage rather than copied in with
+# COPY: a COPY commits the wheel to its own layer, which a later `rm` can only
+# write a whiteout over, so the wheel would ship in every pull. A bind mount is
+# never committed to a layer.
 RUN --mount=type=bind,from=build,source=/app/dist,target=/tmp/dist \
     set -ex; \
     groupadd --gid ${USER_GID} ${USERNAME}; \
