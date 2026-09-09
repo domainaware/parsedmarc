@@ -7,6 +7,7 @@ extract_report, get_dmarc_reports_from_mbox, and the CSV / JSON renderers.
 
 import base64
 import binascii
+import csv
 import email
 import gzip
 import inspect
@@ -22,7 +23,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
 from glob import glob
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import rmtree
 from tempfile import NamedTemporaryFile, mkdtemp
@@ -961,6 +962,29 @@ class Test(unittest.TestCase):
                     cast(SMTPTLSReport, result["report"])
                 )
             print("Passed!")
+
+    def testSmtpTlsCsvStripsNulFromFields(self):
+        """A NUL character in an SMTP TLS report text field is stripped
+        from CSV output instead of reaching the ``csv`` writer.
+
+        Python 3.10's ``csv`` module raises ``_csv.Error: need to escape,
+        but no escapechar set`` on any field containing NUL
+        (https://github.com/python/cpython/issues/97503, a 3.10 regression
+        fixed in 3.11). This test fails on unfixed code on 3.10 with that
+        error, and on unfixed code on 3.11+ because the NUL passes through
+        to the CSV text uncleaned."""
+        result = parsedmarc.parse_report_file(
+            "samples/smtp_tls/smtp_tls.json", offline=True
+        )
+        report = cast(SMTPTLSReport, result["report"])
+        report["organization_name"] = "Example\x00Inc."
+
+        csv_text = parsedmarc.parsed_smtp_tls_reports_to_csv(report)
+
+        self.assertNotIn("\x00", csv_text)
+        reader = csv.DictReader(StringIO(csv_text))
+        row = next(reader)
+        self.assertEqual(row["organization_name"], "ExampleInc.")
 
     def testAggregateCsvExposesASNColumns(self):
         """The aggregate CSV output should include source_asn, source_as_name,
@@ -2106,6 +2130,33 @@ class Test(unittest.TestCase):
                 self.assertTrue(len(rows) > 0)
             print("Passed!")
 
+    def testFailureReportCsvStripsNulFromFields(self):
+        """A NUL character in a failure report text field is stripped from
+        CSV output instead of reaching the ``csv`` writer.
+
+        Python 3.10's ``csv`` module raises ``_csv.Error: need to escape,
+        but no escapechar set`` on any field containing NUL
+        (https://github.com/python/cpython/issues/97503, a 3.10 regression
+        fixed in 3.11). This test fails on unfixed code on 3.10 with that
+        error, and on unfixed code on 3.11+ because the NUL passes through
+        to the CSV text uncleaned."""
+        parsed_report = cast(
+            FailureReport,
+            parsedmarc.parse_report_file(
+                "samples/failure/dmarc_ruf_report_linkedin.eml", offline=True
+            )["report"],
+        )
+        parsed_report["parsed_sample"]["subject"] = "re\x00port"
+        parsed_report["user_agent"] = "Agent\x00X"
+
+        csv_text = parsedmarc.parsed_failure_reports_to_csv(parsed_report)
+
+        self.assertNotIn("\x00", csv_text)
+        reader = csv.DictReader(StringIO(csv_text))
+        row = next(reader)
+        self.assertEqual(row["subject"], "report")
+        self.assertEqual(row["user_agent"], "AgentX")
+
 
 class TestExtractReport(unittest.TestCase):
     """Tests for parsedmarc.extract_report()"""
@@ -2215,6 +2266,93 @@ class TestExtractReport(unittest.TestCase):
 
         with self.assertRaises(parsedmarc.ParserError):
             parsedmarc.extract_report(cast(BinaryIO, TextStream()))
+
+    def testExtractReportGzipOverLimitRejected(self):
+        """A gzip attachment that inflates past
+        MAX_DECOMPRESSED_REPORT_SIZE raises ParserError instead of being
+        decompressed.
+
+        Regression test for GHSA-43qf-f35w-2x4r: extract_report inflated
+        gzip with a single unbounded zlib.decompress(), so a small
+        attachment from any sender a monitored mailbox accepts could
+        allocate hundreds of MB. The limit is patched down here so the test
+        stays fast; the real 100 MiB cap is the same code path."""
+        limit = 4096
+        compressed = gzip.compress(b"a" * (limit + 1))
+        # The attack is amplification: the wire form is far below the cap.
+        self.assertLess(len(compressed), limit)
+        with patch("parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE", limit):
+            with self.assertRaises(parsedmarc.ParserError) as ctx:
+                parsedmarc.extract_report(compressed)
+        self.assertIn(
+            f"Decompressed report exceeds the {limit} byte limit", str(ctx.exception)
+        )
+
+    def testExtractReportGzipAtLimitIsExtracted(self):
+        """A gzip attachment inflating to exactly the limit is still
+        extracted in full, so the cap rejects only what is over it"""
+        limit = 4096
+        with patch("parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE", limit):
+            result = parsedmarc.extract_report(gzip.compress(b"a" * limit))
+        self.assertEqual(result, "a" * limit)
+
+    def testExtractReportZipOverLimitRejected(self):
+        """A zip attachment whose member inflates past
+        MAX_DECOMPRESSED_REPORT_SIZE raises ParserError.
+
+        Regression test for GHSA-43qf-f35w-2x4r, zip half: the member was
+        read with an unbounded .read()."""
+        import zipfile
+
+        limit = 4096
+        buf = BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("report.xml", b"a" * (limit + 1))
+        compressed = buf.getvalue()
+        self.assertLess(len(compressed), limit)
+        with patch("parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE", limit):
+            with self.assertRaises(parsedmarc.ParserError) as ctx:
+                parsedmarc.extract_report(compressed)
+        self.assertIn(
+            f"Decompressed report exceeds the {limit} byte limit", str(ctx.exception)
+        )
+
+    def testExtractReportZipAtLimitIsExtracted(self):
+        """A zip member inflating to exactly the limit is still extracted in
+        full"""
+        import zipfile
+
+        limit = 4096
+        buf = BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("report.xml", b"a" * limit)
+        with patch("parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE", limit):
+            result = parsedmarc.extract_report(buf.getvalue())
+        self.assertEqual(result, "a" * limit)
+
+    def testExtractReportTruncatedGzipRaises(self):
+        """A gzip stream cut short still raises ParserError.
+
+        Behavior parity check for the bounded-decompression change: the old
+        one-shot zlib.decompress() raised "Error -5 ... incomplete or
+        truncated stream" here, while a zlib.decompressobj() stops silently,
+        so the replacement has to detect the missing end-of-stream marker
+        itself."""
+        xml = b'<?xml version="1.0"?><feedback></feedback>'
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.extract_report(gzip.compress(xml)[:-8])
+        self.assertIn("truncated", str(ctx.exception))
+
+    def testExtractReportGzipWithTrailingBytesIsExtracted(self):
+        """Bytes after the end of the gzip member are ignored, exactly as
+        the old one-shot zlib.decompress() ignored them.
+
+        Behavior parity check for the bounded-decompression change: verified
+        against the unmodified code, which returned the report text and did
+        not raise."""
+        xml = b'<?xml version="1.0"?><feedback></feedback>'
+        result = parsedmarc.extract_report(gzip.compress(xml) + b"trailing garbage")
+        self.assertEqual(result, xml.decode())
 
 
 class TestMalformedXmlRecovery(unittest.TestCase):
@@ -4914,6 +5052,164 @@ class TestExtractReportStreams(unittest.TestCase):
             data = f.read()
         result = parsedmarc.extract_report(cast(BinaryIO, _BrokenSeekableStream(data)))
         self.assertIn("<feedback>", result)
+
+
+class TestSaveOutput(unittest.TestCase):
+    """save_output() writes each failure report's message sample to a file
+    named after the sample's Subject header.
+
+    That header comes from the message that failed authentication, i.e.
+    from an untrusted sender, so every test here asserts on the on-disk
+    layout of the whole temporary root -- not just of the samples
+    directory -- because the defect being guarded against
+    (GHSA-c284-w5m6-jhjm) wrote files above it."""
+
+    def setUp(self):
+        self.temp_root = mkdtemp()
+        self.addCleanup(rmtree, self.temp_root, True)
+        # Nested, so a traversal out of samples/ has somewhere to land
+        # inside the tree the assertions walk.
+        self.output_directory = os.path.join(self.temp_root, "parsedmarc", "output")
+
+    def _failure_report(self, subject, **parsed_sample_extra) -> FailureReport:
+        """A failure report carrying only the keys save_output() reads"""
+        parsed_sample = {"subject": subject}
+        parsed_sample.update(parsed_sample_extra)
+        return cast(
+            FailureReport,
+            {
+                "sample": f"Subject: {subject!r}\r\n\r\nThe message body.\r\n",
+                "parsed_sample": parsed_sample,
+                # Read only by the CSV renderer save_output() also calls.
+                "auth_failure": ["dmarc"],
+                "authentication_mechanisms": [],
+                "source": {
+                    "ip_address": "192.0.2.1",
+                    "reverse_dns": None,
+                    "base_domain": None,
+                    "name": None,
+                    "type": None,
+                    "asn": None,
+                    "as_name": None,
+                    "as_domain": None,
+                    "country": None,
+                },
+            },
+        )
+
+    def _save(self, *failure_reports: FailureReport) -> None:
+        results = cast(
+            ParsingResults,
+            {
+                "aggregate_reports": [],
+                "failure_reports": list(failure_reports),
+                "smtp_tls_reports": [],
+            },
+        )
+        parsedmarc.save_output(results, output_directory=self.output_directory)
+
+    def _written_files(self) -> list[str]:
+        """Every file under the temp root, as a path relative to it"""
+        written = []
+        for root, _dirs, files in os.walk(self.temp_root):
+            for name in files:
+                written.append(
+                    os.path.relpath(os.path.join(root, name), self.temp_root)
+                )
+        return sorted(written)
+
+    def testTraversalSubjectsAreConfinedToTheSamplesDirectory(self):
+        """Subjects made only of path separators and dots all collapse to
+        the "sample" fallback inside samples/, instead of escaping it.
+
+        Regression test for GHSA-c284-w5m6-jhjm: save_output() fell back to
+        the raw subject whenever sanitizing it produced an empty string, so
+        os.path.join(samples_directory, "../../../.eml") escaped three
+        levels up and os.path.join(samples_directory, "/.eml") became the
+        absolute path /.eml."""
+        self._save(
+            self._failure_report("../../../"),
+            self._failure_report("/"),
+            self._failure_report(".."),
+        )
+
+        samples = os.path.join("parsedmarc", "output", "samples")
+        eml_files = [f for f in self._written_files() if f.endswith(".eml")]
+        self.assertEqual(
+            eml_files,
+            [
+                os.path.join(samples, "sample (1).eml"),
+                os.path.join(samples, "sample (2).eml"),
+                os.path.join(samples, "sample.eml"),
+            ],
+        )
+        # Nothing at all was written above the output directory.
+        self.assertTrue(
+            all(
+                f.startswith(os.path.join("parsedmarc", "output") + os.sep)
+                for f in self._written_files()
+            ),
+            self._written_files(),
+        )
+
+    def testCraftedFilenameSafeSubjectIsIgnored(self):
+        """The filename is derived from the subject at write time, so a
+        caller-supplied filename_safe_subject cannot name the file.
+
+        parse_email() derives that key with the same sanitizer, but
+        save_output() is public API: a library caller assembling its own
+        ParsingResults can put anything there, and the value used to win
+        over the subject."""
+        self._save(
+            self._failure_report("monthly digest", filename_safe_subject="../evil")
+        )
+
+        written = self._written_files()
+        samples = os.path.join("parsedmarc", "output", "samples")
+        self.assertIn(os.path.join(samples, "monthly digest.eml"), written)
+        self.assertFalse([f for f in written if "evil" in f], written)
+
+    def testNullByteSubjectIsStrippedAndWritten(self):
+        """A NUL in the subject is stripped rather than reaching open(),
+        which would raise ValueError: embedded null byte and, in the CLI,
+        hold back the whole mailbox batch"""
+        self._save(self._failure_report("re\x00port"))
+
+        samples = os.path.join("parsedmarc", "output", "samples")
+        self.assertEqual(
+            [f for f in self._written_files() if f.endswith(".eml")],
+            [os.path.join(samples, "report.eml")],
+        )
+
+    def testOrdinarySubjectNamesTheFileAndSampleIsWrittenVerbatim(self):
+        """An ordinary subject is unchanged by sanitizing, and the file
+        holds the message sample"""
+        report = self._failure_report("DMARC failure report")
+        self._save(report)
+
+        path = os.path.join(
+            self.output_directory, "samples", "DMARC failure report.eml"
+        )
+        # newline="" so the sample's CRLFs are not translated on the way in.
+        with open(path, newline="", encoding="utf-8") as sample_file:
+            self.assertEqual(sample_file.read(), report["sample"])
+
+    def testParsedSampleReportIsNamedFromItsSubject(self):
+        """End to end: a real failure report parsed from the sample corpus
+        is written under its own subject line"""
+        report = cast(
+            FailureReport,
+            parsedmarc.parse_report_file(
+                "samples/failure/dmarc_ruf_report_linkedin.eml", offline=True
+            )["report"],
+        )
+        self._save(report)
+
+        samples = os.path.join("parsedmarc", "output", "samples")
+        self.assertEqual(
+            [f for f in self._written_files() if f.endswith(".eml")],
+            [os.path.join(samples, "Subject line, could be UTF8 encoded.eml")],
+        )
 
 
 if __name__ == "__main__":
