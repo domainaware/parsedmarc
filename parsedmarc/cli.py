@@ -1524,10 +1524,18 @@ class _ElasticsearchHandle:
             if not isinstance(conn, str):
                 conn.close()
         except Exception:
+            # Best-effort, and deliberately silent: this is the first of
+            # two independent teardown steps, and swallowing here is what
+            # lets the second one still run. Nothing reports this error --
+            # _close_output_clients logs a warning only if close() itself
+            # raises, which it cannot while this handler swallows.
             pass
         try:
             elastic.connections.remove_connection("default")
         except Exception:
+            # Best-effort and silent for the same reason as above: a
+            # failure to give up the alias is not actionable during
+            # teardown, and it is not reported anywhere either.
             pass
 
 
@@ -1540,10 +1548,18 @@ class _OpenSearchHandle:
             if not isinstance(conn, str):
                 conn.close()
         except Exception:
+            # Best-effort, and deliberately silent: this is the first of
+            # two independent teardown steps, and swallowing here is what
+            # lets the second one still run. Nothing reports this error --
+            # _close_output_clients logs a warning only if close() itself
+            # raises, which it cannot while this handler swallows.
             pass
         try:
             opensearch.connections.remove_connection("default")
         except Exception:
+            # Best-effort and silent for the same reason as above: a
+            # failure to give up the alias is not actionable during
+            # teardown, and it is not reported anywhere either.
             pass
 
 

@@ -4167,10 +4167,7 @@ watch = true
         # No watch, no mailbox, no files → _main runs through with
         # empty parsing_results and returns normally.
         with patch.object(sys, "argv", ["parsedmarc", "nothing-here.xml"]):
-            try:
-                parsedmarc.cli._main()
-            except SystemExit:
-                pass
+            parsedmarc.cli._main()
 
         kafka_client.close.assert_called_once()
         es_client.close.assert_called_once()

@@ -1303,6 +1303,9 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
             try:
                 file_object.close()
             except Exception:
+                # Best-effort close; a failure here shouldn't shadow
+                # whatever exception (or successful result) is already
+                # propagating out of this function.
                 pass
 
     return report
@@ -2171,6 +2174,10 @@ def parse_report_email(
                     return result
 
             except (TypeError, ValueError, binascii.Error):
+                # b64decode() rejected this MIME part's payload as not
+                # base64-decodable, so it isn't a report attachment; fall
+                # through and keep walking the message for a part (or the
+                # feedback-report/sample pair below) that is.
                 pass
 
             except InvalidDMARCReport as e:

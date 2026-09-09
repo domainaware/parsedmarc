@@ -111,6 +111,9 @@ class S3Client(object):
             if self.s3.meta is not None:
                 self.s3.meta.client.close()
         except Exception:
+            # Best-effort: this runs during shutdown/cleanup, and a
+            # failure to close the underlying boto3 client isn't
+            # actionable here.
             pass
 
     # Backward-compatible alias

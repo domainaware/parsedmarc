@@ -271,6 +271,8 @@ def targeted_fix_to_utf8(
             repaired_lines.append(line_bytes.decode("utf-8", errors="strict"))
             continue
         except UnicodeDecodeError:
+            # Not valid UTF-8 as-is; fall through to the slower
+            # repair_mixed_utf8_line() path below instead of the fast path.
             pass
 
         fixed_text, fixes = repair_mixed_utf8_line(

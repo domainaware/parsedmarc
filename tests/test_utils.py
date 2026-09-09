@@ -1143,7 +1143,7 @@ class TestUtilsReverseDnsMap(unittest.TestCase):
         """load_reverse_dns_map in offline mode loads bundled map"""
         rdns_map = {}
         parsedmarc.utils.load_reverse_dns_map(rdns_map, offline=True)
-        self.assertTrue(len(rdns_map) > 0)
+        self.assertGreater(len(rdns_map), 0)
 
     def testLoadReverseDnsMapLocalOverride(self):
         """load_reverse_dns_map uses local_file_path when provided"""
@@ -1169,7 +1169,7 @@ class TestUtilsReverseDnsMap(unittest.TestCase):
             side_effect=httpx.ConnectError("no network"),
         ):
             parsedmarc.utils.load_reverse_dns_map(rdns_map)
-        self.assertTrue(len(rdns_map) > 0)
+        self.assertGreater(len(rdns_map), 0)
 
     def testLoadReverseDnsMapInvalidCsvFallback(self):
         """A fetch that returns a non-map CSV body logs a warning and
