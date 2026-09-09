@@ -44,7 +44,7 @@ RUN --mount=type=bind,from=build,source=/app/dist,target=/tmp/dist \
     # manylinux wheels for both amd64 and arm64, so this adds no source-build
     # step on either platform.
     whl="$(ls /tmp/dist/*.whl)"; \
-    pip install "${whl}[all,postgresql]"
+    pip install --no-cache-dir "${whl}[all,postgresql]"
 
 USER $USERNAME
 
