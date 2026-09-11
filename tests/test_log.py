@@ -72,3 +72,38 @@ class TestConfigureLoggingFileHandlerDedup(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+class TestConfigureLoggingFileHandlerErrors(unittest.TestCase):
+    """configure_logging must warn gracefully when the log file cannot
+    be opened, without raising an exception."""
+
+    def setUp(self):
+        self._saved_handlers = list(logger.handlers)
+        self._saved_level = logger.level
+
+    def tearDown(self):
+        for handler in list(logger.handlers):
+            if handler not in self._saved_handlers:
+                logger.removeHandler(handler)
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
+        logger.handlers[:] = self._saved_handlers
+        logger.setLevel(self._saved_level)
+
+    def test_permission_error_logs_warning_and_does_not_raise(self):
+        """A PermissionError opening the log file must be caught and
+        logged as a warning, not propagated to the caller."""
+        with self.assertLogs(logger, level="WARNING") as cm:
+            # /root/no_permission.log will raise PermissionError
+            # on non-root users
+            configure_logging(logging.INFO, "/root/no_permission.log")
+
+        self.assertTrue(
+            any("Unable to write to log file" in msg for msg in cm.output)
+        )
+        # No FileHandler must have been added
+        file_handlers = [
+            h for h in logger.handlers
+            if isinstance(h, logging.FileHandler)
+        ]
+        self.assertEqual(len(file_handlers), 0)
