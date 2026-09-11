@@ -23,6 +23,7 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import httpx
+import opensearchpy
 from azure.core.exceptions import ClientAuthenticationError
 from elasticsearch import Elasticsearch
 from kiota_abstractions.api_error import APIError
@@ -4200,6 +4201,29 @@ class _RaisingSearchConnection(_FakeSearchConnection):
         raise RuntimeError("transport already closed")
 
 
+def _isolate_default_alias(test_case, connections):
+    """Restore whatever the process-wide registry held under the ``default``
+    alias, so a test that registers a client into a real Elasticsearch or
+    OpenSearch connection registry cannot leak into other tests regardless of
+    ordering."""
+    try:
+        previous = connections.get_connection("default")
+    except KeyError:
+        previous = None
+
+    def restore():
+        try:
+            connections.remove_connection("default")
+        except KeyError:
+            # Already gone: the test under this cleanup removed the
+            # alias itself, which is the state we are restoring to.
+            pass
+        if previous is not None:
+            connections.add_connection("default", previous)
+
+    test_case.addCleanup(restore)
+
+
 class TestSearchBackendHandles(unittest.TestCase):
     """_ElasticsearchHandle / _OpenSearchHandle must close the client they
     were built for, not whatever holds the ``default`` alias at close time.
@@ -4215,30 +4239,9 @@ class TestSearchBackendHandles(unittest.TestCase):
     the original client was never closed.
     """
 
-    def _isolate_default_alias(self, connections):
-        """Restore whatever the process-wide registry held under the
-        ``default`` alias, so these tests cannot leak into other tests
-        regardless of ordering."""
-        try:
-            previous = connections.get_connection("default")
-        except KeyError:
-            previous = None
-
-        def restore():
-            try:
-                connections.remove_connection("default")
-            except KeyError:
-                # Already gone: the test under this cleanup removed the
-                # alias itself, which is the state we are restoring to.
-                pass
-            if previous is not None:
-                connections.add_connection("default", previous)
-
-        self.addCleanup(restore)
-
     def testElasticsearchHandleClosesItsOwnConnectionAfterReload(self):
         connections = parsedmarc.elastic.connections
-        self._isolate_default_alias(connections)
+        _isolate_default_alias(self, connections)
         old_conn = _FakeSearchConnection("old")
         new_conn = _FakeSearchConnection("new")
 
@@ -4259,7 +4262,7 @@ class TestSearchBackendHandles(unittest.TestCase):
     def testElasticsearchHandleReleasesAliasOnShutdown(self):
         """The normal teardown path still frees the alias it owns."""
         connections = parsedmarc.elastic.connections
-        self._isolate_default_alias(connections)
+        _isolate_default_alias(self, connections)
         conn = _FakeSearchConnection("only")
 
         connections.add_connection("default", cast(Elasticsearch, conn))
@@ -4280,7 +4283,7 @@ class TestSearchBackendHandles(unittest.TestCase):
         alias-release step is now a no-op, since get_connection() raises
         KeyError with the alias already gone."""
         connections = parsedmarc.elastic.connections
-        self._isolate_default_alias(connections)
+        _isolate_default_alias(self, connections)
         conn = _RaisingSearchConnection("raiser")
 
         connections.add_connection("default", cast(Elasticsearch, conn))
@@ -4300,7 +4303,7 @@ class TestSearchBackendHandles(unittest.TestCase):
 
     def testOpenSearchHandleClosesItsOwnConnectionAfterReload(self):
         connections = opensearch_module.connections
-        self._isolate_default_alias(connections)
+        _isolate_default_alias(self, connections)
         old_conn = _FakeSearchConnection("old")
         new_conn = _FakeSearchConnection("new")
 
@@ -4317,7 +4320,7 @@ class TestSearchBackendHandles(unittest.TestCase):
     def testOpenSearchHandleReleasesAliasOnShutdown(self):
         """The normal teardown path still frees the alias it owns."""
         connections = opensearch_module.connections
-        self._isolate_default_alias(connections)
+        _isolate_default_alias(self, connections)
         conn = _FakeSearchConnection("only")
 
         connections.add_connection("default", conn)
@@ -4336,7 +4339,7 @@ class TestSearchBackendHandles(unittest.TestCase):
         alias-release step is now a no-op, since get_connection() raises
         KeyError with the alias already gone."""
         connections = opensearch_module.connections
-        self._isolate_default_alias(connections)
+        _isolate_default_alias(self, connections)
         conn = _RaisingSearchConnection("raiser")
 
         connections.add_connection("default", conn)
@@ -4351,6 +4354,425 @@ class TestSearchBackendHandles(unittest.TestCase):
         handle.close()
 
         self.assertEqual(conn.close_count, 2)
+
+
+# A host nothing listens on. Every test below patches the SDK transport
+# method that would talk to it, so the client is only ever constructed --
+# which opens no socket -- and no test can reach the network even if a
+# patch is later removed by mistake.
+_UNREACHABLE_HOSTS = ["127.0.0.1:9299"]
+
+
+def _es_request_without_network(client, method, path, **kwargs):
+    """Stand-in for ``elasticsearch.Elasticsearch.perform_request``.
+
+    Every cluster call ``migrate_indexes()`` makes -- through
+    ``Index.exists()``, ``client.count()`` and ``client.update_by_query()``,
+    and through the namespaced clients, which delegate to the
+    ``Elasticsearch`` instance's own ``perform_request`` -- funnels through
+    this one method, so it is the SDK boundary at which a migration can be
+    made to succeed without a cluster.
+
+    A ``HEAD`` (``Index.exists()``) answers "no such index", which skips the
+    legacy ``published_policy.fo`` migration; anything else answers the
+    backfill's ``count`` query with zero matching documents, which skips the
+    ``update_by_query``. ``migrate_indexes()`` therefore returns having
+    logged nothing and changed nothing.
+    """
+    if method == "HEAD":
+        return {}
+    return {"count": 0}
+
+
+class TestInitOutputClientsRollback(unittest.TestCase):
+    """_init_output_clients() is all-or-nothing against the search backends'
+    process-wide ``default`` connection alias.
+
+    ``elastic.set_hosts()`` / ``opensearch.set_hosts()`` register the client
+    they build under that alias the moment it is constructed, but the rest of
+    the initialization -- the index migration, and every output configured
+    after them -- can still fail. The SIGHUP reload in _main() builds the
+    replacement clients *before* closing the old ones and keeps the old opts
+    when the build raises ("Config reload failed, continuing with previous
+    config"), so a mutated alias meant the save path -- every ``Search`` and
+    ``Document.save()`` in parsedmarc/elastic.py, each of which resolves the
+    ``default`` alias through its SDK -- reached the *new* cluster while
+    ``opts`` and ``index_prefix_domain_map`` still described the old one:
+    reports written to a destination the operator
+    never successfully configured, with the log saying the previous config
+    was still in effect. The half-built client leaked with it, as did every
+    client built earlier in the same failed call.
+    """
+
+    def _close_spy(self, cls):
+        """Patch *cls*.close() with a spy that still closes, and return the
+        list it appends each closed client to.
+
+        Patching the SDK client class -- not any parsedmarc function -- is
+        what makes "the client was closed" observable, and the real close()
+        still runs, so a client that is closed twice would still have to
+        survive it.
+        """
+        closed = []
+        real_close = cls.close
+
+        def spy(client):
+            closed.append(client)
+            real_close(client)
+
+        patcher = patch.object(cls, "close", spy)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return closed
+
+    def test_interrupt_after_set_hosts_restores_the_previous_elasticsearch_client(self):
+        """Failure inside the Elasticsearch block, before the handle exists.
+
+        ``migrate_indexes()`` runs once ``set_hosts()`` has already handed the
+        ``default`` alias to the new client, and ``clients["elasticsearch"]``
+        is assigned only after it returns -- so a failure here leaves a
+        registered client that no handle owns. It has to be a BaseException:
+        ``elastic.migrate_indexes()`` wraps every cluster call in
+        ``except Exception`` and logs a warning (parsedmarc/elastic.py), so
+        what escapes this block is a Ctrl-C landing in one of them, not a
+        connection error.
+        """
+        connections = parsedmarc.elastic.connections
+        _isolate_default_alias(self, connections)
+        old_conn = _FakeSearchConnection("old")
+        connections.add_connection("default", cast(Elasticsearch, old_conn))
+        closed = self._close_spy(Elasticsearch)
+        registered = []
+
+        def interrupt(client, *args, **kwargs):
+            # Whatever set_hosts() registered a moment ago: the client the
+            # rollback is responsible for.
+            registered.append(connections.get_connection("default"))
+            raise KeyboardInterrupt
+
+        opts = _output_client_opts(
+            save_aggregate=True,
+            elasticsearch_hosts=_UNREACHABLE_HOSTS,
+            elasticsearch_timeout=1.0,
+        )
+        with patch.object(Elasticsearch, "perform_request", interrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                parsedmarc.cli._init_output_clients(opts)
+
+        self.assertEqual(len(registered), 1)
+        new_conn = registered[0]
+        self.assertIsNot(new_conn, old_conn)
+        self.assertIs(connections.get_connection("default"), old_conn)
+        self.assertEqual(closed, [new_conn])
+        self.assertEqual(old_conn.close_count, 0)
+
+    def test_interrupt_after_set_hosts_restores_the_previous_opensearch_client(self):
+        """The same for OpenSearch, whose alias lives in a second registry.
+
+        The rollback ranges over both backends, and each has its own module,
+        registry and client class; a rollback that snapshotted or restored
+        one of them twice would pass the Elasticsearch test above.
+        """
+        connections = opensearch_module.connections
+        _isolate_default_alias(self, connections)
+        old_conn = _FakeSearchConnection("old")
+        connections.add_connection("default", old_conn)
+        closed = self._close_spy(opensearchpy.OpenSearch)
+        registered = []
+
+        def interrupt(transport, *args, **kwargs):
+            registered.append(connections.get_connection("default"))
+            raise KeyboardInterrupt
+
+        opts = _output_client_opts(
+            save_aggregate=True,
+            opensearch_hosts=_UNREACHABLE_HOSTS,
+            opensearch_timeout=1.0,
+        )
+        with patch.object(opensearchpy.Transport, "perform_request", interrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                parsedmarc.cli._init_output_clients(opts)
+
+        self.assertEqual(len(registered), 1)
+        new_conn = registered[0]
+        self.assertIsNot(new_conn, old_conn)
+        self.assertIs(connections.get_connection("default"), old_conn)
+        self.assertEqual(closed, [new_conn])
+        self.assertEqual(old_conn.close_count, 0)
+
+    def test_failure_with_no_previous_alias_leaves_the_alias_unset(self):
+        """The startup case: there was no ``default`` alias to restore.
+
+        Rolling back to "unset" is not the same as leaving the discarded
+        client in place. parsedmarc's own retry loop calls
+        _init_output_clients() again after a failed start, and elastic.py's
+        save path resolves the alias on every write, so a leftover
+        registration is a client for a configuration that never finished
+        being built.
+        """
+        connections = parsedmarc.elastic.connections
+        _isolate_default_alias(self, connections)
+        try:
+            connections.remove_connection("default")
+        except KeyError:
+            # Nothing was registered: the startup state this test needs.
+            pass
+        closed = self._close_spy(Elasticsearch)
+        registered = []
+
+        def interrupt(client, *args, **kwargs):
+            registered.append(connections.get_connection("default"))
+            raise KeyboardInterrupt
+
+        opts = _output_client_opts(
+            save_aggregate=True,
+            elasticsearch_hosts=_UNREACHABLE_HOSTS,
+            elasticsearch_timeout=1.0,
+        )
+        with patch.object(Elasticsearch, "perform_request", interrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                parsedmarc.cli._init_output_clients(opts)
+
+        with self.assertRaises(KeyError):
+            connections.get_connection("default")
+        self.assertEqual(closed, registered)
+
+    def test_failure_in_a_later_output_closes_everything_already_built(self):
+        """Elasticsearch fully built, then a later step fails.
+
+        ``[opensearch] auth_type = awssigv4`` with no ``aws_region`` is a real
+        config error, raised by ``opensearch.set_hosts()`` before it
+        constructs anything -- and OpenSearch is the only output initialized
+        after Elasticsearch, so this is the shape of the reload that leaves an
+        _ElasticsearchHandle in ``clients``, owning the client that now holds
+        the alias. The handle must be closed (that is what releases the alias
+        again), the Kafka client built earlier in the same call must be closed
+        too, and both aliases must end up naming what they named on entry.
+
+        The Elasticsearch client is closed *exactly* once: the teardown does
+        it through the handle, and the restore then finds the alias already
+        released rather than closing the same client a second time.
+        """
+        es_connections = parsedmarc.elastic.connections
+        os_connections = opensearch_module.connections
+        _isolate_default_alias(self, es_connections)
+        _isolate_default_alias(self, os_connections)
+        old_es = _FakeSearchConnection("old es")
+        old_os = _FakeSearchConnection("old os")
+        es_connections.add_connection("default", cast(Elasticsearch, old_es))
+        os_connections.add_connection("default", old_os)
+        closed = self._close_spy(Elasticsearch)
+        built = []
+
+        def request(client, method, path, **kwargs):
+            # The client set_hosts() registered, recorded on its first
+            # cluster call, so the assertions below can name it.
+            if not built:
+                built.append(es_connections.get_connection("default"))
+            return _es_request_without_network(client, method, path, **kwargs)
+
+        opts = _output_client_opts(
+            save_aggregate=True,
+            kafka_hosts=["kafka.example.com:9092"],
+            elasticsearch_hosts=_UNREACHABLE_HOSTS,
+            elasticsearch_timeout=1.0,
+            opensearch_hosts=_UNREACHABLE_HOSTS,
+            opensearch_auth_type="awssigv4",
+        )
+        with (
+            patch("parsedmarc.kafkaclient.KafkaProducer") as mock_producer,
+            patch.object(Elasticsearch, "perform_request", request),
+        ):
+            with self.assertRaises(RuntimeError) as context:
+                parsedmarc.cli._init_output_clients(opts)
+
+        self.assertIn("aws_region", str(context.exception))
+        mock_producer.return_value.close.assert_called_once()
+        self.assertEqual(built, closed)
+        self.assertEqual(len(closed), 1)
+        self.assertIs(es_connections.get_connection("default"), old_es)
+        self.assertIs(os_connections.get_connection("default"), old_os)
+        self.assertEqual(old_es.close_count, 0)
+        self.assertEqual(old_os.close_count, 0)
+
+    def test_a_failed_build_does_not_leave_the_serverless_flag_flipped(self):
+        """The alias is not the only module-level state ``set_hosts()`` writes.
+
+        ``elastic.set_hosts()`` also assigns ``elastic._SERVERLESS``, which
+        ``elastic.create_indexes()`` consults to decide whether to strip the
+        ``number_of_shards``/``number_of_replicas`` settings Elastic Cloud
+        Serverless rejects with HTTP 400. A reload that turns
+        ``[elasticsearch] serverless`` on and then fails would otherwise pair
+        the restored old client -- a normal cluster -- with the new flag, and
+        the next index created on it would silently lose its shard settings.
+
+        Both halves are observed: the flag really is flipped while the build
+        runs (otherwise the assertion after it would hold for the wrong
+        reason), and it is back to its old value once the rollback is done.
+        """
+        es_connections = parsedmarc.elastic.connections
+        _isolate_default_alias(self, es_connections)
+        old_es = _FakeSearchConnection("old es")
+        es_connections.add_connection("default", cast(Elasticsearch, old_es))
+        self.addCleanup(
+            setattr, parsedmarc.elastic, "_SERVERLESS", parsedmarc.elastic._SERVERLESS
+        )
+        parsedmarc.elastic._SERVERLESS = False
+        during = []
+
+        def request(client, method, path, **kwargs):
+            # The first cluster call happens after set_hosts() has written
+            # both the alias and the flag.
+            if not during:
+                during.append(parsedmarc.elastic._SERVERLESS)
+            return _es_request_without_network(client, method, path, **kwargs)
+
+        opts = _output_client_opts(
+            save_aggregate=True,
+            elasticsearch_hosts=_UNREACHABLE_HOSTS,
+            elasticsearch_timeout=1.0,
+            elasticsearch_serverless=True,
+            opensearch_hosts=_UNREACHABLE_HOSTS,
+            opensearch_auth_type="awssigv4",
+        )
+        with patch.object(Elasticsearch, "perform_request", request):
+            with self.assertRaises(RuntimeError):
+                parsedmarc.cli._init_output_clients(opts)
+
+        self.assertEqual(during, [True])
+        self.assertIs(parsedmarc.elastic._SERVERLESS, False)
+        self.assertIs(es_connections.get_connection("default"), old_es)
+
+    def test_an_interrupt_during_teardown_still_restores_the_alias(self):
+        """A second Ctrl-C, landing in the teardown of the first one's rollback.
+
+        The rollback exists because a KeyboardInterrupt can escape the
+        Elasticsearch block, and an operator holding the key sends more than
+        one. ``_close_output_clients()`` swallows only ``Exception``, and so
+        does ``_ElasticsearchHandle.close()``, so an interrupt raised by the
+        client's own ``close()`` propagates out of the teardown. Run as a
+        plain statement sequence, that would skip the hand-back and leave the
+        alias on the new cluster -- the very state the rollback is for -- so
+        the teardown is wrapped in ``try``/``finally`` and the discarded
+        client's ``close()`` swallows BaseException.
+        """
+        es_connections = parsedmarc.elastic.connections
+        os_connections = opensearch_module.connections
+        _isolate_default_alias(self, es_connections)
+        _isolate_default_alias(self, os_connections)
+        old_es = _FakeSearchConnection("old es")
+        old_os = _FakeSearchConnection("old os")
+        es_connections.add_connection("default", cast(Elasticsearch, old_es))
+        os_connections.add_connection("default", old_os)
+        attempted = []
+
+        def interrupting_close(client):
+            attempted.append(client)
+            raise KeyboardInterrupt
+
+        # Elasticsearch is built, then [opensearch] fails to build its
+        # client -- the same later-step failure as the test above -- and the
+        # interrupt arrives while the Elasticsearch handle is being closed.
+        opts = _output_client_opts(
+            save_aggregate=True,
+            elasticsearch_hosts=_UNREACHABLE_HOSTS,
+            elasticsearch_timeout=1.0,
+            opensearch_hosts=_UNREACHABLE_HOSTS,
+            opensearch_auth_type="awssigv4",
+        )
+        with (
+            patch.object(Elasticsearch, "perform_request", _es_request_without_network),
+            patch.object(Elasticsearch, "close", interrupting_close),
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                parsedmarc.cli._init_output_clients(opts)
+
+        # Twice: once through the handle, and once more by the rollback,
+        # which still finds the alias unreleased because the handle's close()
+        # never got that far.
+        self.assertEqual(len(attempted), 2)
+        self.assertIs(es_connections.get_connection("default"), old_es)
+        self.assertIs(os_connections.get_connection("default"), old_os)
+        self.assertEqual(old_es.close_count, 0)
+
+    def test_a_discarded_client_that_cannot_be_closed_still_returns_the_alias(self):
+        """Closing the discarded client is best-effort; the hand-back is not.
+
+        A client whose transport is already broken raises from ``close()``.
+        Restoring the alias is the half that keeps the configuration still in
+        force writing to the cluster it was configured for, so it must not be
+        skipped because the client being thrown away could not be closed.
+        """
+        connections = parsedmarc.elastic.connections
+        _isolate_default_alias(self, connections)
+        old_conn = _FakeSearchConnection("old")
+        connections.add_connection("default", cast(Elasticsearch, old_conn))
+        attempted = []
+
+        def failing_close(client):
+            attempted.append(client)
+            raise RuntimeError("transport already closed")
+
+        def interrupt(client, *args, **kwargs):
+            raise KeyboardInterrupt
+
+        opts = _output_client_opts(
+            save_aggregate=True,
+            elasticsearch_hosts=_UNREACHABLE_HOSTS,
+            elasticsearch_timeout=1.0,
+        )
+        with (
+            patch.object(Elasticsearch, "perform_request", interrupt),
+            patch.object(Elasticsearch, "close", failing_close),
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                parsedmarc.cli._init_output_clients(opts)
+
+        self.assertEqual(len(attempted), 1)
+        self.assertIs(connections.get_connection("default"), old_conn)
+
+    def test_successful_init_hands_the_alias_to_the_new_client(self):
+        """The negative half: a successful call rolls nothing back.
+
+        The alias must name the client ``set_hosts()`` just built -- it is
+        what the save path resolves -- the previous client must be left
+        untouched for _main() to close on its own terms, and the returned
+        handle must own the new client, which is what makes
+        _close_output_clients() close it later. Ownership is observed by
+        closing the handle and watching which client's close() runs, not by
+        reading the handle's attributes.
+        """
+        connections = parsedmarc.elastic.connections
+        _isolate_default_alias(self, connections)
+        # set_hosts() assigns elastic._SERVERLESS, and on the success path
+        # nothing rolls it back, so restore it here or it leaks into the
+        # rest of the run.
+        self.addCleanup(
+            setattr, parsedmarc.elastic, "_SERVERLESS", parsedmarc.elastic._SERVERLESS
+        )
+        old_conn = _FakeSearchConnection("old")
+        connections.add_connection("default", cast(Elasticsearch, old_conn))
+        closed = self._close_spy(Elasticsearch)
+
+        opts = _output_client_opts(
+            save_aggregate=True,
+            elasticsearch_hosts=_UNREACHABLE_HOSTS,
+            elasticsearch_timeout=1.0,
+        )
+        with patch.object(
+            Elasticsearch, "perform_request", _es_request_without_network
+        ):
+            clients = parsedmarc.cli._init_output_clients(opts)
+            new_conn = connections.get_connection("default")
+
+            self.assertIsNot(new_conn, old_conn)
+            self.assertEqual(closed, [])
+            self.assertEqual(old_conn.close_count, 0)
+            self.assertEqual(sorted(clients), ["elasticsearch"])
+
+            clients["elasticsearch"].close()
+
+        self.assertEqual(closed, [new_conn])
 
 
 def _domain_map_tls_reports():
