@@ -1698,11 +1698,136 @@ def _migration_index_names(
     return names
 
 
-def _init_output_clients(opts, index_prefix_domain_map=None):
-    """Create output clients based on current opts.
+def _search_alias_snapshot() -> list[tuple[Any, Any, Any]]:
+    """Record the module-level state each search backend's set_hosts() writes.
+
+    ``elastic.set_hosts()`` and ``opensearch.set_hosts()`` register the client
+    they build under their SDK's process-wide ``default`` connection alias,
+    and the save path resolves that alias on every write.
+    :func:`_init_output_clients` takes this snapshot before it touches either
+    registry, so that a failure part-way through can put back exactly what it
+    found.
+
+    Returns:
+        list: One ``(module, client, serverless)`` triple per backend.
+        ``client`` is what that backend's ``default`` alias names, or ``None``
+        when the alias is unset. ``serverless`` is ``elastic._SERVERLESS`` for
+        the Elasticsearch backend and ``None`` for OpenSearch, which has no
+        equivalent. Carrying the module itself, rather than a name to look it
+        up by, is what lets :func:`_restore_search_aliases` put each client
+        back into the registry it came from without a second lookup to
+        disagree with. A backend whose module is ``None`` -- its optional
+        extra is not installed, see the guarded imports at the top of this
+        module -- has no state to snapshot and is left out of the list
+        entirely.
+    """
+    snapshot: list[tuple[Any, Any, Any]] = []
+    for module in (elastic, opensearch):
+        if module is None:
+            continue
+        try:
+            # get_connection() does not only look the alias up: it also
+            # *constructs* a client from kwargs stashed by an earlier
+            # connections.configure() call. parsedmarc never calls
+            # configure() -- both set_hosts() implementations register their
+            # client with create_connection() -- so each registry's
+            # ``_kwargs`` stays empty and this can only return an
+            # already-registered client or raise KeyError. Taking the
+            # snapshot can never itself open a connection.
+            connection = module.connections.get_connection("default")
+        except KeyError:
+            connection = None
+        # The alias is not the only module-level state set_hosts() writes:
+        # elastic.set_hosts() also assigns elastic._SERVERLESS, which
+        # elastic.create_indexes() consults to decide whether to strip the
+        # shard settings Serverless rejects. Reaching into a sibling module's
+        # private is the same liberty this function already takes with
+        # ``connections``; without it, a failed reload that flipped
+        # ``[elasticsearch] serverless`` would pair the restored old client
+        # with the new config's flag. opensearch.py declares no module
+        # globals at all (no ``global`` statement in the file), so there is
+        # nothing to pair with it.
+        serverless = elastic._SERVERLESS if module is elastic else None
+        snapshot.append((module, connection, serverless))
+    return snapshot
+
+
+def _restore_search_aliases(snapshot: list[tuple[Any, Any, Any]]) -> None:
+    """Put the state in *snapshot* back the way it was when it was taken.
+
+    ``elastic._SERVERLESS`` is put back first and unconditionally; the alias
+    then has three cases per backend. The alias still names the client it
+    named before, so there is nothing to do. A different client has taken it
+    over -- that client is
+    closed, and the previous client is registered again, or the alias is
+    removed outright when there was no previous client. Or the alias is unset
+    because a fully built handle released it during the teardown that runs
+    first -- nothing left to close, and the previous client is simply
+    registered again; this is the ordinary path when the failure came after a
+    search backend was fully built.
+
+    Closing is best-effort and silent: the client being closed here is the
+    half-built one for the configuration that just failed, it is being
+    discarded either way, and a teardown error is not actionable -- while
+    handing the alias back is what keeps the still-running configuration
+    writing where it thinks it is, so it must happen either way. Closing the
+    same client twice is safe -- ``_close_output_clients`` may already have
+    closed it through its handle -- because both SDKs' ``close()`` are
+    idempotent: ``Elasticsearch.close()`` closes each node's urllib3 pool,
+    whose ``close()`` is a no-op once cleared, and ``OpenSearch.close()``
+    guards on ``if self.pool``.
+
+    Args:
+        snapshot (list): The return value of :func:`_search_alias_snapshot`.
+    """
+    for module, previous, previous_serverless in snapshot:
+        if elastic is not None and module is elastic:
+            # Unconditionally, and before the alias: set_hosts() assigns
+            # _SERVERLESS before it constructs the client, so it can be stale
+            # even on a failure that never reached the registry.
+            elastic._SERVERLESS = previous_serverless
+        try:
+            current = module.connections.get_connection("default")
+        except KeyError:
+            current = None
+        if current is previous:
+            # Nothing took the alias over, including the common case of
+            # both being None. Leave it alone.
+            continue
+        if current is not None:
+            try:
+                current.close()
+            except BaseException:
+                # Best-effort; see the docstring. BaseException, not
+                # Exception, for the same reason the caller's teardown is
+                # wrapped in try/finally: a Ctrl-C landing in close() must
+                # not cost the alias its hand-back, and the exception the
+                # caller re-raises afterwards still reports the failure.
+                pass
+        if previous is None:
+            # Cannot raise KeyError: the alias was just resolved out of this
+            # registry's own ``_conns``, and closing a client does not touch
+            # the registry, so it is still there.
+            module.connections.remove_connection("default")
+        else:
+            module.connections.add_connection("default", previous)
+
+
+def _build_output_clients(opts, clients, index_prefix_domain_map=None):
+    """Create output clients based on current opts, into *clients*.
+
+    Deliberately not transactional: it fills *clients* as it goes and, when a
+    step fails, leaves behind both the clients it had already built and any
+    change ``elastic.set_hosts()``/``opensearch.set_hosts()`` made to their
+    SDKs' module-level state. Undoing that is :func:`_init_output_clients`'s
+    job, which is why *clients* is a parameter -- the caller owns the dict on
+    the failure path too, and can close what is in it. Call
+    :func:`_init_output_clients`, not this.
 
     Args:
         opts: Namespace of parsed configuration values.
+        clients (dict): The dict to fill, keyed by client name. Filled in
+            place, and also returned.
         index_prefix_domain_map (dict | None): The parsed
             ``general.index_prefix_domain_map``. ``None`` -- the default --
             means multi-tenant prefixing is not configured, so Elasticsearch
@@ -1710,13 +1835,13 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
             from ``index_prefix``/``index_suffix``.
 
     Returns:
-        dict of client instances keyed by name.
+        dict: *clients*, filled.
 
     Raises:
         ConfigurationError: If a required output client cannot be created.
+        RuntimeError: If constructing an output client fails, chained to the
+            error the SDK raised.
     """
-    clients = {}
-
     # Each check below is deliberately outside the try/except that wraps
     # its constructor: those handlers re-raise everything as RuntimeError,
     # which would bury the install hint.
@@ -1865,11 +1990,12 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
     if opts.la_dce and loganalytics is None:
         raise ConfigurationError(_missing_extra_hint("log_analytics", "loganalytics"))
 
-    # Elasticsearch and OpenSearch mutate module-level global state via
-    # connections.create_connection(), which cannot be rolled back if a later
-    # step fails.  Initialise them last so that all other clients are created
-    # successfully first; this minimizes the window for partial-init problems
-    # during config reload.
+    # Elasticsearch and OpenSearch mutate module-level global state, in two
+    # places rather than one: connections.create_connection() registers the
+    # new client under the ``default`` alias, and elastic.set_hosts() also
+    # assigns elastic._SERVERLESS. _init_output_clients() rolls both back if
+    # a later step fails. They are still initialized last, so that a failure
+    # in any other output happens before either registry has been touched.
     if opts.save_aggregate or opts.save_failure or opts.save_smtp_tls:
         # Scoped to the same condition as the constructors below, which is
         # also the condition under which process_reports() dereferences
@@ -2022,6 +2148,87 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
             raise RuntimeError(f"OpenSearch: {e}") from e
 
     return clients
+
+
+def _init_output_clients(opts, index_prefix_domain_map=None):
+    """Create output clients based on current opts, all-or-nothing.
+
+    Either every configured client is built and returned, or the clients built
+    so far are closed and the module-level state that
+    ``elastic.set_hosts()``/``opensearch.set_hosts()`` mutate -- each
+    backend's ``default`` connection alias, and ``elastic._SERVERLESS`` -- is
+    left exactly as it was on entry.
+
+    That guarantee is what the SIGHUP reload in :func:`_main` needs. It builds
+    the replacement clients before closing the old ones and keeps running with
+    the old ``opts`` if the build fails. But ``set_hosts()`` registers its
+    client under the ``default`` alias as soon as it is constructed, well
+    before the rest of the initialization can fail -- on an output configured
+    later failing to build, or on a Ctrl-C landing in the index migration.
+    Without the rollback, such a reload left every subsequent save resolving
+    that alias to the *new* cluster while ``opts`` stayed old, and leaked the
+    half-built client.
+
+    Args:
+        opts: Namespace of parsed configuration values.
+        index_prefix_domain_map (dict | None): The parsed
+            ``general.index_prefix_domain_map``; see
+            :func:`_build_output_clients`.
+
+    Returns:
+        dict of client instances keyed by name.
+
+    Raises:
+        ConfigurationError: If a required output client cannot be created.
+        RuntimeError: If constructing an output client fails, chained to the
+            error the SDK raised.
+    """
+    previous_search_state = _search_alias_snapshot()
+    clients: dict[str, Any] = {}
+
+    try:
+        return _build_output_clients(
+            opts, clients, index_prefix_domain_map=index_prefix_domain_map
+        )
+    except BaseException:
+        # Teardown first, then restore. The order is deliberate, and the two
+        # steps are not interchangeable. Tracing the two points at which a
+        # failure can leave a ``default`` alias pointing at a new client:
+        #
+        # (1) Inside the Elasticsearch block after set_hosts(), before the
+        #     handle exists. Teardown closes the outputs built earlier and
+        #     leaves the alias alone -- nothing in ``clients`` owns it -- and
+        #     the restore then closes the new client and re-registers the old
+        #     one. Either order reaches that state.
+        #
+        # (2) In a later step, with _ElasticsearchHandle already in
+        #     ``clients`` owning the new client that holds the alias.
+        #     Teardown first: the handle closes its client and, seeing the
+        #     alias still name that client, releases the alias; the restore
+        #     then finds the alias unset and re-registers the old client,
+        #     which was never closed. Restoring first would instead put the
+        #     old client back and only then close the handle -- leaving the
+        #     whole rollback resting on the handle declining to touch an
+        #     alias that no longer names its own client. It does decline
+        #     today, but that is a property of _ElasticsearchHandle.close(),
+        #     not of this function: before #902 the handle re-resolved the
+        #     alias at close time and would have deleted the registration
+        #     restored a moment earlier, leaving every later save raising
+        #     KeyError. Tearing down first keeps this guarantee local.
+        #
+        # BaseException, not Exception: elastic.migrate_indexes() catches
+        # Exception around every cluster call and logs a warning, so the
+        # failure that escapes the Elasticsearch block after set_hosts() is,
+        # in practice, a KeyboardInterrupt landing in one of them. And try/finally,
+        # because a second Ctrl-C arriving during the teardown propagates
+        # straight through _close_output_clients, which swallows only
+        # Exception; a plain statement sequence would then skip the restore
+        # and leave behind exactly the state this function exists to prevent.
+        try:
+            _close_output_clients(clients)
+        finally:
+            _restore_search_aliases(previous_search_state)
+        raise
 
 
 def _close_output_clients(clients):
