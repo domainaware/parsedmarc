@@ -56,7 +56,7 @@ dependencies = [
     # No extras: the base mailsuite supplies IMAP and Maildir connections
     # plus mail-parser. Gmail and Microsoft Graph come from the gmail and
     # msgraph extras below.
-    "mailsuite>=2.3.1",
+    "mailsuite>=2.3.2",
     "maxminddb>=2.0.0",
     "publicsuffixlist>=0.10.0",
     # Imported directly at utils.py:39 (dateutil.parser). It used to
