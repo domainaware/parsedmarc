@@ -8,6 +8,7 @@ import io
 import json
 import logging
 import os
+import shutil
 import signal
 import stat
 import sys
@@ -37,6 +38,8 @@ import parsedmarc.elastic
 import parsedmarc.log
 import parsedmarc.mail
 import parsedmarc.opensearch as opensearch_module
+import parsedmarc.resources.ipinfo
+import parsedmarc.utils
 from parsedmarc.types import AggregateReport, ParsedReport
 
 SAMPLE_AGGREGATE_REPORT_PATH = (
@@ -3896,6 +3899,632 @@ watch = true
         second_config = mock_watch.call_args_list[1].kwargs["config"]
         self.assertEqual(first_config.dns_timeout, 5.0)
         self.assertEqual(second_config.dns_timeout, 42.0)
+
+
+class _RaisingCloseClient:
+    """An output client whose close() fails, e.g. a Kafka producer whose
+    broker connection is already gone. Unlike the search handles, a plain
+    client like this lets the error reach _close_output_clients(), which is
+    where the SIGHUP reload closes the configuration it just replaced."""
+
+    def __init__(self):
+        self.close_count = 0
+
+    def close(self):
+        self.close_count += 1
+        raise RuntimeError("broker connection already gone")
+
+
+class _RaisingCloseFileHandler(logging.FileHandler):
+    """A log FileHandler whose close() fails, the way flushing to a full
+    disk or a stale network mount does. Counts the attempts so a test can
+    tell "close() was tried and failed" from "close() was never called"."""
+
+    def __init__(self, filename):
+        super().__init__(filename, "a")
+        self.close_attempts = 0
+
+    def close(self):
+        self.close_attempts += 1
+        raise OSError("No space left on device")
+
+
+@unittest.skipUnless(
+    hasattr(signal, "SIGHUP"),
+    "SIGHUP not available on this platform",
+)
+class TestSighupReloadAtomicity(unittest.TestCase):
+    """A SIGHUP reload is all-or-nothing.
+
+    The reload builds the replacement output clients first and only then
+    re-reads the reverse DNS map, the PSL overrides and the IP database,
+    re-applies opts, and rebuilds the ParserConfig. Committing the clients
+    before those steps ran meant a failure in any of them logged "Config
+    reload failed, continuing with previous config" while the *new* clients
+    were already live, the old ones were closed and unrecoverable, and the
+    reverse DNS map had been emptied by the loader that then failed to
+    refill it. #906 made _init_output_clients() itself all-or-nothing; these
+    tests cover the same guarantee for the whole reload.
+
+    Each test drives the real _main() through one SIGHUP and reads the state
+    the *next* watch_inbox() call sees, which is the first point at which the
+    running configuration is observable from outside.
+    """
+
+    def setUp(self):
+        self._stdout_patch = patch("sys.stdout", new_callable=io.StringIO)
+        self._stderr_patch = patch("sys.stderr", new_callable=io.StringIO)
+        self._stdout_patch.start()
+        self._stderr_patch.start()
+        self.addCleanup(self._stderr_patch.stop)
+        self.addCleanup(self._stdout_patch.stop)
+
+        # _main() sets the parsedmarc logger's level and swaps its
+        # FileHandlers, and _configure_dependency_logging() copies its
+        # handler list onto every dependency logger -- including the
+        # temporary handler assertLogs installs. Snapshot all of them here,
+        # before anything runs, so no test leaves a dead handler behind for
+        # the next one.
+        loggers = [parsedmarc.log.logger] + [
+            logging.getLogger(name) for name in parsedmarc.cli._DEPENDENCY_LOGGERS
+        ]
+        saved_logging = [
+            (lg, lg.level, list(lg.handlers), lg.propagate, lg.disabled)
+            for lg in loggers
+        ]
+
+        def _restore_logging():
+            for lg, level, handlers, propagate, disabled in saved_logging:
+                for stray in lg.handlers:
+                    # A reload that changes log_file leaves an open
+                    # FileHandler behind; close it rather than waiting for
+                    # the garbage collector to release the descriptor.
+                    if isinstance(stray, logging.FileHandler) and (
+                        stray not in handlers
+                    ):
+                        stray.close()
+                lg.setLevel(level)
+                lg.handlers[:] = handlers
+                lg.propagate = propagate
+                lg.disabled = disabled
+
+        self.addCleanup(_restore_logging)
+        parsedmarc.log.logger.disabled = False
+
+        # _main() installs SIGHUP/SIGTERM/SIGINT handlers that would
+        # otherwise outlive the test and answer signals raised by later
+        # ones. Registered before the first _main() call installs them.
+        for sig in (signal.SIGHUP, signal.SIGTERM, signal.SIGINT):
+            self.addCleanup(signal.signal, sig, signal.getsignal(sig))
+
+        # Process-wide state a reload writes. Restored explicitly rather
+        # than through _utils_globals_snapshot()/_restore_utils_globals(),
+        # which are themselves under test here.
+        original_map = dict(parsedmarc.REVERSE_DNS_MAP)
+
+        def _restore_map():
+            parsedmarc.REVERSE_DNS_MAP.clear()
+            parsedmarc.REVERSE_DNS_MAP.update(original_map)
+
+        self.addCleanup(_restore_map)
+
+        saved_overrides = list(parsedmarc.utils.psl_overrides)
+        saved_ip_db_path = parsedmarc.utils._IP_DB_PATH
+        saved_ipinfo_token = parsedmarc.utils._IPINFO_API_TOKEN
+
+        def _restore_utils():
+            parsedmarc.utils.psl_overrides[:] = saved_overrides
+            parsedmarc.utils._IP_DB_PATH = saved_ip_db_path
+            parsedmarc.utils._IPINFO_API_TOKEN = saved_ipinfo_token
+
+        self.addCleanup(_restore_utils)
+
+        # A distinctive map entry, so "the map still holds what it held
+        # before the reload" is an assertion about this dict and not about
+        # whatever the bundled CSV happens to contain.
+        parsedmarc.REVERSE_DNS_MAP.clear()
+        parsedmarc.REVERSE_DNS_MAP["before.example.com"] = {
+            "name": "Before Reload",
+            "type": "test",
+        }
+
+    def _write_file(self, contents, suffix):
+        with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False) as f:
+            f.write(contents)
+            path = f.name
+        self.addCleanup(lambda: os.path.exists(path) and os.remove(path))
+        return path
+
+    def _fake_search_clients(self, extra_old_clients=None):
+        """Stand in for _init_output_clients() against the *real* search
+        connection registry.
+
+        The real thing calls ``elastic.set_hosts()``, which registers the
+        client it builds under the process-wide ``default`` alias the moment
+        it is constructed, and stores it in the returned dict wrapped in an
+        _ElasticsearchHandle. That registry and that handle are the seam the
+        reload's rollback is written against, so both are real here and only
+        the cluster connection is a stand-in.
+
+        Returns:
+            tuple: the side effect to give the _init_output_clients patch,
+            the old connection, and the new one.
+        """
+        connections = parsedmarc.elastic.connections
+        _isolate_default_alias(self, connections)
+        old_conn = _FakeSearchConnection("old")
+        new_conn = _FakeSearchConnection("new")
+        self._search_conns = (old_conn, new_conn)
+        calls = []
+
+        def init_clients(opts, index_prefix_domain_map=None):
+            conn = old_conn if not calls else new_conn
+            calls.append(conn)
+            connections.add_connection("default", cast(Elasticsearch, conn))
+            clients = {
+                "elasticsearch": parsedmarc.cli._ElasticsearchHandle(conn),
+            }
+            if conn is old_conn and extra_old_clients:
+                clients.update(extra_old_clients)
+            return clients
+
+        return init_clients, old_conn, new_conn
+
+    def _current_alias(self):
+        try:
+            return parsedmarc.elastic.connections.get_connection("default")
+        except KeyError:
+            return None
+
+    def _capture_state(self):
+        """Everything the reload can write, as the running configuration
+        sees it. Read at the moment the reload is over rather than after
+        _main() returns, because the trailing _close_output_clients() would
+        otherwise blur which clients the reload itself closed."""
+        old_conn, new_conn = self._search_conns
+        return SimpleNamespace(
+            reverse_dns_map=dict(parsedmarc.REVERSE_DNS_MAP),
+            psl_overrides=list(parsedmarc.utils.psl_overrides),
+            ip_db_path=parsedmarc.utils._IP_DB_PATH,
+            ipinfo_api_token=parsedmarc.utils._IPINFO_API_TOKEN,
+            alias=self._current_alias(),
+            old_closed=old_conn.close_count,
+            new_closed=new_conn.close_count,
+        )
+
+    def _drive_reload(
+        self, initial_config, reload_config, init_clients, before_signal=None
+    ):
+        """Run _main() through exactly one SIGHUP reload.
+
+        The first watch_inbox() call rewrites the config file the way an
+        operator would, runs *before_signal* if one was given -- the seam
+        for anything that has to be set up inside the run, after
+        assertLogs() has replaced the logger's handlers -- and signals
+        SIGHUP. The second records the state the reload left behind and
+        signals SIGTERM, so the watch loop breaks and _main() returns
+        normally -- which runs its trailing
+        _close_output_clients(clients). That trailing close is what makes
+        "``clients`` still names the old dict" observable: the clients it
+        closes are, by definition, the ones the run ended with.
+
+        Returns:
+            tuple: the captured state, the watch_inbox mock, and the
+            captured log output.
+        """
+        cfg_path = self._write_file(initial_config, ".ini")
+        captured = {}
+        watch_calls = []
+
+        def watch_side_effect(*args, **kwargs):
+            watch_calls.append(kwargs)
+            if len(watch_calls) == 1:
+                with open(cfg_path, "w") as f:
+                    f.write(reload_config)
+                if before_signal is not None:
+                    before_signal()
+                os.kill(os.getpid(), signal.SIGHUP)
+                return
+            captured["state"] = self._capture_state()
+            os.kill(os.getpid(), signal.SIGTERM)
+
+        with (
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                return_value={
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ),
+            patch(
+                "parsedmarc.cli.watch_inbox", side_effect=watch_side_effect
+            ) as mock_watch,
+            patch("parsedmarc.cli._init_output_clients", side_effect=init_clients),
+            patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]),
+            self.assertLogs(parsedmarc.log.logger, level="INFO") as logs,
+        ):
+            parsedmarc.cli._main()
+
+        self.assertEqual(mock_watch.call_count, 2)
+        self.assertIn("state", captured)
+        return captured["state"], mock_watch, logs.output
+
+    _CONFIG_TEMPLATE = """[general]
+debug = true
+offline = true
+dns_timeout = {dns_timeout}
+{general_extra}
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+batch_size = {batch_size}
+"""
+
+    def _initial_config(self, general_extra=""):
+        """The configuration the run starts with: batch_size 3 and a 5
+        second DNS timeout."""
+        return self._CONFIG_TEMPLATE.format(
+            dns_timeout="5.0", general_extra=general_extra, batch_size=3
+        )
+
+    def _reload_config(self, general_extra=""):
+        """What the operator edits the file to before signalling: every
+        value here differs from the initial config, so committing half of
+        them would show."""
+        return self._CONFIG_TEMPLATE.format(
+            dns_timeout="42.0", general_extra=general_extra, batch_size=9
+        )
+
+    def _assert_previous_config_still_running(self, state, mock_watch, logs):
+        """The claim "continuing with previous config" makes, item by
+        item."""
+        self.assertTrue(
+            any("continuing with previous config" in line for line in logs),
+            logs,
+        )
+        self.assertEqual(
+            state.reverse_dns_map,
+            {"before.example.com": {"name": "Before Reload", "type": "test"}},
+        )
+        second_call = mock_watch.call_args_list[1].kwargs
+        self.assertEqual(second_call["batch_size"], 3)
+        self.assertEqual(second_call["config"].dns_timeout, 5.0)
+
+    def testFailedReloadKeepsOldClientsWhenMapFileIsMissing(self):
+        """A reverse DNS map path that does not exist fails the reload after
+        the replacement clients were built: the new clients must be closed
+        and the old ones left running and still registered under the
+        ``default`` alias.
+
+        open() on the missing file is the injected failure -- the loader
+        catches httpx and CSV errors but not a missing local file, which is
+        exactly what a typo in ``reverse_dns_map_path`` produces.
+        """
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+
+        state, mock_watch, logs = self._drive_reload(
+            self._initial_config(),
+            self._reload_config(
+                general_extra="local_reverse_dns_map_path = /nonexistent/map.csv\n"
+            ),
+            init_clients,
+        )
+
+        # The new clients were built, then closed and stripped of the alias.
+        self.assertEqual(state.new_closed, 1)
+        # The old ones are untouched and still hold the alias, so every save
+        # between now and the next reload reaches the cluster opts describes.
+        self.assertEqual(state.old_closed, 0)
+        self.assertIs(state.alias, old_conn)
+        self._assert_previous_config_still_running(state, mock_watch, logs)
+        # _main()'s trailing close ran against the old clients, which is
+        # only possible if `clients` still named them -- and it did not
+        # close the discarded clients a second time.
+        self.assertEqual(old_conn.close_count, 1)
+        self.assertEqual(new_conn.close_count, 1)
+
+    def testFailedReloadRestoresPslOverrides(self):
+        """load_psl_overrides() empties the module-level list before it
+        reads anything, so a missing overrides file leaves it empty -- and
+        load_reverse_dns_map() calls it first thing, which is why staging
+        the map into a fresh dict is not enough on its own.
+
+        The rollback must put the list back by value, or every later
+        get_base_domain() call would fold domains without the overrides.
+        """
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+        overrides_before = list(parsedmarc.utils.psl_overrides)
+        self.assertGreater(len(overrides_before), 0)
+
+        state, mock_watch, logs = self._drive_reload(
+            self._initial_config(),
+            self._reload_config(
+                general_extra="local_psl_overrides_path = /nonexistent/psl_overrides.txt\n"
+            ),
+            init_clients,
+        )
+
+        self.assertEqual(state.psl_overrides, overrides_before)
+        self.assertEqual(state.new_closed, 1)
+        self.assertEqual(state.old_closed, 0)
+        self.assertIs(state.alias, old_conn)
+        self._assert_previous_config_still_running(state, mock_watch, logs)
+
+    def testFailedReloadKeepsOldClientsWhenIpDatabaseIsUnavailable(self):
+        """load_ip_db() falls back to the bundled MMDB when the configured
+        file, the download and the cache are all unavailable; an install
+        without that bundled resource makes the fallback itself raise.
+
+        This is the deepest point a reload can fail and still be rolled
+        back: only configure_ipinfo_api() runs after it, and its documented
+        failure (an invalid token) exits the process rather than returning
+        to the watch loop. By the time it fails, the replacement clients
+        hold the ``default`` alias, the reverse DNS map has been staged from
+        a different file, and load_psl_overrides() has already replaced the
+        live overrides list -- so this is also where the most restores are
+        load-bearing at once.
+        """
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+        overrides_before = list(parsedmarc.utils.psl_overrides)
+        self.assertNotIn("reload-only.example", overrides_before)
+        # Files the reload names and the run must end up not using.
+        reload_map_path = self._write_file(
+            "base_reverse_dns,name,type\nafter.example.com,After Reload,test\n",
+            ".csv",
+        )
+        reload_overrides_path = self._write_file("reload-only.example\n", ".txt")
+
+        # The IP database the run starts with, and keeps.
+        ip_db_path = self._write_file("not really an mmdb", ".mmdb")
+        # An empty cache directory, so load_ip_db() cannot answer from a
+        # copy some earlier run downloaded and must reach the bundled file.
+        cache_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, cache_dir, True)
+
+        real_files = parsedmarc.utils.files
+
+        def files_without_bundled_mmdb(package):
+            # The importlib.resources boundary: the maps package (the
+            # reverse DNS map and the PSL overrides, both loaded earlier in
+            # the same reload) still resolves normally.
+            if package is parsedmarc.resources.ipinfo:
+                raise ModuleNotFoundError("parsedmarc.resources.ipinfo")
+            return real_files(package)
+
+        with (
+            patch("parsedmarc.utils.files", side_effect=files_without_bundled_mmdb),
+            patch("parsedmarc.utils.tempfile.gettempdir", return_value=cache_dir),
+        ):
+            state, mock_watch, logs = self._drive_reload(
+                # Startup resolves the local file directly and never reaches
+                # the bundled fallback, so only the reload -- which drops
+                # ip_db_path -- fails.
+                self._initial_config(f"ip_db_path = {ip_db_path}\n"),
+                self._reload_config(
+                    general_extra=(
+                        f"local_reverse_dns_map_path = {reload_map_path}\n"
+                        f"local_psl_overrides_path = {reload_overrides_path}\n"
+                    )
+                ),
+                init_clients,
+            )
+
+        # The two restores that carry weight at this depth: the overrides
+        # list load_psl_overrides() had already replaced, and the map, which
+        # was staged into a dict that is simply dropped -- the live one
+        # still holds the pre-reload entry rather than the reload's file.
+        self.assertEqual(state.psl_overrides, overrides_before)
+        self.assertNotIn("after.example.com", state.reverse_dns_map)
+        # load_ip_db() assigns _IP_DB_PATH only as the last thing on each
+        # of its paths, so a raise from it leaves the previous selection in
+        # place rather than a half-applied one; that the snapshot can put a
+        # *changed* value back is covered by TestUtilsGlobalsSnapshot.
+        self.assertEqual(state.ip_db_path, ip_db_path)
+        self.assertEqual(state.new_closed, 1)
+        self.assertEqual(state.old_closed, 0)
+        self.assertIs(state.alias, old_conn)
+        self._assert_previous_config_still_running(state, mock_watch, logs)
+
+    def testSuccessfulReloadCommitsEveryStagedValue(self):
+        """The other half: when every step succeeds, the staged state is
+        what the run continues with -- new clients live and holding the
+        alias, old clients closed, the reverse DNS map replaced by the file
+        the new config names, and the new watch parameters and ParserConfig
+        in use.
+
+        (Passes against the pre-fix code too, necessarily: a reload with
+        nothing to roll back has to end in the same place either way. It is
+        here so that the failure tests above cannot be satisfied by a
+        reload that quietly stopped applying anything.)"""
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+        map_path = self._write_file(
+            "base_reverse_dns,name,type\nafter.example.com,After Reload,test\n",
+            ".csv",
+        )
+
+        state, mock_watch, logs = self._drive_reload(
+            self._initial_config(),
+            self._reload_config(
+                general_extra=f"local_reverse_dns_map_path = {map_path}\n"
+            ),
+            init_clients,
+        )
+
+        self.assertTrue(
+            any("Configuration reloaded successfully" in line for line in logs),
+            logs,
+        )
+        self.assertEqual(
+            state.reverse_dns_map,
+            {"after.example.com": {"name": "After Reload", "type": "test"}},
+        )
+        self.assertIs(state.alias, new_conn)
+        self.assertEqual(state.old_closed, 1)
+        self.assertEqual(state.new_closed, 0)
+        second_call = mock_watch.call_args_list[1].kwargs
+        self.assertEqual(second_call["batch_size"], 9)
+        self.assertEqual(second_call["config"].dns_timeout, 42.0)
+        # The ParserConfig keeps the live map object, so the in-place
+        # refresh above has to reach the parser through it.
+        self.assertIs(second_call["config"].reverse_dns_map, parsedmarc.REVERSE_DNS_MAP)
+        # _main()'s trailing close ran against the new clients.
+        self.assertEqual(new_conn.close_count, 1)
+
+    def testOldClientCloseFailureDoesNotUndoTheReload(self):
+        """Closing the replaced clients is the last step and is best effort:
+        a client whose close() raises is logged and the reloaded
+        configuration stays live.
+
+        (This one passes against the pre-fix code too -- there the same
+        close ran before the swap, and _close_output_clients() swallowed the
+        error either way. It guards the move: closing the old clients last
+        must not put the commit at risk.)
+        """
+        raising_client = _RaisingCloseClient()
+        init_clients, old_conn, new_conn = self._fake_search_clients(
+            extra_old_clients={"kafka": raising_client}
+        )
+        map_path = self._write_file(
+            "base_reverse_dns,name,type\nafter.example.com,After Reload,test\n",
+            ".csv",
+        )
+
+        state, mock_watch, logs = self._drive_reload(
+            self._initial_config(),
+            self._reload_config(
+                general_extra=f"local_reverse_dns_map_path = {map_path}\n"
+            ),
+            init_clients,
+        )
+
+        self.assertEqual(raising_client.close_count, 1)
+        self.assertTrue(
+            any("Error closing kafka" in line for line in logs),
+            logs,
+        )
+        self.assertTrue(
+            any("Configuration reloaded successfully" in line for line in logs),
+            logs,
+        )
+        self.assertIs(state.alias, new_conn)
+        self.assertEqual(state.new_closed, 0)
+        self.assertEqual(state.old_closed, 1)
+        self.assertEqual(
+            state.reverse_dns_map,
+            {"after.example.com": {"name": "After Reload", "type": "test"}},
+        )
+        self.assertEqual(mock_watch.call_args_list[1].kwargs["batch_size"], 9)
+
+    def testLogFileCloseFailureDoesNotUndoTheReload(self):
+        """Swapping the log file is the last thing the commit does, and
+        closing the replaced FileHandler can fail on a full disk or a stale
+        mount. That is the only statement in the commit that can raise, and
+        it must not take the reload -- which is already live by then -- with
+        it."""
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+        map_path = self._write_file(
+            "base_reverse_dns,name,type\nafter.example.com,After Reload,test\n",
+            ".csv",
+        )
+        log_path = self._write_file("", ".log")
+        stale_handler = _RaisingCloseFileHandler(self._write_file("", ".log"))
+        # The subclass's close() raises; the unbound FileHandler.close()
+        # is what actually releases the descriptor.
+        self.addCleanup(logging.FileHandler.close, stale_handler)
+
+        state, mock_watch, logs = self._drive_reload(
+            self._initial_config(),
+            self._reload_config(
+                general_extra=(
+                    f"local_reverse_dns_map_path = {map_path}\nlog_file = {log_path}\n"
+                )
+            ),
+            init_clients,
+            # Inside the run: assertLogs() replaces the logger's handler
+            # list on the way in, so a handler attached before _main()
+            # started would not be there for the reload to close.
+            before_signal=lambda: parsedmarc.log.logger.addHandler(stale_handler),
+        )
+
+        self.assertEqual(stale_handler.close_attempts, 1)
+        self.assertTrue(
+            any("Unable to close the log file" in line for line in logs), logs
+        )
+        self.assertNotIn(stale_handler, parsedmarc.log.logger.handlers)
+        # The commit stands: new clients live and holding the alias, old
+        # ones closed, map replaced, new watch parameters in use.
+        self.assertTrue(
+            any("Configuration reloaded successfully" in line for line in logs), logs
+        )
+        self.assertIs(state.alias, new_conn)
+        self.assertEqual(state.new_closed, 0)
+        self.assertEqual(state.old_closed, 1)
+        self.assertEqual(
+            state.reverse_dns_map,
+            {"after.example.com": {"name": "After Reload", "type": "test"}},
+        )
+        self.assertEqual(mock_watch.call_args_list[1].kwargs["batch_size"], 9)
+
+
+class TestUtilsGlobalsSnapshot(unittest.TestCase):
+    """_utils_globals_snapshot() / _restore_utils_globals() cover every
+    module global the config loaders the SIGHUP reload calls assign:
+    ``psl_overrides`` (load_psl_overrides), ``_IP_DB_PATH`` (load_ip_db) and
+    ``_IPINFO_API_TOKEN`` (configure_ipinfo_api)."""
+
+    def setUp(self):
+        saved_overrides = list(parsedmarc.utils.psl_overrides)
+        saved_ip_db_path = parsedmarc.utils._IP_DB_PATH
+        saved_token = parsedmarc.utils._IPINFO_API_TOKEN
+
+        def _restore():
+            parsedmarc.utils.psl_overrides[:] = saved_overrides
+            parsedmarc.utils._IP_DB_PATH = saved_ip_db_path
+            parsedmarc.utils._IPINFO_API_TOKEN = saved_token
+
+        self.addCleanup(_restore)
+
+    def testRestoresEveryLoaderGlobalAfterTheLoadersRanAgain(self):
+        parsedmarc.utils.psl_overrides[:] = ["example.co.uk"]
+        parsedmarc.utils._IP_DB_PATH = "/before/ipinfo_lite.mmdb"
+        parsedmarc.utils._IPINFO_API_TOKEN = "before-token"
+        overrides_object = parsedmarc.utils.psl_overrides
+
+        snapshot = parsedmarc.cli._utils_globals_snapshot()
+
+        # What the loaders do: the overrides list is cleared and refilled in
+        # place, and the other two are rebound.
+        parsedmarc.utils.psl_overrides.clear()
+        parsedmarc.utils.psl_overrides.append("example.com.au")
+        parsedmarc.utils._IP_DB_PATH = "/after/ipinfo_lite.mmdb"
+        parsedmarc.utils._IPINFO_API_TOKEN = "after-token"
+
+        parsedmarc.cli._restore_utils_globals(snapshot)
+
+        self.assertEqual(parsedmarc.utils.psl_overrides, ["example.co.uk"])
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, "/before/ipinfo_lite.mmdb")
+        self.assertEqual(parsedmarc.utils._IPINFO_API_TOKEN, "before-token")
+        # In place, not rebound: get_base_domain() reads the list through
+        # the module global, but the snapshot must not hand back a
+        # different object to anything holding a reference to this one.
+        self.assertIs(parsedmarc.utils.psl_overrides, overrides_object)
+
+    def testSnapshotIsNotAliasedToTheLiveOverridesList(self):
+        """The overrides list is snapshotted by value: load_psl_overrides()
+        mutates the live object, so a snapshot that aliased it would record
+        the failed reload's contents instead of the previous ones."""
+        parsedmarc.utils.psl_overrides[:] = ["example.co.uk"]
+
+        snapshot = parsedmarc.cli._utils_globals_snapshot()
+        parsedmarc.utils.psl_overrides.clear()
+
+        self.assertEqual(snapshot["psl_overrides"], ["example.co.uk"])
 
 
 class TestSigtermShutdown(unittest.TestCase):
