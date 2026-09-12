@@ -4600,6 +4600,68 @@ batch_size = {batch_size}
         self.assertIs(state.alias, old_conn)
         self._assert_previous_config_still_running(state, mock_watch, logs)
 
+    def testFailedReloadSurvivesAStagedLogFileHandlerThatCannotClose(self):
+        """A rollback whose staged-handler close fails must still restore
+        the search alias and finish as "continuing with previous config",
+        instead of the close error escaping the handler and taking the
+        watcher down with the alias left unrestored.
+
+        Same missing-map injected failure as
+        testFailedReloadClosesTheStagedLogFileHandler, but the staged
+        handler here is a _RaisingCloseFileHandler, so the rollback's own
+        ``staged_log_handler.close()`` call raises. Before the fix, that
+        raise propagated out of the ``except Exception:`` block, so
+        _restore_search_aliases() and _restore_utils_globals() below it
+        never ran and the exception itself replaced the "Config reload
+        failed" log message.
+        """
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+        log_path = self._write_file("", ".log")
+        opened: list[_RaisingCloseFileHandler] = []
+
+        class _CapturingRaisingCloseFileHandler(_RaisingCloseFileHandler):
+            # cli.py constructs the handler as FileHandler(path, "a"), and
+            # _RaisingCloseFileHandler always opens in append mode, so the
+            # mode argument only needs accepting.
+            def __init__(self, filename, mode="a"):
+                super().__init__(filename)
+                opened.append(self)
+
+        with patch("logging.FileHandler", _CapturingRaisingCloseFileHandler):
+            state, mock_watch, logs = self._drive_reload(
+                self._initial_config(),
+                self._reload_config(
+                    general_extra=(
+                        "local_reverse_dns_map_path = /nonexistent/map.csv\n"
+                        f"log_file = {log_path}\n"
+                    )
+                ),
+                init_clients,
+            )
+
+        # The initial config names no log file, so the staging step is the
+        # only thing in the run that opens one.
+        self.assertEqual(len(opened), 1)
+        self.addCleanup(logging.FileHandler.close, opened[0])
+        self.assertEqual(opened[0].close_attempts, 1)
+        self.assertTrue(
+            any(
+                "Unable to close the log file opened for the reload" in line
+                for line in logs
+            ),
+            logs,
+        )
+        # The close error was logged and swallowed rather than escaping, so
+        # the rollback still finished and reported itself normally.
+        self._assert_previous_config_still_running(state, mock_watch, logs)
+        # ... and the two restores that come after the close in source order
+        # still ran: the new clients are closed, the old ones still hold the
+        # alias, and the staged handler was never attached to the logger.
+        self.assertEqual(state.new_closed, 1)
+        self.assertEqual(state.old_closed, 0)
+        self.assertIs(state.alias, old_conn)
+        self.assertNotIn(opened[0], state.log_handlers)
+
     def testLogFileUnopenableAtStartupIsRetriedOnReload(self):
         """A ``log_file`` that could not be opened when parsedmarc started is
         only a warning there -- startup has no previous configuration to

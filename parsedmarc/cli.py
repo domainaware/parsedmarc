@@ -3858,8 +3858,12 @@ def _main():
                 # IPinfo token, must not be rolled back.
                 #
                 # The staged log file handler, if one was opened, is closed
-                # here too: it was never attached to the logger, so no
-                # record ever reached it and closing it is the whole undo.
+                # here too, best-effort: it was never attached to the
+                # logger, so no record ever reached it and there is
+                # nothing buffered to lose, but the close itself can still
+                # raise (a full disk, a stale network mount), and that
+                # error is logged and swallowed so it cannot skip the two
+                # restores below it.
                 #
                 # Close the new clients *before* restoring the alias, never
                 # after: a fully built _ElasticsearchHandle owns the new
@@ -3890,9 +3894,11 @@ def _main():
                 #   client is registered again. The utils globals were not
                 #   reached, so their restore is still a no-op.
                 # The log file open: as above, and the handler was never
-                #   attached to the logger, so closing it here is the whole
-                #   undo -- the logger still holds the old FileHandler,
-                #   which phase 2 never got to remove.
+                #   attached to the logger, so it has nothing buffered to
+                #   lose -- the logger still holds the old FileHandler,
+                #   which phase 2 never got to remove. The close itself is
+                #   best-effort (logged and swallowed), so a close that
+                #   fails cannot skip the two restores below it.
                 # load_reverse_dns_map: as above, plus psl_overrides, which
                 #   load_psl_overrides() cleared and may have refilled from
                 #   the new config; restoring it by value is load-bearing
@@ -3915,7 +3921,13 @@ def _main():
                 #   own tests are what guard them.
                 _close_output_clients(new_clients)
                 if staged_log_handler is not None:
-                    staged_log_handler.close()
+                    try:
+                        staged_log_handler.close()
+                    except Exception as close_error:
+                        logger.warning(
+                            "Unable to close the log file opened for the "
+                            f"reload: {close_error}"
+                        )
                 _restore_search_aliases(previous_search_state)
                 _restore_utils_globals(previous_utils_state)
                 logger.exception(
