@@ -4090,6 +4090,11 @@ class TestSighupReloadAtomicity(unittest.TestCase):
             alias=self._current_alias(),
             old_closed=old_conn.close_count,
             new_closed=new_conn.close_count,
+            # Read here rather than after _main() returns: assertLogs()
+            # restores the logger's handler list on the way out, so the
+            # handlers a reload attached or detached are only visible from
+            # inside the run.
+            log_handlers=list(parsedmarc.log.logger.handlers),
         )
 
     def _drive_reload(
@@ -4424,9 +4429,9 @@ batch_size = {batch_size}
     def testLogFileCloseFailureDoesNotUndoTheReload(self):
         """Swapping the log file is the last thing the commit does, and
         closing the replaced FileHandler can fail on a full disk or a stale
-        mount. That is the only statement in the commit that can raise, and
-        it must not take the reload -- which is already live by then -- with
-        it."""
+        mount. Opening the replacement happens back in phase 1, so the close
+        is the only statement left in the commit that can raise, and it must
+        not take the reload -- which is already live by then -- with it."""
         init_clients, old_conn, new_conn = self._fake_search_clients()
         map_path = self._write_file(
             "base_reverse_dns,name,type\nafter.example.com,After Reload,test\n",
@@ -4456,7 +4461,7 @@ batch_size = {batch_size}
         self.assertTrue(
             any("Unable to close the log file" in line for line in logs), logs
         )
-        self.assertNotIn(stale_handler, parsedmarc.log.logger.handlers)
+        self.assertNotIn(stale_handler, state.log_handlers)
         # The commit stands: new clients live and holding the alias, old
         # ones closed, map replaced, new watch parameters in use.
         self.assertTrue(
@@ -4470,6 +4475,130 @@ batch_size = {batch_size}
             {"after.example.com": {"name": "After Reload", "type": "test"}},
         )
         self.assertEqual(mock_watch.call_args_list[1].kwargs["batch_size"], 9)
+
+    def testUnwritableLogFileAbortsTheReload(self):
+        """The replacement log file is opened in phase 1, with the previous
+        FileHandler still attached, so a ``log_file`` that cannot be opened
+        is a reload failure rather than a warning logged after the old
+        handler is already gone.
+
+        Everything else in this reload would have succeeded -- it names a
+        readable map file and a new batch size -- so the previous
+        configuration still running afterwards is the log file open's doing.
+        The old handler is still attached and still open, which is what
+        makes the "Config reload failed" record reach the log file the
+        operator is tailing, and no second FileHandler was left behind by
+        the open that failed.
+        """
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+        map_path = self._write_file(
+            "base_reverse_dns,name,type\nafter.example.com,After Reload,test\n",
+            ".csv",
+        )
+        # /proc has no subdirectories that can be created, so opening a file
+        # under a nonexistent one fails the way a bad ``log_file`` path
+        # does. Same trick as
+        # test_unwritable_log_file_logs_warning_does_not_raise.
+        unwritable_log = "/proc/nonexistent/parsedmarc-reload.log"
+        live_handler = logging.FileHandler(self._write_file("", ".log"), "a")
+        self.addCleanup(live_handler.close)
+        self.addCleanup(parsedmarc.log.logger.removeHandler, live_handler)
+
+        state, mock_watch, logs = self._drive_reload(
+            self._initial_config(),
+            self._reload_config(
+                general_extra=(
+                    f"local_reverse_dns_map_path = {map_path}\n"
+                    f"log_file = {unwritable_log}\n"
+                )
+            ),
+            init_clients,
+            # Inside the run, for the same reason as the close-failure test:
+            # assertLogs() replaces the logger's handler list on the way in.
+            before_signal=lambda: parsedmarc.log.logger.addHandler(live_handler),
+        )
+
+        self.assertTrue(
+            any(
+                "Config reload failed, continuing with previous config" in line
+                for line in logs
+            ),
+            logs,
+        )
+        self.assertFalse(
+            any("Configuration reloaded successfully" in line for line in logs),
+            logs,
+        )
+        # The log file the operator is tailing is still attached and still
+        # open, so the failure was reported into it -- and it is the only
+        # FileHandler on the logger, so nothing leaked from the failed open.
+        self.assertEqual(
+            [h for h in state.log_handlers if isinstance(h, logging.FileHandler)],
+            [live_handler],
+        )
+        self.assertTrue(
+            live_handler.stream is not None and not live_handler.stream.closed,
+            "the previous log file handler was closed",
+        )
+        # The rest of the reload was rolled back: the replacement clients
+        # are closed, the old ones still hold the alias, the map still holds
+        # its pre-reload entry, and the watch parameters are the originals.
+        self.assertEqual(state.new_closed, 1)
+        self.assertEqual(state.old_closed, 0)
+        self.assertIs(state.alias, old_conn)
+        self.assertNotIn("after.example.com", state.reverse_dns_map)
+        self._assert_previous_config_still_running(state, mock_watch, logs)
+
+    def testFailedReloadClosesTheStagedLogFileHandler(self):
+        """A reload that opens the replacement log file and then fails on a
+        later step has to close the file it opened: the handler was never
+        attached to the logger, so closing it is the whole undo, and leaving
+        it open would leak a descriptor on every such reload.
+
+        The missing map path is the injected failure, as in
+        testFailedReloadKeepsOldClientsWhenMapFileIsMissing; this reload also
+        names a writable log file, so the staged handler exists by the time
+        that failure lands. Capturing it needs a real FileHandler subclass
+        rather than a mock, because the code the reload runs afterwards
+        checks handlers with isinstance().
+        """
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+        log_path = self._write_file("", ".log")
+        opened: list[logging.FileHandler] = []
+
+        class _CapturingFileHandler(logging.FileHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                opened.append(self)
+
+        with patch("logging.FileHandler", _CapturingFileHandler):
+            state, mock_watch, logs = self._drive_reload(
+                self._initial_config(),
+                self._reload_config(
+                    general_extra=(
+                        "local_reverse_dns_map_path = /nonexistent/map.csv\n"
+                        f"log_file = {log_path}\n"
+                    )
+                ),
+                init_clients,
+            )
+
+        # The initial config names no log file, so the staging step is the
+        # only thing in the run that opens one.
+        self.assertEqual(len(opened), 1)
+        staged = opened[0]
+        self.addCleanup(staged.close)
+        self.assertEqual(staged.baseFilename, os.path.abspath(log_path))
+        # FileHandler.close() drops the stream it owns, so a None stream is
+        # the rollback having closed this handler.
+        self.assertIsNone(staged.stream)
+        # It was never attached, so there was nothing else to undo -- and
+        # the logger is still writing wherever it was before the SIGHUP.
+        self.assertNotIn(staged, state.log_handlers)
+        self.assertEqual(state.new_closed, 1)
+        self.assertEqual(state.old_closed, 0)
+        self.assertIs(state.alias, old_conn)
+        self._assert_previous_config_still_running(state, mock_watch, logs)
 
 
 class TestUtilsGlobalsSnapshot(unittest.TestCase):

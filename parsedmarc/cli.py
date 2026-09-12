@@ -3701,6 +3701,10 @@ def _main():
             # built, and an empty dict makes that a no-op when the failure
             # came before (or from inside) _init_output_clients().
             new_clients: dict[str, Any] = {}
+            # Bound before the try for the same reason: the rollback closes
+            # the replacement log file handler if phase 1 opened one, and
+            # ``None`` means there is nothing to close.
+            staged_log_handler: logging.FileHandler | None = None
             try:
                 # Phase 1 -- stage every fallible step off to the side.
                 # Nothing the running configuration reads is written here,
@@ -3738,6 +3742,39 @@ def _main():
                     if new_opts.mailbox_max_unsaved_retries is not None
                     else 2
                 )
+
+                # Open the replacement log file, if the config names a
+                # different one. Opening it is the one thing in the logging
+                # refresh that can fail on a bad path, and constructing the
+                # handler opens the file immediately (FileHandler's default
+                # ``delay=False``), so opening it here is what leaves phase
+                # 2 with nothing fallible to do but the close. Nothing in
+                # the running configuration is touched: the handler is not
+                # attached to the logger until the commit. It sits before
+                # the loaders because its only side effect outside this
+                # process is opening the new log file for append, which is
+                # smaller than load_ip_db()'s download.
+                #
+                # ``opts`` is still the pre-reload namespace here -- phase 2
+                # is what copies new_opts onto it -- which is deliberate:
+                # the comparison is between the file being written now and
+                # the one the new config names.
+                #
+                # Note the asymmetry with startup, where an unwritable log
+                # file is only a warning: there is no previous configuration
+                # to keep there. Here there is, so it is a reload failure --
+                # and the traceback lands in the old log file, which is
+                # still attached.
+                old_log_file = getattr(opts, "active_log_file", None)
+                new_log_file = new_opts.log_file
+                if old_log_file != new_log_file and new_log_file:
+                    staged_log_handler = logging.FileHandler(new_log_file, "a")
+                    staged_log_handler.setFormatter(
+                        logging.Formatter(
+                            "%(asctime)s - %(levelname)s"
+                            " - [%(filename)s:%(lineno)d] - %(message)s"
+                        )
+                    )
 
                 # Reload the reverse DNS map so changes to the
                 # map path/URL in the config take effect. PSL overrides
@@ -3815,6 +3852,10 @@ def _main():
                 # that does reach this point, the SystemExit from an invalid
                 # IPinfo token, must not be rolled back.
                 #
+                # The staged log file handler, if one was opened, is closed
+                # here too: it was never attached to the logger, so no
+                # record ever reached it and closing it is the whole undo.
+                #
                 # Close the new clients *before* restoring the alias, never
                 # after: a fully built _ElasticsearchHandle owns the new
                 # client and releases the alias as it closes, so closing
@@ -3843,6 +3884,10 @@ def _main():
                 #   clients hold the alias, so they are closed and the old
                 #   client is registered again. The utils globals were not
                 #   reached, so their restore is still a no-op.
+                # The log file open: as above, and the handler was never
+                #   attached to the logger, so closing it here is the whole
+                #   undo -- the logger still holds the old FileHandler,
+                #   which phase 2 never got to remove.
                 # load_reverse_dns_map: as above, plus psl_overrides, which
                 #   load_psl_overrides() cleared and may have refilled from
                 #   the new config; restoring it by value is load-bearing
@@ -3864,6 +3909,8 @@ def _main():
                 #   makes them load-bearing again. _utils_globals_snapshot's
                 #   own tests are what guard them.
                 _close_output_clients(new_clients)
+                if staged_log_handler is not None:
+                    staged_log_handler.close()
                 _restore_search_aliases(previous_search_state)
                 _restore_utils_globals(previous_utils_state)
                 logger.exception(
@@ -3874,11 +3921,12 @@ def _main():
                 # atomically. Nothing from here to the end of this block may
                 # raise, since there is no going back once the first
                 # statement lands: the commit itself is assignments only, and
-                # the logging refresh that follows it guards both of the
-                # calls that can fail (closing the replaced log file, and
-                # opening the new one). That is also why this is an ``else``
-                # and not the tail of the ``try`` -- a rollback running over
-                # committed state would close the clients that are now live.
+                # the logging refresh that follows it guards the one call
+                # that can fail, closing the replaced log file -- the
+                # replacement was opened back in phase 1. That is also why
+                # this is an ``else`` and not the tail of the ``try`` -- a
+                # rollback running over committed state would close the
+                # clients that are now live.
                 # In place, never rebound. Rebinding would only move this
                 # module's own name -- cli.py imports REVERSE_DNS_MAP from
                 # parsedmarc, so `REVERSE_DNS_MAP = staged` here would
@@ -3916,9 +3964,9 @@ def _main():
                 if opts.debug:
                     logger.setLevel(logging.DEBUG)
 
-                # Refresh FileHandler if log_file changed
-                old_log_file = getattr(opts, "active_log_file", None)
-                new_log_file = opts.log_file
+                # Refresh FileHandler if log_file changed. Both names were
+                # computed in phase 1, against the configuration that was
+                # running then.
                 if old_log_file != new_log_file:
                     # Remove old FileHandlers
                     for h in list(logger.handlers):
@@ -3942,18 +3990,10 @@ def _main():
                                 logger.warning(
                                     f"Unable to close the log file: {close_error}"
                                 )
-                    # Add new FileHandler if configured
-                    if new_log_file:
-                        try:
-                            fh = logging.FileHandler(new_log_file, "a")
-                            file_formatter = logging.Formatter(
-                                "%(asctime)s - %(levelname)s"
-                                " - [%(filename)s:%(lineno)d] - %(message)s"
-                            )
-                            fh.setFormatter(file_formatter)
-                            logger.addHandler(fh)
-                        except Exception as log_error:
-                            logger.warning(f"Unable to write to log file: {log_error}")
+                    # Attach the handler phase 1 opened, if the new
+                    # configuration names a log file at all.
+                    if staged_log_handler is not None:
+                        logger.addHandler(staged_log_handler)
                     opts.active_log_file = new_log_file
 
                 _configure_dependency_logging(logger.level)
