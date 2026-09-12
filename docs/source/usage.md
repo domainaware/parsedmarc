@@ -1383,7 +1383,7 @@ for that batch have completed. The following settings are reloaded:
 - Multi-tenant index prefix domain map (`index_prefix_domain_map` —
   the referenced YAML file is re-read on reload)
 - DNS and GeoIP settings (`nameservers`, `dns_timeout`, `ip_db_path`,
-  `ip_db_url`, `offline`, etc.)
+  `ipinfo_url`, `offline`, etc.)
 - Processing flags (`strip_attachment_payloads`, `batch_size`,
   `check_timeout`, etc.)
 - Log level (`debug`, `verbose`, `warnings`, `silent`)
@@ -1392,16 +1392,37 @@ Mailbox connection settings (IMAP host/credentials, Microsoft Graph,
 Gmail API, Maildir path) are **not** reloaded — changing those still
 requires a full restart.
 
-On a **successful** reload, existing output client connections are
-closed and new ones are created from the updated configuration. The
-service then resumes watching with the new settings.
+On a **successful** reload, the output clients for the updated
+configuration are created first, and the connections they replace are
+closed once the new configuration is live. The service then resumes
+watching with the new settings.
 
 If the new configuration file contains errors (missing required
-settings, unreachable output destinations, etc.), the **entire reload
-is aborted** — no output clients are replaced and the previous
-configuration remains fully active. This means a typo in one section
-will not take down an otherwise working setup. Check the logs for
-details:
+settings, an output client that cannot be built — a PostgreSQL server,
+Kafka broker, or TCP/TLS syslog server that cannot be reached, or an
+`[opensearch]` `auth_type` that is not supported — an unreadable reverse
+DNS map or PSL overrides file, a `log_file` that cannot be opened for
+writing, a non-numeric `batch_size`, etc.), the **entire reload is
+aborted** — any output clients built for the new configuration are
+closed again, and the previous configuration remains fully active: the
+old output clients stay open and connected, and the reverse DNS map, the
+PSL overrides, the IP database selection, and every other setting keep
+the values they had before the `SIGHUP`. This means a typo in one
+section will not take down an otherwise working setup. Unlike startup,
+where an unwritable `log_file` is only a warning, on reload it is one of
+the errors that abort the reload, so the previous log file keeps
+receiving logs — including the one explaining why. A `log_file` that
+could not be opened when parsedmarc started (a warning at startup) is
+retried by the next reload even if the setting is unchanged. (One thing
+an aborted reload does not put back: if it got as far as downloading a
+new IP database from a changed `ipinfo_url`, that file stays in the
+shared cache directory. Which database parsedmarc *uses* is unchanged,
+and the cached file is the same one the next restart would download.)
+Elasticsearch and OpenSearch are the exception to "cannot be reached":
+their clients connect lazily and the index migration only warns when the
+cluster is unreachable, so a reload that points at an unreachable
+cluster still commits, and the failure shows up on the first save
+instead. Check the logs for details:
 
 ```bash
 journalctl -u parsedmarc.service -r

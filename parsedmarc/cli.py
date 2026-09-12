@@ -121,8 +121,10 @@ from parsedmarc.mail import (
 )
 from parsedmarc.parallel import _parse_report_file_job, parallel_map
 from parsedmarc.types import ParsedReport, ParsingResults
+import parsedmarc.utils
 from parsedmarc.utils import (
     InvalidIPinfoAPIKey,
+    ReverseDNSMap,
     configure_ipinfo_api,
     get_base_domain,
     get_reverse_dns,
@@ -1813,6 +1815,60 @@ def _restore_search_aliases(snapshot: list[tuple[Any, Any, Any]]) -> None:
             module.connections.add_connection("default", previous)
 
 
+def _utils_globals_snapshot() -> dict[str, Any]:
+    """Record the ``parsedmarc.utils`` module-level state the config loaders
+    write, so a failed SIGHUP reload can put it back.
+
+    Three globals, enumerated from the loaders' bodies rather than from
+    their docstrings:
+
+    * ``psl_overrides`` -- ``load_psl_overrides()`` clears the list and
+      repopulates it in place. It declares no ``global``: the list object
+      itself is the shared state, which is why this is snapshotted by value.
+      ``load_reverse_dns_map()`` calls that loader before it reads anything
+      of its own, so staging the map into a fresh dict does *not* keep the
+      overrides list out of the reload's blast radius.
+      ``get_base_domain()`` reads it on every lookup.
+    * ``_IP_DB_PATH`` -- the only global ``load_ip_db()`` assigns.
+      ``_get_ip_database_path()`` falls back to it whenever the caller's
+      own ``ip_db_path`` is unset or names a file that is not there, which
+      is every MMDB lookup in the common case of no ``ip_db_path``.
+    * ``_IPINFO_API_TOKEN`` -- the only global ``configure_ipinfo_api()``
+      assigns, and it is assigned *before* the token probe that can fail,
+      so a rejected probe leaves the new token behind.
+
+    ``_LAST_LOGGED_IP_DB_PATH`` is deliberately not covered: it is assigned
+    by ``_get_ip_database_path()``, which none of the loaders the reload
+    calls reach, and it only decides whether the selected database path is
+    logged again.
+
+    Returns:
+        dict: The values, to be handed to :func:`_restore_utils_globals`.
+    """
+    return {
+        "psl_overrides": list(parsedmarc.utils.psl_overrides),
+        "_IP_DB_PATH": parsedmarc.utils._IP_DB_PATH,
+        "_IPINFO_API_TOKEN": parsedmarc.utils._IPINFO_API_TOKEN,
+    }
+
+
+def _restore_utils_globals(snapshot: dict[str, Any]) -> None:
+    """Put the state in *snapshot* back the way it was when it was taken.
+
+    ``psl_overrides`` is restored in place, not rebound, for the same reason
+    it is snapshotted by value: ``load_psl_overrides()`` mutates that one
+    list object, and rebinding ``parsedmarc.utils.psl_overrides`` would
+    leave any already-bound reference to the old object holding the failed
+    reload's contents.
+
+    Args:
+        snapshot (dict): The return value of :func:`_utils_globals_snapshot`.
+    """
+    parsedmarc.utils.psl_overrides[:] = snapshot["psl_overrides"]
+    parsedmarc.utils._IP_DB_PATH = snapshot["_IP_DB_PATH"]
+    parsedmarc.utils._IPINFO_API_TOKEN = snapshot["_IPINFO_API_TOKEN"]
+
+
 def _build_output_clients(opts, clients, index_prefix_domain_map=None):
     """Create output clients based on current opts, into *clients*.
 
@@ -3031,6 +3087,12 @@ def _main():
         logger.setLevel(logging.INFO)
     if opts.debug:
         logger.setLevel(logging.DEBUG)
+    # The log file currently being written -- what a SIGHUP reload compares
+    # the new config's log_file against. None when no file is attached,
+    # including when the configured one could not be opened, so that a
+    # reload naming the same path tries again once the operator has fixed
+    # it.
+    opts.active_log_file = None
     if opts.log_file:
         try:
             fh = logging.FileHandler(opts.log_file, "a")
@@ -3039,10 +3101,9 @@ def _main():
             )
             fh.setFormatter(formatter)
             logger.addHandler(fh)
+            opts.active_log_file = opts.log_file
         except Exception as error:
             logger.warning(f"Unable to write to log file: {error}")
-
-    opts.active_log_file = opts.log_file
     _configure_dependency_logging(logger.level)
 
     if (
@@ -3634,7 +3695,26 @@ def _main():
             logger.info("SIGHUP received, config will reload after current batch")
             _reload_requested = False
             logger.info("Reloading configuration...")
+            # Both snapshots are taken before the try, because the rollback
+            # in the handler needs them and neither can fail: taking the
+            # search snapshot only resolves an alias (KeyError caught) and
+            # reads elastic._SERVERLESS, and taking the utils snapshot only
+            # copies three module attributes.
+            previous_search_state = _search_alias_snapshot()
+            previous_utils_state = _utils_globals_snapshot()
+            # Also bound before the try: the rollback closes whatever was
+            # built, and an empty dict makes that a no-op when the failure
+            # came before (or from inside) _init_output_clients().
+            new_clients: dict[str, Any] = {}
+            # Bound before the try for the same reason: the rollback closes
+            # the replacement log file handler if phase 1 opened one, and
+            # ``None`` means there is nothing to close.
+            staged_log_handler: logging.FileHandler | None = None
             try:
+                # Phase 1 -- stage every fallible step off to the side.
+                # Nothing the running configuration reads is written here,
+                # so any failure below is recoverable by the handler.
+                #
                 # Build a fresh opts starting from CLI-only defaults so that
                 # sections removed from the config file actually take effect.
                 new_opts = Namespace(**vars(opts_from_cli))
@@ -3644,17 +3724,78 @@ def _main():
                     new_opts, index_prefix_domain_map=new_index_prefix_domain_map
                 )
 
-                # All steps succeeded — commit the changes atomically.
-                _close_output_clients(clients)
-                clients = new_clients
-                index_prefix_domain_map = new_index_prefix_domain_map
+                # Derived values first, because they are the cheapest steps
+                # to fail and the only ones that write nothing at all: they
+                # read new_opts and nothing else. int() raises on a
+                # non-numeric value, and running that before the loaders
+                # keeps such a failure from reaching load_ip_db(), whose
+                # download is the one part of phase 1 with a side effect
+                # outside this process (see the rollback comment).
+                new_parser_config = _build_parser_config(new_opts)
+                new_batch_size = (
+                    int(new_opts.mailbox_batch_size)
+                    if new_opts.mailbox_batch_size is not None
+                    else 10
+                )
+                new_check_timeout = (
+                    int(new_opts.mailbox_check_timeout)
+                    if new_opts.mailbox_check_timeout is not None
+                    else 30
+                )
+                new_max_unsaved_retries = (
+                    int(new_opts.mailbox_max_unsaved_retries)
+                    if new_opts.mailbox_max_unsaved_retries is not None
+                    else 2
+                )
+
+                # Open the replacement log file, if the config names a
+                # different one. Opening it is the one thing in the logging
+                # refresh that can fail on a bad path, and constructing the
+                # handler opens the file immediately (FileHandler's default
+                # ``delay=False``), so opening it here is what leaves phase
+                # 2 with nothing fallible to do but the close. Nothing in
+                # the running configuration is touched: the handler is not
+                # attached to the logger until the commit. It sits before
+                # the loaders because its only side effect outside this
+                # process is opening the new log file for append, which is
+                # smaller than load_ip_db()'s download.
+                #
+                # ``opts`` is still the pre-reload namespace here -- phase 2
+                # is what copies new_opts onto it -- which is deliberate:
+                # the comparison is between the file being written now and
+                # the one the new config names.
+                #
+                # Note the asymmetry with startup, where an unwritable log
+                # file is only a warning: there is no previous configuration
+                # to keep there. Here there is, so it is a reload failure --
+                # and the traceback lands in the old log file, which is
+                # still attached.
+                old_log_file = getattr(opts, "active_log_file", None)
+                new_log_file = new_opts.log_file
+                if old_log_file != new_log_file and new_log_file:
+                    staged_log_handler = logging.FileHandler(new_log_file, "a")
+                    staged_log_handler.setFormatter(
+                        logging.Formatter(
+                            "%(asctime)s - %(levelname)s"
+                            " - [%(filename)s:%(lineno)d] - %(message)s"
+                        )
+                    )
 
                 # Reload the reverse DNS map so changes to the
                 # map path/URL in the config take effect. PSL overrides
                 # are reloaded alongside it so map entries that depend on
                 # a folded base domain keep working.
+                #
+                # Into a fresh dict, not REVERSE_DNS_MAP: load_reverse_dns_map()
+                # clears the dict it is handed before it has read anything, so
+                # loading straight into the live map would empty it and leave
+                # it empty if the read then failed. The overrides list has no
+                # such seam -- load_psl_overrides() clears and repopulates one
+                # module-level list in place -- which is what the utils
+                # snapshot above is for.
+                staged_reverse_dns_map: ReverseDNSMap = {}
                 load_reverse_dns_map(
-                    REVERSE_DNS_MAP,
+                    staged_reverse_dns_map,
                     always_use_local_file=new_opts.always_use_local_files,
                     local_file_path=new_opts.reverse_dns_map_path,
                     url=new_opts.reverse_dns_map_url,
@@ -3664,7 +3805,11 @@ def _main():
                 )
 
                 # Reload the IP database so changes to the
-                # db path/URL in the config take effect.
+                # db path/URL in the config take effect. Assigns
+                # parsedmarc.utils._IP_DB_PATH, which the utils snapshot
+                # covers, and -- when the download succeeds -- rewrites the
+                # shared cache file, which nothing can cover. Last but one
+                # for that reason.
                 load_ip_db(
                     always_use_local_file=new_opts.always_use_local_files,
                     local_file_path=new_opts.ip_db_path,
@@ -3672,9 +3817,13 @@ def _main():
                     offline=new_opts.offline,
                 )
 
-                # Re-apply IPinfo API settings. Passing a falsy token disables
-                # the API; a rotated token picks up here too. An invalid token
-                # is fatal even on reload — the operator asked for it.
+                # Re-apply IPinfo API settings, last, because an invalid
+                # token is fatal even on reload -- the operator asked for it
+                # -- and nothing should have to be unwound behind it.
+                # Passing a falsy token disables the API; a rotated token
+                # picks up here too. The exit is a SystemExit, not an
+                # Exception: it deliberately skips the rollback below,
+                # because the process is leaving.
                 try:
                     configure_ipinfo_api(
                         new_opts.ipinfo_api_token if not new_opts.offline else None,
@@ -3682,28 +3831,146 @@ def _main():
                 except InvalidIPinfoAPIKey as e:
                     logger.critical(str(e))
                     sys.exit(1)
+            except Exception:
+                # Rollback. Everything phase 1 wrote in this process is
+                # covered by the two snapshots -- the search backends'
+                # ``default`` alias and ``elastic._SERVERLESS`` (both
+                # through _init_output_clients), and the three
+                # parsedmarc.utils globals the loaders assign -- and all of
+                # it is put back here, in that order.
+                #
+                # One side effect is outside them and cannot be undone: a
+                # load_ip_db() whose download succeeds rewrites the shared
+                # cache file at <tmp>/parsedmarc/ipinfo_lite.mmdb before it
+                # assigns _IP_DB_PATH. Phase 1 runs that step last but one
+                # so that as little as possible can fail behind it, and the
+                # file it leaves is the same refresh startup performs on
+                # every launch -- the configured URL's current database --
+                # so the cost of not undoing it is bounded to that.
+                #
+                # ``Exception``, where _init_output_clients catches
+                # ``BaseException`` (#906): that function also runs at
+                # startup, before the signal handlers exist, so a Ctrl-C can
+                # land inside it. Here it cannot -- watch mode has replaced
+                # SIGINT with a handler that sets a flag and, on a second
+                # press, calls os._exit(130) -- and the one BaseException
+                # that does reach this point, the SystemExit from an invalid
+                # IPinfo token, must not be rolled back.
+                #
+                # The staged log file handler, if one was opened, is closed
+                # here too, best-effort: it was never attached to the
+                # logger, so no record ever reached it and there is
+                # nothing buffered to lose, but the close itself can still
+                # raise (a full disk, a stale network mount), and that
+                # error is logged and swallowed so it cannot skip the two
+                # restores below it.
+                #
+                # Close the new clients *before* restoring the alias, never
+                # after: a fully built _ElasticsearchHandle owns the new
+                # client and releases the alias as it closes, so closing
+                # first leaves the alias unset for the restore to re-register
+                # the old client into. Restoring first would hand the alias
+                # back and then close the handle, which would be safe only
+                # because of how _ElasticsearchHandle.close() happens to
+                # behave today (see _init_output_clients, and #902).
+                #
+                # Per-step end state, reading down phase 1 -- in every case
+                # `clients` is still the old dict with every old client open,
+                # REVERSE_DNS_MAP still holds the pre-reload entries (it was
+                # never handed to the loader), and opts, parser_config and
+                # the three watch parameters are untouched, because all of
+                # those are written in phase 2:
+                #
+                # _load_config / _parse_config: no state written yet.
+                #   new_clients is still {}, so the close is a no-op; the
+                #   alias and the utils globals still hold what the snapshots
+                #   recorded, so both restores are no-ops too.
+                # _init_output_clients: rolled itself back before re-raising
+                #   (#906), and never assigned new_clients, so this is the
+                #   same no-op pair -- restoring an unchanged snapshot twice
+                #   is harmless.
+                # _build_parser_config / the int() conversions: the new
+                #   clients hold the alias, so they are closed and the old
+                #   client is registered again. The utils globals were not
+                #   reached, so their restore is still a no-op.
+                # The log file open: as above, and the handler was never
+                #   attached to the logger, so it has nothing buffered to
+                #   lose -- the logger still holds the old FileHandler,
+                #   which phase 2 never got to remove. The close itself is
+                #   best-effort (logged and swallowed), so a close that
+                #   fails cannot skip the two restores below it.
+                # load_reverse_dns_map: as above, plus psl_overrides, which
+                #   load_psl_overrides() cleared and may have refilled from
+                #   the new config; restoring it by value is load-bearing
+                #   here, and the staged map dict is simply dropped.
+                # load_ip_db: as above. Each of its four assignments to
+                #   _IP_DB_PATH is the last thing on its path -- three are
+                #   followed by a return and the fourth, the bundled
+                #   fallback, by a log line and the end of the function --
+                #   so a raise from this loader leaves it unchanged.
+                # configure_ipinfo_api: the last step, so a _IP_DB_PATH or
+                #   _IPINFO_API_TOKEN that differs from the snapshot can
+                #   only be rolled back from here. In practice this may be
+                #   unreachable: the documented failure is
+                #   InvalidIPinfoAPIKey, which exits above without rolling
+                #   back, and _ipinfo_api_lookup() swallows every network
+                #   and decoding error. Those two restores are therefore
+                #   defensive -- a rollback's job is to leave state as it
+                #   found it, and whatever step is added after this one
+                #   makes them load-bearing again. _utils_globals_snapshot's
+                #   own tests are what guard them.
+                _close_output_clients(new_clients)
+                if staged_log_handler is not None:
+                    try:
+                        staged_log_handler.close()
+                    except Exception as close_error:
+                        logger.warning(
+                            "Unable to close the log file opened for the "
+                            f"reload: {close_error}"
+                        )
+                _restore_search_aliases(previous_search_state)
+                _restore_utils_globals(previous_utils_state)
+                logger.exception(
+                    "Config reload failed, continuing with previous config"
+                )
+            else:
+                # Phase 2 -- all steps succeeded; commit the changes
+                # atomically. Nothing from here to the end of this block may
+                # raise, since there is no going back once the first
+                # statement lands: the commit itself is assignments only, and
+                # the logging refresh that follows it guards the one call
+                # that can fail, closing the replaced log file -- the
+                # replacement was opened back in phase 1. That is also why
+                # this is an ``else`` and not the tail of the ``try`` -- a
+                # rollback running over committed state would close the
+                # clients that are now live.
+                # In place, never rebound. Rebinding would only move this
+                # module's own name -- cli.py imports REVERSE_DNS_MAP from
+                # parsedmarc, so `REVERSE_DNS_MAP = staged` here would
+                # desync it from parsedmarc.REVERSE_DNS_MAP and from
+                # config.REVERSE_DNS_MAP, which is the object
+                # ParserConfig.__setstate__ rebinds to when a worker
+                # unpickles a config. The configs that name this dict are
+                # built elsewhere and keep whichever object they were given:
+                # _build_parser_config() and parsedmarc._resolve_config()
+                # pass it explicitly (the dataclass field's own default is a
+                # fresh dict, via default_factory), and new_parser_config
+                # was built back in phase 1 holding the pre-reload object.
+                REVERSE_DNS_MAP.clear()
+                REVERSE_DNS_MAP.update(staged_reverse_dns_map)
 
                 for k, v in vars(new_opts).items():
                     setattr(opts, k, v)
 
-                parser_config = _build_parser_config(opts)
+                old_clients = clients
+                clients = new_clients
+                index_prefix_domain_map = new_index_prefix_domain_map
+                parser_config = new_parser_config
 
                 # Update watch parameters from reloaded config
-                mailbox_batch_size_value = (
-                    int(opts.mailbox_batch_size)
-                    if opts.mailbox_batch_size is not None
-                    else 10
-                )
-                mailbox_check_timeout_value = (
-                    int(opts.mailbox_check_timeout)
-                    if opts.mailbox_check_timeout is not None
-                    else 30
-                )
-                mailbox_max_unsaved_retries_value = (
-                    int(opts.mailbox_max_unsaved_retries)
-                    if opts.mailbox_max_unsaved_retries is not None
-                    else 2
-                )
+                mailbox_batch_size_value = new_batch_size
+                mailbox_check_timeout_value = new_check_timeout
+                mailbox_max_unsaved_retries_value = new_max_unsaved_retries
 
                 # Update log level
                 logger.setLevel(logging.ERROR)
@@ -3714,36 +3981,48 @@ def _main():
                 if opts.debug:
                     logger.setLevel(logging.DEBUG)
 
-                # Refresh FileHandler if log_file changed
-                old_log_file = getattr(opts, "active_log_file", None)
-                new_log_file = opts.log_file
+                # Refresh FileHandler if log_file changed. Both names were
+                # computed in phase 1, against the configuration that was
+                # running then.
                 if old_log_file != new_log_file:
                     # Remove old FileHandlers
                     for h in list(logger.handlers):
                         if isinstance(h, logging.FileHandler):
-                            h.close()
+                            close_error = None
+                            try:
+                                h.close()
+                            except Exception as error_:
+                                # Flushing the replaced log file can fail --
+                                # a full disk, a stale network mount. The
+                                # reloaded configuration is already live by
+                                # this point, so raising would kill the
+                                # watcher over a log file, and rolling back
+                                # to report a failed reload would be a lie.
+                                close_error = error_
+                            # Detach first, then report: the handler that
+                            # just failed to close is no place to send the
+                            # record describing that failure.
                             logger.removeHandler(h)
-                    # Add new FileHandler if configured
-                    if new_log_file:
-                        try:
-                            fh = logging.FileHandler(new_log_file, "a")
-                            file_formatter = logging.Formatter(
-                                "%(asctime)s - %(levelname)s"
-                                " - [%(filename)s:%(lineno)d] - %(message)s"
-                            )
-                            fh.setFormatter(file_formatter)
-                            logger.addHandler(fh)
-                        except Exception as log_error:
-                            logger.warning(f"Unable to write to log file: {log_error}")
+                            if close_error is not None:
+                                logger.warning(
+                                    f"Unable to close the log file: {close_error}"
+                                )
+                    # Attach the handler phase 1 opened, if the new
+                    # configuration names a log file at all.
+                    if staged_log_handler is not None:
+                        logger.addHandler(staged_log_handler)
                     opts.active_log_file = new_log_file
 
                 _configure_dependency_logging(logger.level)
 
+                # Phase 3 -- the new configuration is live and correct, so
+                # the clients it replaced can go. Last, and best effort:
+                # _close_output_clients() logs close errors and swallows
+                # them, so a dying connection on the way out cannot undo
+                # the commit above.
+                _close_output_clients(old_clients)
+
                 logger.info("Configuration reloaded successfully")
-            except Exception:
-                logger.exception(
-                    "Config reload failed, continuing with previous config"
-                )
 
     # Close output clients on the success path (one-shot or graceful
     # watch-loop exit). atexit-registered above is the safety net for
