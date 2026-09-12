@@ -3087,6 +3087,12 @@ def _main():
         logger.setLevel(logging.INFO)
     if opts.debug:
         logger.setLevel(logging.DEBUG)
+    # The log file currently being written -- what a SIGHUP reload compares
+    # the new config's log_file against. None when no file is attached,
+    # including when the configured one could not be opened, so that a
+    # reload naming the same path tries again once the operator has fixed
+    # it.
+    opts.active_log_file = None
     if opts.log_file:
         try:
             fh = logging.FileHandler(opts.log_file, "a")
@@ -3095,10 +3101,9 @@ def _main():
             )
             fh.setFormatter(formatter)
             logger.addHandler(fh)
+            opts.active_log_file = opts.log_file
         except Exception as error:
             logger.warning(f"Unable to write to log file: {error}")
-
-    opts.active_log_file = opts.log_file
     _configure_dependency_logging(logger.level)
 
     if (

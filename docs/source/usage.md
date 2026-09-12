@@ -1398,23 +1398,25 @@ closed once the new configuration is live. The service then resumes
 watching with the new settings.
 
 If the new configuration file contains errors (missing required
-settings, unreachable output destinations, an unreadable reverse DNS
-map or PSL overrides file, a `log_file` that cannot be opened for
-writing, a non-numeric `batch_size`, etc.), the **entire reload is
-aborted** — any output clients built for the new configuration are
-closed again, and the previous configuration remains fully active: the
-old output clients stay open and connected, and the reverse DNS map,
-the PSL overrides, the IP database selection, and every other setting
-keep the values they had before the `SIGHUP`. This means a typo in one
-section will not take down an otherwise working setup. Unlike startup,
-where an unwritable `log_file` is only a warning, on reload it is one
-of the errors that abort the reload, so the previous log file keeps
-receiving logs — including the one explaining why. (One thing an aborted
-reload does not put back: if it got as far as downloading a new IP
-database from a changed `ipinfo_url`, that file stays in the shared
-cache directory. Which database parsedmarc *uses* is unchanged, and the
-cached file is the same one the next restart would download.) Check the
-logs for details:
+settings, unreachable output destinations, an unreadable reverse DNS map
+or PSL overrides file, a `log_file` that cannot be opened for writing, a
+non-numeric `batch_size`, etc.), the **entire reload is aborted** — any
+output clients built for the new configuration are closed again, and the
+previous configuration remains fully active: the old output clients stay
+open and connected, and the reverse DNS map, the PSL overrides, the IP
+database selection, and every other setting keep the values they had
+before the `SIGHUP`. This means a typo in one section will not take down
+an otherwise working setup. Unlike startup, where an unwritable
+`log_file` is only a warning, on reload it is one of the errors that
+abort the reload, so the previous log file keeps receiving logs —
+including the one explaining why. A `log_file` that could not be opened
+when parsedmarc started (a warning at startup) is retried by the next
+reload even if the setting is unchanged. (One thing an aborted reload
+does not put back: if it got as far as downloading a new IP database
+from a changed `ipinfo_url`, that file stays in the shared cache
+directory. Which database parsedmarc *uses* is unchanged, and the cached
+file is the same one the next restart would download.) Check the logs
+for details:
 
 ```bash
 journalctl -u parsedmarc.service -r

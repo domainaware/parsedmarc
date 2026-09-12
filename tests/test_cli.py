@@ -4600,6 +4600,112 @@ batch_size = {batch_size}
         self.assertIs(state.alias, old_conn)
         self._assert_previous_config_still_running(state, mock_watch, logs)
 
+    def testLogFileUnopenableAtStartupIsRetriedOnReload(self):
+        """A ``log_file`` that could not be opened when parsedmarc started is
+        only a warning there -- startup has no previous configuration to
+        keep, so it logs "Unable to write to log file" and carries on. The
+        next reload has to retry that open even though the operator never
+        changed the setting, once the directory that was missing exists.
+
+        Before this fix, startup recorded the unopened path onto
+        ``opts.active_log_file`` anyway, so the reload's
+        ``old_log_file != new_log_file`` comparison saw the same path on
+        both sides and treated the log file as nothing to refresh -- file
+        logging stayed dead until the process was restarted, even after the
+        directory was created. Recording ``None`` when the open fails makes
+        the comparison true, so the reload opens it for real.
+        """
+        tmpdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmpdir, True)
+        log_path = os.path.join(tmpdir, "later", "parsedmarc.log")
+
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+
+        state, mock_watch, logs = self._drive_reload(
+            self._initial_config(general_extra=f"log_file = {log_path}\n"),
+            self._reload_config(general_extra=f"log_file = {log_path}\n"),
+            init_clients,
+            # The operator fixes the missing directory before the SIGHUP
+            # that _drive_reload sends right after this runs.
+            before_signal=lambda: os.makedirs(os.path.dirname(log_path)),
+        )
+
+        self.assertTrue(
+            any("Unable to write to log file" in line for line in logs), logs
+        )
+        self.assertTrue(
+            any("Configuration reloaded successfully" in line for line in logs),
+            logs,
+        )
+        file_handlers = [
+            h for h in state.log_handlers if isinstance(h, logging.FileHandler)
+        ]
+        self.assertEqual(len(file_handlers), 1)
+        handler = file_handlers[0]
+        # assertLogs() already restored the logger's own handler list by
+        # the time this runs, so this handler is not attached to anything
+        # -- closing it is enough, with no removeHandler needed alongside
+        # it (contrast testUnwritableLogFileAbortsTheReload's live_handler,
+        # which stays attached and needs both).
+        self.addCleanup(handler.close)
+        self.assertEqual(handler.baseFilename, os.path.abspath(log_path))
+        self.assertEqual(state.old_closed, 1)
+        self.assertEqual(state.new_closed, 0)
+        self.assertIs(state.alias, new_conn)
+        self.assertTrue(os.path.exists(log_path))
+
+    def testLogFileOpenedAtStartupIsNotReopenedByAnUnchangedReload(self):
+        """The other half of testLogFileUnopenableAtStartupIsRetriedOnReload:
+        a ``log_file`` startup *can* open gets recorded as the active one, so
+        a reload that leaves the setting unchanged does not reopen it.
+
+        This is what guards the ``opts.active_log_file = opts.log_file``
+        assignment moving inside the ``try`` -- if startup stopped recording
+        a successful open, ``old_log_file`` would stay ``None`` and every
+        reload would treat an unchanged, already-open ``log_file`` as a
+        replacement to stage, opening it a second time for no reason.
+        """
+        log_path = self._write_file("", ".log")
+        opened: list[logging.FileHandler] = []
+
+        class _CapturingFileHandler(logging.FileHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                opened.append(self)
+
+        init_clients, old_conn, new_conn = self._fake_search_clients()
+
+        with patch("logging.FileHandler", _CapturingFileHandler):
+            state, mock_watch, logs = self._drive_reload(
+                self._initial_config(general_extra=f"log_file = {log_path}\n"),
+                self._reload_config(general_extra=f"log_file = {log_path}\n"),
+                init_clients,
+            )
+
+        self.assertFalse(
+            any("Unable to write to log file" in line for line in logs), logs
+        )
+        self.assertTrue(
+            any("Configuration reloaded successfully" in line for line in logs),
+            logs,
+        )
+        # Startup opened the file once; the reload, seeing the same path as
+        # its own active_log_file, did not stage a second FileHandler.
+        self.assertEqual(len(opened), 1)
+        file_handlers = [
+            h for h in state.log_handlers if isinstance(h, logging.FileHandler)
+        ]
+        self.assertEqual(len(file_handlers), 1)
+        self.assertIs(file_handlers[0], opened[0])
+        self.assertEqual(opened[0].baseFilename, os.path.abspath(log_path))
+        # assertLogs() already restored the logger's own handler list by the
+        # time this runs, so this handler is not attached to anything --
+        # closing it is enough, with no removeHandler needed alongside it.
+        self.addCleanup(opened[0].close)
+        self.assertEqual(state.old_closed, 1)
+        self.assertEqual(state.new_closed, 0)
+        self.assertIs(state.alias, new_conn)
+
 
 class TestUtilsGlobalsSnapshot(unittest.TestCase):
     """_utils_globals_snapshot() / _restore_utils_globals() cover every
