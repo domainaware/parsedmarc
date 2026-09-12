@@ -2083,6 +2083,39 @@ class Test(unittest.TestCase):
         self.assertEqual(report["policy_published"]["domain"], "example.com")
         print("Passed!")
 
+    def testParseAggregateReportFileLeavesCallerStreamOpen(self):
+        """A caller-supplied BytesIO passed to parse_aggregate_report_file
+        is left open (never closed), both on a successful parse and when
+        unrecognized content raises InvalidAggregateReport.
+
+        parse_aggregate_report_file() forwards ``_input`` straight to
+        extract_report() (see both functions' docstrings), so it inherits
+        extract_report()'s contract of never closing a caller-supplied
+        file-like object, on either the success or the exception path.
+        This is a regression test for that contract reached through the
+        public parse_aggregate_report_file() entry point -- extract_report()
+        and parse_report_file() are covered by their own direct tests, but
+        neither exercises parse_aggregate_report_file() with a stream, only
+        with bytes (see testParseAggregateReportFile above). A real BytesIO
+        is used, not a mock, so the assertion is on real observable state
+        (``closed``), and because MagicMock auto-implements ``__fspath__``.
+        """
+        sample_path = "samples/aggregate/rfc9990-sample.xml"
+        with open(sample_path, "rb") as f:
+            data = f.read()
+
+        success_stream = BytesIO(data)
+        report = parsedmarc.parse_aggregate_report_file(
+            success_stream, offline=True, always_use_local_files=True
+        )
+        self.assertEqual(report["report_metadata"]["org_name"], "Sample Reporter")
+        self.assertFalse(success_stream.closed)
+
+        garbage_stream = BytesIO(b"this is not a valid report")
+        with self.assertRaises(parsedmarc.InvalidAggregateReport):
+            parsedmarc.parse_aggregate_report_file(garbage_stream, offline=True)
+        self.assertFalse(garbage_stream.closed)
+
     def testParseInvalidAggregateSample(self):
         """Test invalid aggregate samples are handled"""
         print()
@@ -2215,6 +2248,47 @@ class TestExtractReport(unittest.TestCase):
         bio = BytesIO(xml)
         result = parsedmarc.extract_report(bio)
         self.assertIn("<feedback>", result)
+
+    def testExtractReportLeavesSeekableCallerStreamOpen(self):
+        """A caller-supplied seekable stream is left open after a
+        successful call, and remains usable afterward.
+
+        Before this fix, extract_report's seekable-stream branch set
+        file_object = stream (aliasing the caller's own handle) and then
+        unconditionally closed file_object in its `finally` block on
+        every path, success included -- closing a handle it did not open.
+        This asserts the real observable state of a real BytesIO handle
+        (``closed`` and a post-seek re-read), not a mock's bookkeeping.
+        """
+        xml = b'<?xml version="1.0"?><feedback></feedback>'
+        bio = BytesIO(xml)
+
+        result = parsedmarc.extract_report(bio)
+
+        self.assertIn("<feedback>", result)
+        self.assertFalse(bio.closed)
+        bio.seek(0)
+        self.assertEqual(bio.read(), xml)
+
+    def testExtractReportLeavesSeekableCallerStreamOpenOnError(self):
+        """A caller-supplied seekable stream is left open when
+        extract_report raises ParserError, the other half of the "never
+        closed on success or failure" claim above.
+
+        Before this fix, extract_report's seekable-stream branch aliased
+        file_object to the caller's own stream and its `finally` block
+        closed file_object unconditionally -- including on this
+        exception path, since content matching no known format still
+        reaches the header sniff, `stream.seek(0)`, and the `finally`
+        close before raising. Uses a real BytesIO so the assertion is on
+        its own observable ``closed`` state, not a mock's bookkeeping.
+        """
+        bio = BytesIO(b"this is not a valid archive")
+
+        with self.assertRaises(parsedmarc.ParserError):
+            parsedmarc.extract_report(bio)
+
+        self.assertFalse(bio.closed)
 
     def testExtractReportFromNonSeekableStream(self):
         """extract_report handles non-seekable streams"""
@@ -2799,13 +2873,13 @@ class TestParseReportFile(unittest.TestCase):
 
     def testParseReportFileLeavesCallerHandleOpenOnReadError(self):
         """A caller-supplied file-like object is left open (not closed)
-        when reading it raises, preserving parse_report_file's
-        long-standing contract for handles it did not open itself.
+        when reading it raises.
 
         Only a path input (opened internally by parse_report_file) is
         closed on the exception path; a handle the caller passed in is
-        closed on success only, exactly as before the fix for the
-        internally-opened-path leak.
+        never closed by parse_report_file, on success or failure -- the
+        caller may want to seek(0) and retry, log tell(), or reuse the
+        handle otherwise.
 
         A plain class is used instead of MagicMock because MagicMock
         auto-implements ``__fspath__`` (supported since Python 3.8's
@@ -2830,6 +2904,30 @@ class TestParseReportFile(unittest.TestCase):
             parsedmarc.parse_report_file(cast(BinaryIO, fake_handle), offline=True)
 
         self.assertFalse(fake_handle.close_called)
+
+    def testParseReportFileLeavesCallerHandleOpenOnSuccess(self):
+        """A caller-supplied file-like object is left open after a
+        successful parse, and remains usable afterward.
+
+        Before this fix, parse_report_file called .close() on any
+        caller-supplied file object once it had been read, on the success
+        path only. A function must not close a handle it did not open --
+        the caller may still want to seek(0) and re-read it, inspect
+        tell(), or otherwise reuse it. This asserts the real observable
+        state of a real BytesIO handle (``closed`` and post-seek
+        ``read()``), not a mock's call-tracking.
+        """
+        xml_path = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with open(xml_path, "rb") as f:
+            data = f.read()
+        handle = BytesIO(data)
+
+        result = parsedmarc.parse_report_file(handle, offline=True)
+
+        self.assertEqual(result["report_type"], "aggregate")
+        self.assertFalse(handle.closed)
+        handle.seek(0)
+        self.assertEqual(handle.read(), data)
 
 
 class TestParseReportEmail(unittest.TestCase):

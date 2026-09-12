@@ -1223,6 +1223,16 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
     Extracts report text from zip- or gzip-compressed content, and returns
     plain XML or JSON content decoded as-is.
 
+    A caller-supplied file-like object is read from but never closed by
+    this function, on either the success or the exception path; it is
+    left open and positioned wherever the function's own reads left it,
+    so the caller is free to seek(0) and reuse it. A seekable stream is
+    seeked to position 0 unconditionally (not back to wherever the caller
+    had left it) after its 6-byte header is sniffed, and then read from
+    there, so a successful call typically leaves it at EOF. A non-seekable
+    stream is drained into a buffer this function creates and closes
+    itself; the caller's stream is left open but exhausted.
+
     Args:
         content: The report as a base64-encoded string, file-like object,
             or bytes. A string that is not valid base64 is returned
@@ -1232,6 +1242,12 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
         str: The extracted text
     """
     file_object: BinaryIO | None = None
+    # True while file_object is a BytesIO this function created itself
+    # (from a str/bytes input, or as a buffer copied from a non-seekable
+    # caller stream); it is closed in the ``finally`` below. It is set to
+    # False when file_object instead aliases a caller-supplied seekable
+    # stream, which this function must never close.
+    owns_file_object = True
     header: bytes
     try:
         if isinstance(content, str):
@@ -1265,7 +1281,10 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
                     raise ParserError("File objects must be opened in binary (rb) mode")
                 header = bytes(header_raw)
                 stream.seek(0)
+                # file_object aliases the caller's own stream here, so it
+                # must not be closed by this function.
                 file_object = stream
+                owns_file_object = False
             else:
                 header_raw = stream.read(6)
                 if isinstance(header_raw, str):
@@ -1299,7 +1318,7 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
             f"Invalid archive file: {error.__str__()}{_exc_origin(error)}"
         ) from error
     finally:
-        if file_object:
+        if file_object and owns_file_object:
             try:
                 file_object.close()
             except Exception:
@@ -1339,6 +1358,11 @@ def parse_aggregate_report_file(
 ) -> AggregateReport:
     """Parses a file at the given path, a file-like object, or bytes as an
     aggregate DMARC report
+
+    ``_input`` is forwarded to ``extract_report()`` unchanged, so a
+    caller-supplied file-like object is read from but never closed, on
+    either the success or the exception path; see ``extract_report()``
+    for exactly how such an object is left positioned afterward.
 
     Args:
         _input (str | bytes | IO): A path to a file, a file-like object, or bytes
@@ -2283,6 +2307,11 @@ def parse_report_file(
     """Parses a DMARC aggregate report, DMARC failure report, or SMTP TLS
     report from a file at the given path, a file-like object, or bytes
 
+    A path is opened and closed by this function. A caller-supplied file
+    object is read from but never closed, on either the success or the
+    exception path; it is left open and positioned wherever its own
+    ``read()`` left it, so the caller is free to ``seek(0)`` and reuse it.
+
     Args:
         input_ (str | os.PathLike | bytes | BinaryIO): A path to a file,
             a file-like object, or bytes
@@ -2332,14 +2361,18 @@ def parse_report_file(
             content = file_object.read()
     else:
         if isinstance(input_, (bytes, bytearray, memoryview)):
+            # The BytesIO wrapper is created here, so this function owns
+            # it and closes it once the bytes have been read out.
             file_object = BytesIO(bytes(input_))
+            content = file_object.read()
+            file_object.close()
         else:
-            # A caller-supplied file-like object is only closed on success,
-            # matching long-standing behavior; it is left open if read()
-            # raises.
+            # A caller-supplied file-like object is never closed by this
+            # function, on success or failure: the caller may want to
+            # seek(0) and retry, inspect tell(), or otherwise reuse the
+            # handle afterward.
             file_object = input_
-        content = file_object.read()
-        file_object.close()
+            content = file_object.read()
     if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
         content = extract_report(content)
 
