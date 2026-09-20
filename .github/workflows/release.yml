@@ -21,9 +21,113 @@ jobs:
     uses: ./.github/workflows/python-tests.yml
     secrets: inherit
 
+  # CodeQL runs as GitHub default setup (on pull requests and weekly), not
+  # from ci.yml, so nothing in the release chain would otherwise look at it.
+  # A pull request's own CodeQL check only reports what that diff introduces,
+  # which means alerts already open on the default branch pass every check a
+  # release sees.
+  # This job is what stops a release shipping with one of those open.
+  code-scanning:
+    name: No open code scanning alerts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      # CodeQL analyzes the default branch, not tags. Passed through the
+      # environment rather than interpolated into the scripts below, so the
+      # shell never sees a ${{ }} expansion.
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      # An alert list is only worth reading if CodeQL has looked at the code
+      # being released. The tag is usually pushed right after the commit
+      # lands on main, so its analyses are often still running.
+      - name: Wait for CodeQL to analyze the tagged commit
+        run: |
+          set -euo pipefail
+
+          sha="$(gh api "repos/$REPO/commits/$GITHUB_REF_NAME" --jq .sha)"
+          echo "Tag $GITHUB_REF_NAME is commit $sha"
+
+          # Which languages CodeQL covers is repository configuration, so read
+          # it back from the analyses already published for the default branch
+          # instead of hard-coding a list here that would silently drift out of
+          # date. A short window means a language removed from the
+          # configuration ages out of it within a few commits.
+          expected="$(
+            gh api "repos/$REPO/code-scanning/analyses?ref=refs/heads/$DEFAULT_BRANCH&per_page=20" \
+              --jq '[.[].category] | unique | .[]'
+          )"
+          if [ -z "$expected" ]; then
+            echo "::error::No CodeQL analyses found for $DEFAULT_BRANCH, so there" \
+              "is no way to tell whether this commit was scanned"
+            exit 1
+          fi
+          echo "CodeQL publishes these categories for $DEFAULT_BRANCH:"
+          echo "$expected" | sed 's/^/  /'
+
+          deadline=$((SECONDS + 900))
+          while :; do
+            analyzed="$(
+              SHA="$sha" gh api \
+                "repos/$REPO/code-scanning/analyses?ref=refs/heads/$DEFAULT_BRANCH&per_page=100" \
+                --jq '[.[] | select(.commit_sha == env.SHA) | .category] | unique | .[]'
+            )"
+            missing="$(comm -23 <(echo "$expected" | sort) <(echo "$analyzed" | sort) || true)"
+            if [ -z "$missing" ]; then
+              echo "CodeQL has analyzed $sha for every category"
+              break
+            fi
+            # Collapse to one line for the log, dropping the trailing newline
+            missing_list="$(echo $missing)"
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::CodeQL has not analyzed $sha for $missing_list, so" \
+                "this release would be judged against a scan of different code"
+              exit 1
+            fi
+            echo "Still waiting for: $missing_list"
+            sleep 30
+          done
+
+      # A dismissed alert has state "dismissed", not "open", so dismissing one
+      # in the Security tab is the escape hatch for a false positive.
+      - name: Fail if any code scanning alert is open
+        run: |
+          set -euo pipefail
+
+          alerts="$(
+            gh api "repos/$REPO/code-scanning/alerts?ref=refs/heads/$DEFAULT_BRANCH&state=open&per_page=100"
+          )"
+          count="$(echo "$alerts" | jq length)"
+
+          if [ "$count" -eq 0 ]; then
+            echo "No open code scanning alerts."
+            echo "No open code scanning alerts." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo "### Release blocked: $count open code scanning alert(s)"
+            echo
+            echo "| Alert | Severity | Rule | Location |"
+            echo "| --- | --- | --- | --- |"
+            echo "$alerts" | jq -r '.[] | "| [#\(.number)](\(.html_url)) "
+              + "| \(.rule.security_severity_level // .rule.severity) "
+              + "| `\(.rule.id)` "
+              + "| `\(.most_recent_instance.location.path):\(.most_recent_instance.location.start_line)` |"'
+            echo
+            echo "Fix them, or dismiss the ones that are not real in the"
+            echo "Security tab, then push the tag again."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::error::$count open code scanning alert(s); see the job summary"
+          exit 1
+
   build:
     name: Build distributions
-    needs: ci
+    needs: [ci, code-scanning]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
