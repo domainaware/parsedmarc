@@ -1,0 +1,38 @@
+{
+    "organization-name":"Reporter Example",
+    "date-range":{
+       "start-datetime":"2024-06-01T00:00:00Z",
+       "end-datetime":"2024-06-01T23:59:59Z"
+    },
+    "contact-info":"smtp-tls-reporting@reporter.example",
+    "report-id":"2024-06-01T00:00:00Z_example.com",
+    "policies":[
+       {
+          "policy":{
+             "policy-type":"sts",
+             "policy-string":[
+                "version: STSv1",
+                "mode: enforce",
+                "mx: example.com",
+                "max_age: 86400"
+             ],
+             "policy-domain":"example.com"
+          },
+          "summary":{
+             "total-successful-session-count":0,
+             "total-failure-session-count":1
+          },
+          "failure-details":[
+             {
+                "result-type":"sts-policy-fetch-error",
+                "sending-mta-ip":"",
+                "receiving-ip":"",
+                "receiving-mx-hostname":"",
+                "failed-session-count":1,
+                "additional-information":"",
+                "failure-reason-code":"no-policy-served"
+             }
+          ]
+       }
+    ]
+}

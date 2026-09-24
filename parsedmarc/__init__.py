@@ -656,6 +656,26 @@ def _parse_report_record(
     return new_record
 
 
+def _non_blank(value: Any) -> Any:
+    """Treat ``None`` or a blank/whitespace-only string as absent.
+
+    Some SMTP TLS (RFC 8460) reporters send an empty string for an optional
+    failure-details field (e.g. ``sending-mta-ip``/``receiving-ip`` on a
+    ``sts-policy-fetch-error``) instead of omitting the key. An empty string
+    is not a valid IP address, so passing it through crashed the PostgreSQL
+    save (``INET`` columns) and would also have crashed the Elasticsearch
+    and OpenSearch saves: their ``Ip()`` fields' validation
+    (``elasticsearch.dsl``/``opensearchpy``'s ``Document.save()``) rejects
+    an empty string with a bare ``ValueError`` (issue #915). Non-string,
+    non-blank values pass through unchanged.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip() == "":
+        return None
+    return value
+
+
 def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
     try:
         new_failure_details: dict[str, Any] = {
@@ -663,26 +683,28 @@ def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
             "failed_session_count": failure_details["failed-session-count"],
         }
 
-        if "sending-mta-ip" in failure_details:
-            new_failure_details["sending_mta_ip"] = failure_details["sending-mta-ip"]
-        if "receiving-ip" in failure_details:
-            new_failure_details["receiving_ip"] = failure_details["receiving-ip"]
-        if "receiving-mx-hostname" in failure_details:
-            new_failure_details["receiving_mx_hostname"] = failure_details[
-                "receiving-mx-hostname"
-            ]
-        if "receiving-mx-helo" in failure_details:
-            new_failure_details["receiving_mx_helo"] = failure_details[
-                "receiving-mx-helo"
-            ]
-        if "additional-info-uri" in failure_details:
-            new_failure_details["additional_info_uri"] = failure_details[
-                "additional-info-uri"
-            ]
-        if "failure-reason-code" in failure_details:
-            new_failure_details["failure_reason_code"] = failure_details[
-                "failure-reason-code"
-            ]
+        optional_fields = [
+            ("sending-mta-ip", "sending_mta_ip"),
+            ("receiving-ip", "receiving_ip"),
+            ("receiving-mx-hostname", "receiving_mx_hostname"),
+            ("receiving-mx-helo", "receiving_mx_helo"),
+            ("failure-reason-code", "failure_reason_code"),
+        ]
+        for src_key, dest_key in optional_fields:
+            value = _non_blank(failure_details.get(src_key))
+            if value is not None:
+                new_failure_details[dest_key] = value
+
+        # RFC 8460 §4.4 names the JSON key "additional-information" (its
+        # value is described as an "additional-info-uri"). Some reporters
+        # instead send the non-RFC key "additional-info-uri" directly; fall
+        # back to it for backward compatibility when the RFC key is absent
+        # or blank.
+        additional_info_uri = _non_blank(failure_details.get("additional-information"))
+        if additional_info_uri is None:
+            additional_info_uri = _non_blank(failure_details.get("additional-info-uri"))
+        if additional_info_uri is not None:
+            new_failure_details["additional_info_uri"] = additional_info_uri
 
         return new_failure_details
 
