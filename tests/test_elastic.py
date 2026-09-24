@@ -8,10 +8,11 @@ queries, error wrapping — without needing a running Elasticsearch cluster.
 
 import time
 import unittest
+from typing import cast
 from unittest.mock import MagicMock, call, patch
 
 import parsedmarc.elastic as elastic_module
-from parsedmarc import InvalidFailureReport
+from parsedmarc import InvalidFailureReport, parse_report_file
 from parsedmarc.elastic import (
     AlreadySaved,
     ElasticsearchError,
@@ -1485,6 +1486,46 @@ class TestSaveSmtpTlsReport(unittest.TestCase):
             doc.policies[0].failure_details[0].additional_information_uri,
             "https://reports.example.com/tls-help",
         )
+
+    def test_save_blank_failure_detail_fields_omitted_from_ip_fields(self):
+        """Blank optional failure-detail fields must not reach the Ip()
+        fields (issue #915).
+
+        samples/smtp_tls/empty_failure_detail_fields.json reproduces a
+        real reporter's shape: sending-mta-ip/receiving-ip sent as "" on
+        an sts-policy-fetch-error. Verified directly against
+        elasticsearch.dsl: Document.save() validates by calling
+        full_clean() before any network call, and an Ip() field's
+        validation calls Python's ipaddress.ip_address(""), which raises a
+        bare ValueError ("'' does not appear to be an IPv4 or IPv6
+        address") rather than a caught ValidationException -- so an empty
+        string here previously discarded the whole report instead of
+        indexing it with a blank IP.
+
+        save() is mocked (per this module's convention, so no real
+        cluster is needed), which also means it never runs full_clean()
+        itself; call it explicitly on the captured document so this test
+        exercises the same validation a real save() would, and fails with
+        that ValueError on unfixed parsedmarc/__init__.py.
+        """
+        result = parse_report_file(
+            "samples/smtp_tls/empty_failure_detail_fields.json", offline=True
+        )
+        report = cast(dict, result["report"])
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index"),
+            patch.object(
+                elastic_module._SMTPTLSReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_smtp_tls_report_to_elasticsearch(report)
+        doc = mock_save.call_args[0][0]
+        doc.full_clean()
+        failure_detail = doc.policies[0].failure_details[0]
+        self.assertIsNone(failure_detail.sending_mta_ip)
+        self.assertIsNone(failure_detail.receiving_ip)
+        self.assertEqual(failure_detail.failure_reason_code, "no-policy-served")
 
 
 class TestBackwardCompatAlias(unittest.TestCase):

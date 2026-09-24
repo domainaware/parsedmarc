@@ -1,5 +1,12 @@
 # Changelog
 
+## 11.0.3
+
+### Bug fixes
+
+- **An SMTP TLS (RFC 8460) failure report whose `failure-details` entry sends an empty string for an optional field — e.g. `"sending-mta-ip": ""` and `"receiving-ip": ""`, which real reporters send for results like `sts-policy-fetch-error` — no longer crashes the PostgreSQL save.** `_parse_smtp_tls_failure_details()` copied every optional field verbatim whenever the JSON key was present, so an empty string reached the PostgreSQL `sending_mta_ip`/`receiving_ip` `INET` columns and failed with `invalid input syntax for type inet: ""`, discarding the whole report. The same blank values would also have crashed the Elasticsearch and OpenSearch saves: those outputs' `sending_mta_ip`/`receiving_ip` fields are IP-typed (`Ip()` in `elastic.py`/`opensearch.py`), and `Document.save()`'s validation pass rejects an empty string for an `Ip()` field with a bare `ValueError` — `'' does not appear to be an IPv4 or IPv6 address` — raised before any network call, so the whole report was lost rather than indexed with an empty IP. A `None` or blank/whitespace-only value for any optional failure-detail field (`sending-mta-ip`, `receiving-ip`, `receiving-mx-hostname`, `receiving-mx-helo`, the additional-information URI, `failure-reason-code`) is now treated as absent, so it is stored as `NULL` rather than `''`. (Closes #915)
+- **The RFC 8460 §4.4 `additional-information` failure-details key is now read.** The JSON Report Schema names the key `additional-information` (its value is described by the placeholder `additional-info-uri`), but the parser only read the non-RFC key `additional-info-uri`, so a conformant reporter's URI was silently dropped — including in the RFC's own worked example, `samples/smtp_tls/rfc8460.json`. The non-RFC `additional-info-uri` key is still read as a fallback for backward compatibility, and is used when the RFC key is absent or blank.
+
 ## 11.0.2
 
 ### Changes

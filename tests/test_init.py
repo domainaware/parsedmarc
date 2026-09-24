@@ -963,6 +963,26 @@ class Test(unittest.TestCase):
                 )
             print("Passed!")
 
+    def testSmtpTlsRfc8460SampleReadsAdditionalInformation(self):
+        """samples/smtp_tls/rfc8460.json is RFC 8460 §4.4's own worked
+        example, whose second failure-details entry sets
+        "additional-information" (not the non-RFC "additional-info-uri").
+        Before the fix, the parser only read "additional-info-uri", so this
+        URI was silently dropped even from the RFC's own example."""
+        result = parsedmarc.parse_report_file(
+            "samples/smtp_tls/rfc8460.json", offline=True
+        )
+        report = cast(SMTPTLSReport, result["report"])
+        failure_details = report["policies"][0].get("failure_details", [])
+        starttls_detail = next(
+            d for d in failure_details if d["result_type"] == "starttls-not-supported"
+        )
+        self.assertEqual(
+            starttls_detail.get("additional_info_uri"),
+            "https://reports.company-x.example/report_info?"
+            "id=5065427c-23d3#StarttlsNotSupported",
+        )
+
     def testSmtpTlsCsvStripsNulFromFields(self):
         """A NUL character in an SMTP TLS report text field is stripped
         from CSV output instead of reaching the ``csv`` writer.
@@ -1486,6 +1506,81 @@ class Test(unittest.TestCase):
         self.assertEqual(result["receiving_mx_helo"], "mx.example.com")
         self.assertEqual(result["additional_info_uri"], "https://example.com/info")
         self.assertEqual(result["failure_reason_code"], "TLS_ERROR")
+
+    def testParseSmtpTlsFailureDetailsBlankOptionalFieldsOmitted(self):
+        """Empty-string and whitespace-only optional fields are treated as
+        absent, not passed through.
+
+        Real-world reporters send "" for sending-mta-ip/receiving-ip on
+        results like sts-policy-fetch-error (see samples/smtp_tls/
+        empty_failure_detail_fields.json). An empty string is not a valid
+        IP address, so it previously reached PostgreSQL's INET columns
+        verbatim and crashed the PostgreSQL save, and would also have
+        crashed the Elasticsearch/OpenSearch saves' Ip() field validation
+        with a bare ValueError (issue #915).
+        """
+        details = {
+            "result-type": "sts-policy-fetch-error",
+            "failed-session-count": 1,
+            "sending-mta-ip": "",
+            "receiving-ip": "   ",
+            "receiving-mx-hostname": "",
+            "receiving-mx-helo": "\t",
+            "additional-information": "",
+            "additional-info-uri": "",
+            "failure-reason-code": "",
+        }
+        result = parsedmarc._parse_smtp_tls_failure_details(details)
+        self.assertEqual(result["result_type"], "sts-policy-fetch-error")
+        self.assertEqual(result["failed_session_count"], 1)
+        self.assertNotIn("sending_mta_ip", result)
+        self.assertNotIn("receiving_ip", result)
+        self.assertNotIn("receiving_mx_hostname", result)
+        self.assertNotIn("receiving_mx_helo", result)
+        self.assertNotIn("additional_info_uri", result)
+        self.assertNotIn("failure_reason_code", result)
+
+    def testParseSmtpTlsFailureDetailsAdditionalInformationKey(self):
+        """RFC 8460 §4.4's JSON key is "additional-information" (its value
+        is described as an "additional-info-uri"); it is read into the
+        parser's additional_info_uri field.
+        """
+        details = {
+            "result-type": "starttls-not-supported",
+            "failed-session-count": 1,
+            "additional-information": "https://example.com/rfc-key-info",
+        }
+        result = parsedmarc._parse_smtp_tls_failure_details(details)
+        self.assertEqual(
+            result["additional_info_uri"], "https://example.com/rfc-key-info"
+        )
+
+    def testParseSmtpTlsFailureDetailsAdditionalInformationWinsOverLegacy(self):
+        """When both the RFC key and the legacy key are present and
+        non-blank, the RFC key's value wins."""
+        details = {
+            "result-type": "starttls-not-supported",
+            "failed-session-count": 1,
+            "additional-information": "https://example.com/rfc-key-info",
+            "additional-info-uri": "https://example.com/legacy-key-info",
+        }
+        result = parsedmarc._parse_smtp_tls_failure_details(details)
+        self.assertEqual(
+            result["additional_info_uri"], "https://example.com/rfc-key-info"
+        )
+
+    def testParseSmtpTlsFailureDetailsAdditionalInformationBlankFallsBack(self):
+        """A blank RFC-key value falls back to a non-blank legacy value."""
+        details = {
+            "result-type": "starttls-not-supported",
+            "failed-session-count": 1,
+            "additional-information": "",
+            "additional-info-uri": "https://example.com/legacy-key-info",
+        }
+        result = parsedmarc._parse_smtp_tls_failure_details(details)
+        self.assertEqual(
+            result["additional_info_uri"], "https://example.com/legacy-key-info"
+        )
 
     def testParseSmtpTlsFailureDetailsMissingRequired(self):
         """Missing required field raises InvalidSMTPTLSReport"""
