@@ -11,9 +11,8 @@ import unittest
 from typing import cast
 from unittest.mock import MagicMock, call, patch
 
-import parsedmarc
 import parsedmarc.opensearch as opensearch_module
-from parsedmarc import InvalidFailureReport
+from parsedmarc import InvalidFailureReport, parse_report_file
 from parsedmarc.opensearch import (
     AlreadySaved,
     OpenSearchError,
@@ -1500,7 +1499,7 @@ class TestSaveSmtpTlsReport(unittest.TestCase):
         exercises the same validation a real save() would, and fails with
         that ValueError on unfixed parsedmarc/__init__.py.
         """
-        result = parsedmarc.parse_report_file(
+        result = parse_report_file(
             "samples/smtp_tls/empty_failure_detail_fields.json", offline=True
         )
         report = cast(dict, result["report"])
