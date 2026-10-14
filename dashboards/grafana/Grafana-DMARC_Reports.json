@@ -4579,7 +4579,7 @@
               "id": "12",
               "settings": {
                 "min_doc_count": "1",
-                "missing": null,
+                "missing": "-",
                 "order": "desc",
                 "orderBy": "1",
                 "size": "0"
