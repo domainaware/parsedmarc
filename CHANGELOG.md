@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+- **The Grafana dashboard's "Message sources by name and type" table no longer comes up empty when a message source has a name but no type.** Whenever a source's reverse DNS base domain is not in `base_reverse_dns_map.csv`, `get_service_from_reverse_dns_base_domain()` names the source after that base domain and leaves its type `None`; a source with no PTR record whose AS domain is not in the map is likewise named after its AS name with no type. For every such source the saved aggregate record has a `source_name` but no `source_type`. The panel nests a `terms` aggregation on `source_type.keyword` under one on `source_name.keyword`, without a `missing` value, so such a source produced a `source_name` bucket with no `source_type` sub-bucket, and Grafana's Elasticsearch data source then failed to build the table from the response. With Grafana 13.2.4 (bundled Elasticsearch data source 12.9.2) and the reports in `samples/aggregate/`, 12 sources had a name but no type and the table showed "No data"; with `missing` set, it lists all 27 name/type rows. The `source_type.keyword` aggregation now sets `missing` to `-`, the placeholder most of the dashboard's other tables already use for absent values, so those sources are listed with `-` as their type.
+
 ## 11.0.3
 
 ### Bug fixes
