@@ -124,6 +124,17 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 - Token file writes must create parent directories before opening for write.
 - Store natively numeric values as numbers, not pre-formatted strings. Example: ASN is stored as `int 15169`, not `"AS15169"`; Elasticsearch / OpenSearch mappings for such fields use `Integer()` so consumers can do range queries and numeric sorts. Display layers format with a prefix at render time.
 
+### Regular expressions on untrusted input
+
+Assume every regex in the package runs on content a remote sender controls (message bodies, headers, attachments inflated to the 100 MiB decompression cap), so a pattern that backtracks super-linearly is a remote CPU-exhaustion bug, not a style nit (GHSA-7grx-mj6g-qxmc: a cubic pattern on whitespace; GHSA-4h9r-c435-j834: a quadratic `.*>` that a 194 KB gzip attachment could turn into days of CPU). Before adding or editing a pattern:
+
+- **Adjacent quantifiers must not overlap.** `\s*([a-zA-Z\s]+)` lets both parts consume the same whitespace, so every split is retried. Make neighbouring classes disjoint (`[ \t]*` next to `[A-Za-z]`).
+- **A repeated class must exclude the delimiter it stops on.** Write `\([^()]*\)` and `<tag[^<>]*>`, never `\(.*\)` or `<tag.*>`: a greedy `.*` scans to end of line and backtracks for every occurrence, which is quadratic whenever the closer is missing, and also matches past the *first* closer (the old schema-tag regex deleted a whole minified report that way).
+- **Anchor when the match can only start at a line start** (`^` with `re.MULTILINE`); an unanchored `findall` retries the whole pattern from every offset.
+- **Prefer `str` methods** (`split`, `partition`, `startswith`) when the format is fixed and a regex adds nothing, and a plain loop when the grammar nests: balanced parentheses cannot be matched by a regex at all, which is why `human_timestamp_to_datetime()` strips RFC 5322 comments with a depth-counting scan.
+- **Time the pattern on an adversarial input before shipping it**, not just on the samples: a 1 MB string of the repeated opener with no closer, and a 200,000-character whitespace run. A linear pattern finishes in milliseconds; anything that takes seconds is a bug. Add that input as a time-bound regression test with a generous bound (seconds) and cite the measured old timing in the docstring, as the regression tests in `tests/test_init.py` and `tests/test_utils.py` do.
+- Python 3.10 is the floor, so possessive quantifiers and atomic groups (3.11+) are not available; fix the pattern's structure instead.
+
 ## Testing standards
 
 These rules govern *every* test added to `tests/`. They exist because the project has been burned by tests that looked like coverage but caught nothing, and by bug claims that turned out to be wrong about the spec. Both failure modes erode trust faster than missing coverage does.

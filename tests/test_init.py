@@ -16,6 +16,7 @@ import logging
 import mailbox
 import os
 import quopri
+import time
 import unittest
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
@@ -2625,6 +2626,53 @@ class TestMalformedXmlRecovery(unittest.TestCase):
         self.assertIn("missing required section", str(ctx.exception))
         self.assertIsInstance(ctx.exception.__cause__, AttributeError)
 
+    def testXmlSchemaRegexRejectsRepeatedTagsQuickly(self):
+        """A report made of repeated ``<xs:schema`` is rejected in linear
+        time.
+
+        Regression test for GHSA-4h9r-c435-j834: xml_schema_regex was
+        ``</??xs:schema.*>``, whose unanchored greedy ``.*>`` rescanned to the
+        end of the line for every ``<xs:schema`` — quadratic, so 1 MB took
+        19 s and this 5 MB input would take minutes. The 10 s bound is not
+        flaky: the fixed pattern handles it in milliseconds, orders of
+        magnitude below both the bound and the old pattern's cost."""
+        start = time.perf_counter()
+        with self.assertRaises(parsedmarc.InvalidAggregateReport):
+            parsedmarc.parse_aggregate_report_xml(
+                "<xs:schema" * 500_000, offline=OFFLINE_MODE
+            )
+        self.assertLess(time.perf_counter() - start, 10)
+
+    def testMinifiedAggregateReportWithSchemaTag(self):
+        """A report minified onto one line still parses when it carries an
+        ``<xs:schema>`` tag.
+
+        The old greedy ``</??xs:schema.*>`` (GHSA-4h9r-c435-j834) deleted
+        from the schema tag to the last ``>`` on the line, which on a
+        single-line document discarded the whole report."""
+        path = "samples/aggregate/ikea.com!example.de!1538690400!1538776800.xml"
+        with open(path, encoding="utf-8") as f:
+            original = f.read()
+        minified = "".join(line.strip() for line in original.splitlines())
+        self.assertIn("<xs:schema", minified)
+        self.assertNotIn("\n", minified)
+        expected = parsedmarc.parse_aggregate_report_xml(
+            original, always_use_local_files=True, offline=OFFLINE_MODE
+        )
+        report = parsedmarc.parse_aggregate_report_xml(
+            minified, always_use_local_files=True, offline=OFFLINE_MODE
+        )
+        self.assertEqual(
+            report["report_metadata"]["org_name"],
+            expected["report_metadata"]["org_name"],
+        )
+        self.assertEqual(
+            report["report_metadata"]["report_id"],
+            expected["report_metadata"]["report_id"],
+        )
+        self.assertEqual(len(report["records"]), len(expected["records"]))
+        self.assertGreater(len(report["records"]), 0)
+
 
 class TestPolicyPublishedEdgeCases(unittest.TestCase):
     """Tests for edge cases in policy_published parsing"""
@@ -3118,6 +3166,53 @@ This is not a DMARC report."""
         with self.assertRaises(parsedmarc.ParserError) as ctx:
             parsedmarc.parse_report_email(eml, offline=True)
         self.assertIn("Tls", str(ctx.exception))
+
+    def testTextReportRegexRejectsWhitespacePaddingQuickly(self):
+        """A plain-text failure notice padded with whitespace is rejected in
+        linear time.
+
+        Regression test for GHSA-7grx-mj6g-qxmc: text_report_regex was
+        ``\\s*([a-zA-Z\\s]+):\\s(.+)``, whose overlapping, unanchored
+        whitespace quantifiers backtracked cubically — 1600 spaces took
+        3.3 s, about 8x per doubling, so this 6,400-space body takes about
+        210 s: far over the bound, but short enough that a regression fails
+        instead of hanging the CI job. The 10 s bound is not flaky:
+        the fixed pattern parses it in milliseconds, orders of magnitude
+        below both the bound and the old pattern's cost."""
+        padding = " " * 6_400
+        body = "\n".join(padding[i : i + 70] for i in range(0, len(padding), 70))
+        msg = (
+            "From: mailer-daemon@example.com\n"
+            "To: dmarc@example.com\n"
+            "Subject: Failure notice\n"
+            "Date: Mon, 01 Jan 2024 00:00:00 +0000\n"
+            "Content-Type: text/plain\n\n"
+            "A message claiming to be from you has failed\n" + body + "\ndetected."
+        )
+        start = time.perf_counter()
+        # The required received-date field is missing, so the notice is
+        # rejected rather than parsed.
+        with self.assertRaises(parsedmarc.InvalidDMARCReport):
+            parsedmarc.parse_report_email(msg, offline=OFFLINE_MODE)
+        self.assertLess(time.perf_counter() - start, 10)
+
+    def testTextReportFieldNamesMustBeSingleLine(self):
+        """text_report_regex matches Exim's one-line ``Name: value`` fields:
+        a field name cannot span a line break, leading indentation is
+        allowed, and a CRLF line ending is not kept in the value
+        (GHSA-7grx-mj6g-qxmc)."""
+        matches = parsedmarc.text_report_regex.findall("Sender\nDomain: x")
+        self.assertFalse(any("\n" in name for name, _ in matches))
+        self.assertEqual(
+            parsedmarc.text_report_regex.findall("  Sender IP Address: 1.2.3.4\n"),
+            [("Sender IP Address", "1.2.3.4")],
+        )
+        self.assertEqual(
+            parsedmarc.text_report_regex.findall(
+                "Received Date: Mon, 01 Jan 2024 00:00:00 +0000\r\n"
+            ),
+            [("Received Date", "Mon, 01 Jan 2024 00:00:00 +0000")],
+        )
 
 
 class TestFailureReportParsing(unittest.TestCase):

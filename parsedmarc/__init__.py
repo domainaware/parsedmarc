@@ -88,8 +88,17 @@ logger.debug(f"parsedmarc v{__version__}")
 # than relying on ``.`` — otherwise every field value keeps a trailing CR.
 feedback_report_regex = re.compile(r"^([\w\-]+): ([^\r\n]+)\r?$", re.MULTILINE)
 xml_header_regex = re.compile(r"^<\?xml .*?>", re.MULTILINE)
-xml_schema_regex = re.compile(r"</??xs:schema.*>", re.MULTILINE)
-text_report_regex = re.compile(r"\s*([a-zA-Z\s]+):\s(.+)", re.MULTILINE)
+# Every pattern here runs on attacker-controlled input; the next two were
+# rewritten to match in linear time (GHSA-4h9r-c435-j834, GHSA-7grx-mj6g-qxmc):
+# a repeated character class excludes the delimiter it stops on, adjacent
+# quantifiers never overlap, and text_report_regex is anchored to a line start,
+# so each candidate match is scanned once instead of being rescanned from every
+# offset on every backtrack. See "Regular expressions on untrusted input" in
+# AGENTS.md.
+xml_schema_regex = re.compile(r"</?xs:schema[^<>]*>")
+text_report_regex = re.compile(
+    r"^[ \t]*([A-Za-z]+(?: [A-Za-z]+)*):[ \t]+([^\r\n]+)", re.MULTILINE
+)
 # Captures the value of any xmlns (default or prefixed) declaration so the
 # RFC 9990 namespace can be detected before xmltodict drops it.
 xml_namespace_regex = re.compile(
