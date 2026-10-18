@@ -12,7 +12,6 @@ import json
 import logging
 import mailbox
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -60,8 +59,6 @@ _RETRYABLE_DNS_ERRORS = (
 # it was created under. See _get_doh_session().
 _DOH_SESSION: httpx.Client | None = None
 _DOH_SESSION_PID: int | None = None
-
-parenthesis_regex = re.compile(r"\s*\(.*\)\s*")
 
 null_file = subprocess.DEVNULL
 mailparser_logger = logging.getLogger("mailparser")
@@ -536,6 +533,34 @@ def timestamp_to_human(timestamp: int) -> str:
     return timestamp_to_datetime(timestamp).strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _strip_comments(value: str) -> str:
+    """Removes RFC 5322 comments from a header value.
+
+    A comment is parenthesized text that may nest and may contain quoted-pairs
+    such as ``\\)`` (RFC 5322 section 3.2.2), so it cannot be matched by a
+    regular expression at all. This single pass tracks the nesting depth
+    instead; an unclosed comment runs to the end of the value.
+    """
+    out: list[str] = []
+    depth = 0
+    escaped = False
+    for char in value:
+        if depth:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+        elif char == "(":
+            depth = 1
+        else:
+            out.append(char)
+    return "".join(out)
+
+
 def human_timestamp_to_datetime(
     human_timestamp: str, *, to_utc: bool = False, assume_utc: bool = False
 ) -> datetime:
@@ -556,7 +581,7 @@ def human_timestamp_to_datetime(
     """
 
     human_timestamp = human_timestamp.replace("-0000", "")
-    human_timestamp = parenthesis_regex.sub("", human_timestamp)
+    human_timestamp = _strip_comments(human_timestamp).strip()
 
     dt = parse_date(human_timestamp)
     if assume_utc and dt.tzinfo is None:

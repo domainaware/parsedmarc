@@ -249,6 +249,52 @@ class Test(unittest.TestCase):
             "Mon, 01 Jan 2024 00:00:00 +0000 (UTC)"
         )
         self.assertEqual(dt.year, 2024)
+        # A tab before the comment, and more than one comment, are stripped
+        # too.
+        self.assertEqual(
+            parsedmarc.utils.human_timestamp_to_datetime(
+                "Tue, 1 Jan 2019 00:00:00 +0000\t(GMT)"
+            ),
+            datetime(2019, 1, 1, tzinfo=timezone.utc),
+        )
+        self.assertEqual(
+            parsedmarc.utils.human_timestamp_to_datetime(
+                "Mon, 01 Jan 2024 00:00:00 +0000 (x) (y)"
+            ),
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        # RFC 5322 section 3.2.2 lets comments nest and contain quoted-pairs;
+        # a regex cannot strip those, which is why a depth-counting scan does.
+        self.assertEqual(
+            parsedmarc.utils.human_timestamp_to_datetime(
+                "Mon, 01 Jan 2024 00:00:00 +0000 (a (b) c)"
+            ),
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        self.assertEqual(
+            parsedmarc.utils.human_timestamp_to_datetime(
+                "Mon, 01 Jan 2024 00:00:00 +0000 (\\) x)"
+            ),
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+
+    def testHumanTimestampToDatetimeWhitespaceIsLinear(self):
+        """A whitespace-padded timestamp is rejected in linear time.
+
+        Comments were stripped with the regex ``\\s*\\(.*\\)\\s*``, whose
+        leading ``\\s*`` was retried from every position in a whitespace run
+        — quadratic, so 200,000 spaces took 18.6 s. The function runs on
+        every message's Date header. The 5 s bound is not flaky: the
+        depth-counting scan handles this input in milliseconds, orders of
+        magnitude below both the bound and the old pattern's cost. The
+        comment is left unclosed so the old pattern can never match: with a
+        closing parenthesis its first attempt succeeded and the backtracking
+        never happened."""
+        start = time.perf_counter()
+        # dateutil's ParserError subclasses ValueError.
+        with self.assertRaises(ValueError):
+            parsedmarc.utils.human_timestamp_to_datetime(" " * 200_000 + "(x")
+        self.assertLess(time.perf_counter() - start, 5)
 
     def testHumanTimestampToDatetimeNegativeZero(self):
         """-0000 timezone is handled"""
