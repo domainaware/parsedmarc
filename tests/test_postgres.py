@@ -337,6 +337,45 @@ class TestPostgreSQLConstruction(unittest.TestCase):
             self.assertIn(f"CREATE TABLE IF NOT EXISTS {table}", executed)
         self.assertIn("CREATE INDEX IF NOT EXISTS", executed)
 
+    def test_create_tables_indexes_every_foreign_key(self):
+        """Every REFERENCES column gets an index.
+
+        PostgreSQL indexes the referenced primary key but not the referencing
+        column ("the declaration of a foreign key constraint does not
+        automatically create an index on the referencing columns", PostgreSQL
+        docs, "Foreign Keys"), so without one a per-record lookup such as the
+        PostgreSQL Grafana dashboard's DKIM/SPF result subqueries scans the
+        whole child table.
+        """
+        import re
+
+        client, mock_conn = _make_client()
+        cur = _mock_cursor(mock_conn, [])
+        client.create_tables()
+        statements = _executed_sql(cur)
+
+        foreign_keys = set()
+        for stmt in statements:
+            table = re.search(r"CREATE TABLE IF NOT EXISTS (\w+)", stmt)
+            if table:
+                for column in re.findall(
+                    r"^\s*(\w+)[^\n]*\n?\s*REFERENCES", stmt, re.M | re.I
+                ):
+                    foreign_keys.add((table.group(1), column))
+        indexed = {
+            (m.group(1), m.group(2))
+            for stmt in statements
+            if (m := re.search(r"ON (\w+) \((\w+)\)", stmt))
+        }
+
+        # Every REFERENCES in the DDL must have been attributed to a column,
+        # so a layout the column regex misses fails here instead of passing.
+        references = sum(
+            len(re.findall(r"\bREFERENCES\b", s, re.I)) for s in statements
+        )
+        self.assertEqual(len(foreign_keys), references)
+        self.assertEqual(foreign_keys - indexed, set())
+
     def test_create_tables_wraps_db_error(self):
         """A driver error during DDL is wrapped in PostgreSQLError."""
 

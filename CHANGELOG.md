@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+- **The PostgreSQL schema now indexes its foreign-key columns, so the PostgreSQL Grafana dashboard's "Aggregate Report Details" table no longer times out.** PostgreSQL indexes the primary key a `REFERENCES` column points at, but not the referencing column itself ("the declaration of a foreign key constraint does not automatically create an index on the referencing columns", [PostgreSQL docs, "Foreign Keys"](https://www.postgresql.org/docs/current/ddl-constraints.html#DDL-CONSTRAINTS-FK)), and `create_tables()` indexed only two of the schema's seven foreign-key columns (`dmarc_aggregate_record.report_id` and `smtp_tls_policy.report_id`). The panel looks up each record's DKIM and SPF results with a correlated subquery on `dmarc_aggregate_record_dkim.record_id` and `dmarc_aggregate_record_spf.record_id`, so every row of the panel ran two sequential scans of those tables. With 413,237 aggregate records (5.5 years of reports, PostgreSQL 16), 500 records took 46.1 s, about 92 ms each; a one-year time range of 43,568 records would have taken over an hour, and Grafana returned a 504 long before that. `create_tables()` now also creates `idx_agg_record_dkim_record_id`, `idx_agg_record_spf_record_id`, `idx_agg_record_override_record_id`, `idx_failure_sample_address_report_id`, and `idx_smtp_tls_failure_detail_policy_id`, covering every foreign-key column in the schema; the same 500 records take 15.8 ms and the one-year panel query 3.2 s. `create_tables()` runs on every start with `CREATE INDEX IF NOT EXISTS`, so existing databases get the indexes on their next start; the two largest indexes took about 0.3 s each to build on the database above, and the indexed tables reject writes until the startup DDL transaction commits.
+
 ## 11.0.4
 
 ### Security

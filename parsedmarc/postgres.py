@@ -428,6 +428,28 @@ class PostgreSQLClient:
             CREATE INDEX IF NOT EXISTS idx_smtp_tls_policy_report_id
                 ON smtp_tls_policy (report_id)
             """,
+            # ----- remaining foreign-key columns (PostgreSQL does not index
+            # the referencing side) -----
+            """
+            CREATE INDEX IF NOT EXISTS idx_agg_record_dkim_record_id
+                ON dmarc_aggregate_record_dkim (record_id)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_agg_record_spf_record_id
+                ON dmarc_aggregate_record_spf (record_id)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_agg_record_override_record_id
+                ON dmarc_aggregate_record_policy_override (record_id)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_failure_sample_address_report_id
+                ON dmarc_failure_sample_address (report_id)
+            """,
+            """
+            CREATE INDEX IF NOT EXISTS idx_smtp_tls_failure_detail_policy_id
+                ON smtp_tls_failure_detail (policy_id)
+            """,
         ]
 
         try:
