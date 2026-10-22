@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 11.0.5
 
 ### Bug fixes
 
