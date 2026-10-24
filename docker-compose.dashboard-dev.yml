@@ -43,6 +43,13 @@ services:
         condition: service_healthy
       postgresql:
         condition: service_healthy
+      loki:
+        condition: service_started
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "127.0.0.1:3100:3100"
 
   postgresql:
     image: postgres:17

@@ -877,6 +877,10 @@ The full set of configuration options is:
   Name the fields to extract: a bare `| json` turns every field into a
   label, and the many distinct values quickly exceed Loki's per-query
   series limit (`max_query_series`, 500 by default).
+  A ready-made Grafana dashboard for these lines ships in
+  [dashboards/grafana/Grafana-DMARC_Reports-Loki.json](https://github.com/domainaware/parsedmarc/blob/master/dashboards/grafana/Grafana-DMARC_Reports-Loki.json);
+  import it and pick your Loki datasource for its `DS_LOKI` input.
+  It expects the default `job=parsedmarc` label and `label_fields`.
   - `url` - str: The Loki base URL; `/loki/api/v1/push` is appended when the
     URL has no path. A URL with a path is used as is.
   - `labels` - str: Comma-separated `name=value` stream labels, merged over
