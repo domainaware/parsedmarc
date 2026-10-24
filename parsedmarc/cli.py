@@ -35,6 +35,7 @@ from parsedmarc import (
     email_results_via_msgraph,
     get_dmarc_reports_from_mailbox,
     get_dmarc_reports_from_mbox,
+    loki,
     postgres,
     save_output,
     splunk,
@@ -524,6 +525,7 @@ _KNOWN_SECTIONS = frozenset(
         "log_analytics",
         "gelf",
         "webhook",
+        "loki",
     }
 )
 
@@ -1514,6 +1516,51 @@ def _parse_config(config: ConfigParser, opts):
         if "timeout" in webhook_config:
             opts.webhook_timeout = webhook_config.getint("timeout")
 
+    if "loki" in config.sections():
+        loki_config = config["loki"]
+        if "url" in loki_config:
+            opts.loki_url = loki_config["url"]
+        else:
+            raise ConfigurationError("url setting missing from the loki config section")
+        if "labels" in loki_config:
+            opts.loki_labels = {}
+            for pair in _str_to_list(loki_config["labels"]):
+                name, sep, value = pair.partition("=")
+                if not sep or not name.strip():
+                    raise ConfigurationError(
+                        f"Invalid loki label '{pair}', expected name=value"
+                    )
+                opts.loki_labels[name.strip()] = value.strip()
+        if "label_fields" in loki_config:
+            opts.loki_label_fields = [
+                field
+                for field in _str_to_list(loki_config["label_fields"])
+                if field.strip()
+            ]
+        if "timestamp" in loki_config:
+            opts.loki_timestamp = loki_config["timestamp"]
+            if opts.loki_timestamp not in loki.TIMESTAMP_MODES:
+                raise ConfigurationError(
+                    f"Invalid loki timestamp '{opts.loki_timestamp}', must be one "
+                    f"of: {', '.join(loki.TIMESTAMP_MODES)}"
+                )
+        if "username" in loki_config:
+            opts.loki_username = loki_config["username"]
+        if "password" in loki_config:
+            opts.loki_password = loki_config["password"]
+        if "token" in loki_config:
+            opts.loki_token = loki_config["token"]
+        if "tenant_id" in loki_config:
+            opts.loki_tenant_id = loki_config["tenant_id"]
+        if "skip_certificate_verification" in loki_config:
+            opts.loki_skip_certificate_verification = loki_config.getboolean(
+                "skip_certificate_verification"
+            )
+        if "timeout" in loki_config:
+            opts.loki_timeout = loki_config.getfloat("timeout")
+        if "batch_size" in loki_config:
+            opts.loki_batch_size = loki_config.getint("batch_size")
+
     return index_prefix_domain_map
 
 
@@ -2039,6 +2086,25 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
     except Exception as e:
         raise RuntimeError(f"Webhook: {e}") from e
 
+    try:
+        if opts.loki_url:
+            logger.debug("Initializing Loki client: url=%s", opts.loki_url)
+            clients["loki_client"] = loki.LokiClient(
+                opts.loki_url,
+                labels=opts.loki_labels,
+                label_fields=opts.loki_label_fields,
+                timestamp=opts.loki_timestamp,
+                username=opts.loki_username,
+                password=opts.loki_password,
+                token=opts.loki_token,
+                tenant_id=opts.loki_tenant_id,
+                verify=not opts.loki_skip_certificate_verification,
+                timeout=opts.loki_timeout,
+                batch_size=opts.loki_batch_size,
+            )
+    except Exception as e:
+        raise RuntimeError(f"Loki: {e}") from e
+
     # The Log Analytics client is built per batch in process_reports(),
     # under the same opts.la_dce guard. Checking it here means a missing
     # extra is reported at startup -- and again on a SIGHUP reload --
@@ -2453,6 +2519,7 @@ def _main():
         hec_client = clients.get("hec_client")
         gelf_client = clients.get("gelf_client")
         webhook_client = clients.get("webhook_client")
+        loki_client = clients.get("loki_client")
         pg_client = clients.get("postgresql_client")
 
         kafka_aggregate_topic = opts.kafka_aggregate_topic
@@ -2543,6 +2610,12 @@ def _main():
                         )
                 except Exception as error_:
                     log_output_error("Webhook", error_.__str__())
+
+                try:
+                    if loki_client:
+                        loki_client.save_aggregate_report_to_loki(report)
+                except Exception as error_:
+                    log_output_error("Loki", error_.__str__())
 
             if hec_client:
                 try:
@@ -2637,6 +2710,12 @@ def _main():
                 except Exception as error_:
                     log_output_error("Webhook", error_.__str__())
 
+                try:
+                    if loki_client:
+                        loki_client.save_failure_report_to_loki(report)
+                except Exception as error_:
+                    log_output_error("Loki", error_.__str__())
+
             if hec_client:
                 try:
                     failure_reports_ = reports_["failure_reports"]
@@ -2729,6 +2808,12 @@ def _main():
                         )
                 except Exception as error_:
                     log_output_error("Webhook", error_.__str__())
+
+                try:
+                    if loki_client:
+                        loki_client.save_smtp_tls_report_to_loki(report)
+                except Exception as error_:
+                    log_output_error("Loki", error_.__str__())
 
             if hec_client:
                 try:
@@ -3048,6 +3133,17 @@ def _main():
         webhook_failure_url=None,
         webhook_smtp_tls_url=None,
         webhook_timeout=60,
+        loki_url=None,
+        loki_labels=None,
+        loki_label_fields=None,
+        loki_timestamp="ingest",
+        loki_username=None,
+        loki_password=None,
+        loki_token=None,
+        loki_tenant_id=None,
+        loki_skip_certificate_verification=False,
+        loki_timeout=60,
+        loki_batch_size=1000,
         normalize_timespan_threshold_hours=24.0,
         postgresql_host=None,
         postgresql_port=5432,

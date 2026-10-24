@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### New features
+
+- **Grafana Loki output.** A new `[loki]` section pushes every aggregate, failure, and SMTP TLS report record as one JSON log line to the Loki push API (`/loki/api/v1/push`), using the same flat records as the syslog and GELF outputs plus `report_type` and `domain`. Streams are labeled `job=parsedmarc` and `host=<FQDN>`, overridable and extendable with `labels`, plus the record fields named in `label_fields` (default `report_type, domain`). Entries are timestamped at ingest by default, or at the begin of the reported period with `timestamp = report_begin`. Basic authentication, a bearer token, and a tenant ID (`X-Scope-OrgID`) are supported, and large reports are split into pushes of `batch_size` lines. A failed push raises `LokiError`, so it counts as a failed save and holds the batch's mailbox messages back for a retry. Needs only `httpx`, so it is part of the base install.
+
 ## 11.0.5
 
 ### Bug fixes
