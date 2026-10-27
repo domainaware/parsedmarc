@@ -471,6 +471,31 @@ class Test(unittest.TestCase):
         self.assertTrue(parsedmarc.utils.is_outlook_msg(magic))
 
 
+class TestSanitizeForLog(unittest.TestCase):
+    """Tests for parsedmarc.utils.sanitize_for_log()"""
+
+    def testEscapesNonPrintableAndKeepsPrintable(self):
+        cases = [
+            ("plain ASCII", "plain ASCII"),
+            ("", ""),
+            ("line1\r\nINJECTED fake log", "line1\\r\\nINJECTED fake log"),
+            ("a\tb", "a\\tb"),
+            ("\x1b[31mred", "\\x1b[31mred"),
+            ("a\u2028b", "a\\u2028b"),
+            ("nul\x00byte", "nul\\x00byte"),
+            ("\u65e5\u672c\u8a9e report", "\u65e5\u672c\u8a9e report"),
+            ("ok \U0001f600", "ok \U0001f600"),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(parsedmarc.utils.sanitize_for_log(value), expected)
+
+    def testResultHasNoRawControlCharacters(self):
+        result = parsedmarc.utils.sanitize_for_log("a\r\nb\nc\rd")
+        self.assertNotIn("\r", result)
+        self.assertNotIn("\n", result)
+
+
 class TestLoadPSLOverrides(unittest.TestCase):
     """Covers `parsedmarc.utils.load_psl_overrides`."""
 

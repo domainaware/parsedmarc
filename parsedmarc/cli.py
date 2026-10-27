@@ -133,6 +133,7 @@ from parsedmarc.utils import (
     load_ip_db,
     load_psl_overrides,
     load_reverse_dns_map,
+    sanitize_for_log,
 )
 
 # Increase the max header limit for very large emails. `_MAXHEADERS` is a
@@ -3255,7 +3256,8 @@ def _main():
                 else:
                     logger.debug(
                         "Skipping duplicate aggregate report "
-                        f"from {report_org} with ID: {report_id}"
+                        f"from {sanitize_for_log(str(report_org))} "
+                        f"with ID: {sanitize_for_log(str(report_id))}"
                     )
             elif result["report_type"] == "failure":
                 failure_reports.append(result["report"])

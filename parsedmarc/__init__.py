@@ -77,6 +77,7 @@ from parsedmarc.utils import (
     human_timestamp_to_datetime,
     is_outlook_msg,
     parse_email,
+    sanitize_for_log,
     timestamp_to_human,
 )
 
@@ -732,7 +733,9 @@ def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
         policy_type = policy["policy"]["policy-type"]
         failure_details = []
         if policy_type not in policy_types:
-            raise InvalidSMTPTLSReport(f"Invalid policy type {policy_type}")
+            raise InvalidSMTPTLSReport(
+                f"Invalid policy type {sanitize_for_log(str(policy_type))}"
+            )
         new_policy: dict[str, Any] = {
             "policy_domain": policy_domain,
             "policy_type": policy_type,
@@ -807,17 +810,35 @@ def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
         raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
-def _csv_safe(value: Any) -> Any:
-    """Strips NUL characters from a string CSV field.
+# Characters that make a spreadsheet application read a cell as a formula.
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
-    Python 3.10's ``csv`` writer raises ``_csv.Error: need to escape, but
-    no escapechar set`` on any field containing NUL (CPython issue 97503,
-    fixed in 3.11). Report text fields come from untrusted mail, so the
-    character is dropped here, matching ``get_filename_safe_string``.
-    Non-string values are returned unchanged.
+
+def _csv_safe(value: Any) -> Any:
+    """Makes a string CSV field safe to write and to open in a spreadsheet.
+
+    Two things happen to a string, in this order:
+
+    1. NUL characters are stripped. Python 3.10's ``csv`` writer raises
+       ``_csv.Error: need to escape, but no escapechar set`` on any field
+       containing NUL (CPython issue 97503, fixed in 3.11), and the
+       character is dropped to match ``get_filename_safe_string``.
+    2. A string starting with ``=``, ``+``, ``-``, ``@``, tab, or carriage
+       return gets a leading ``'``. Spreadsheet applications evaluate such
+       a cell as a formula, and report text fields come from untrusted
+       mail, so a reporter could otherwise plant a formula like
+       ``=HYPERLINK(...)`` in the output (CWE-1236). The apostrophe is the
+       OWASP CSV Injection recommendation, and makes the application
+       treat the cell as text:
+       https://owasp.org/www-community/attacks/CSV_Injection
+
+    Non-string values (ASN integers, counts) are returned unchanged.
     """
     if isinstance(value, str):
-        return value.replace("\x00", "")
+        value = value.replace("\x00", "")
+        if value.startswith(_CSV_FORMULA_PREFIXES):
+            return "'" + value
+        return value
     return value
 
 
@@ -1135,14 +1156,16 @@ def parse_aggregate_report_xml(
             if policy_published["np"] is not None:
                 np_ = policy_published["np"]
                 if np_ not in ("none", "quarantine", "reject"):
-                    logger.warning(f"Invalid np value: {np_}")
+                    logger.warning(f"Invalid np value: {sanitize_for_log(str(np_))}")
         new_policy_published["np"] = np_
         testing = None
         if "testing" in policy_published:
             if policy_published["testing"] is not None:
                 testing = policy_published["testing"]
                 if testing not in ("n", "y"):
-                    logger.warning(f"Invalid testing value: {testing}")
+                    logger.warning(
+                        f"Invalid testing value: {sanitize_for_log(str(testing))}"
+                    )
         new_policy_published["testing"] = testing
         discovery_method = None
         if "discovery_method" in policy_published:
@@ -1150,7 +1173,8 @@ def parse_aggregate_report_xml(
                 discovery_method = policy_published["discovery_method"]
                 if discovery_method not in ("psl", "treewalk"):
                     logger.warning(
-                        f"Invalid discovery_method value: {discovery_method}"
+                        f"Invalid discovery_method value: "
+                        f"{sanitize_for_log(str(discovery_method))}"
                     )
         new_policy_published["discovery_method"] = discovery_method
         new_report["policy_published"] = new_policy_published
@@ -1175,7 +1199,9 @@ def parse_aggregate_report_xml(
                         normalize=normalize_timespan,
                     )
                 except Exception as e:
-                    logger.warning(f"Could not parse record: {e}")
+                    logger.warning(
+                        f"Could not parse record: {sanitize_for_log(str(e))}"
+                    )
 
         else:
             report_record = _parse_report_record(
@@ -2142,15 +2168,21 @@ def parse_report_email(
 
     except Exception as e:
         raise ParserError(e.__str__() + _exc_origin(e)) from e
-    subject = None
+    subject_text = "None"
     feedback_report = None
     smtp_tls_report = None
     sample = None
     is_feedback_report: bool = False
     if "From" in msg_headers:
-        logger.info("Parsing mail from {} on {}".format(msg_headers["From"], date))
+        logger.info(
+            "Parsing mail from {} on {}".format(
+                sanitize_for_log(str(msg_headers["From"])), date
+            )
+        )
     if "Subject" in msg_headers:
-        subject = msg_headers["Subject"]
+        # RFC 2047 decoding can yield raw CR/LF, so escape control
+        # characters before the subject reaches an error message or log.
+        subject_text = sanitize_for_log(str(msg_headers["Subject"]))
     for part in msg.walk():
         content_type = part.get_content_type().lower()
         payload_obj = part.get_payload()
@@ -2199,7 +2231,7 @@ def parse_report_email(
                         fields["received-date"], fields["sender-ip-address"]
                     )
                 except Exception as e:
-                    error = f'Unable to parse message with subject "{subject}": {e}{_exc_origin(e)}'
+                    error = f'Unable to parse message with subject "{subject_text}": {e}{_exc_origin(e)}'
                     raise InvalidDMARCReport(error) from e
 
                 sample = parts[1].lstrip()
@@ -2236,13 +2268,11 @@ def parse_report_email(
                 pass
 
             except InvalidDMARCReport as e:
-                error = (
-                    f'Message with subject "{subject}" is not a valid DMARC report: {e}'
-                )
+                error = f'Message with subject "{subject_text}" is not a valid DMARC report: {e}'
                 raise ParserError(error) from e
 
             except Exception as e:
-                error = f'Unable to parse message with subject "{subject}": {e}{_exc_origin(e)}'
+                error = f'Unable to parse message with subject "{subject_text}": {e}{_exc_origin(e)}'
                 raise ParserError(error) from e
 
     if feedback_report and sample:
@@ -2255,7 +2285,7 @@ def parse_report_email(
             )
         except InvalidFailureReport as e:
             error = (
-                f'Message with subject "{subject}" '
+                f'Message with subject "{subject_text}" '
                 "is not a valid "
                 f"failure DMARC report: {e}"
             )
@@ -2264,11 +2294,10 @@ def parse_report_email(
         result = {"report_type": "failure", "report": failure_report}
         return result
 
-    if result is None:
-        error = f'Message with subject "{subject}" is not a valid report'
-        raise InvalidDMARCReport(error)
-
-    return result
+    # Every branch that sets ``result`` returns immediately, so reaching this
+    # point always means no report was found.
+    error = f'Message with subject "{subject_text}" is not a valid report'
+    raise InvalidDMARCReport(error)
 
 
 # An RFC 5322 header field name (printable ASCII excluding the colon) followed
@@ -2494,8 +2523,9 @@ def _classify_parsed_email(
             aggregate_reports.append(parsed_email["report"])
         else:
             logger.debug(
-                f"Skipping duplicate aggregate report from {report_org} "
-                f"with ID: {report_id}"
+                "Skipping duplicate aggregate report from "
+                f"{sanitize_for_log(str(report_org))} "
+                f"with ID: {sanitize_for_log(str(report_id))}"
             )
     elif parsed_email["report_type"] == "failure":
         failure_reports.append(parsed_email["report"])
