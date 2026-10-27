@@ -136,6 +136,10 @@ The full set of configuration options is:
       results to STDOUT (Default: `True`)
   - `output` - str: Directory to place JSON and CSV files in. The JSON
       and CSV filename options below only take effect when this is set.
+      CSV cells that begin with `=`, `+`, `-`, `@`, a tab, or a
+      carriage return are written with a leading apostrophe (`'`), so
+      spreadsheet applications treat them as text rather than formulas
+      ([CSV injection](https://owasp.org/www-community/attacks/CSV_Injection)).
   - `archive_directory` - str: Optional. When set, successfully
       processed report files given as local file/directory path
       arguments are moved into
