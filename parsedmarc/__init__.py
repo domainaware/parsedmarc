@@ -2625,9 +2625,10 @@ def _fetch_mailbox_message(
     Returns ``(message_id, msg_content)``; ``message_id`` is the
     backend-appropriate id to use for later move/delete calls.
 
-    Some backends re-serialize the stored message while fetching it (the
-    Maildir backend calls ``Message.as_string()``), so the message's own
-    content can make the fetch fail: ``email.errors.HeaderWriteError`` on a
+    A backend that re-serializes the stored message while fetching it (the
+    Maildir backend of mailsuite before 2.3.3 called ``Message.as_string()``;
+    2.3.3 returns the stored bytes) can fail on the message's own content:
+    ``email.errors.HeaderWriteError`` on a
     control character in a header, ``RecursionError`` on deeply nested
     multiparts. Those content errors are returned, not raised, as
     ``msg_content`` -- a ``ParserError`` the caller treats like a parse
@@ -2675,14 +2676,14 @@ def _dispose_invalid_message(
     A delete or move the backend rejects is logged and the message is left
     in place, as the archival disposal of parsed reports does, rather than
     aborting the rest of the batch. Besides transient backend errors, this
-    covers messages the backend cannot rewrite: the Maildir backend moves a
-    message by storing it again with ``mailbox.Maildir.add()``, which
-    re-serializes it through ``email.generator.BytesGenerator``. That raises
-    ``RecursionError`` for deeply nested multiparts on every Python, and
+    covers messages the backend cannot rewrite: the Maildir backend of
+    mailsuite before 2.3.3 moved a message by storing it again with
+    ``mailbox.Maildir.add()``, which re-serializes it and raises
+    ``RecursionError`` for deeply nested multiparts (and
     ``email.errors.HeaderWriteError`` for a control character in a header
-    only where ``BytesGenerator`` also verifies generated headers (some
-    distribution builds; upstream CPython checks only the text generator
-    used by ``as_string()``) (GHSA-qxwv-2vwj-v828).
+    where ``BytesGenerator`` verifies headers), so such a message stayed in
+    the inbox. mailsuite 2.3.3 renames the file instead
+    (GHSA-qxwv-2vwj-v828, GHSA-9jx3-p8wm-g8vw).
     """
     try:
         if delete:

@@ -4975,46 +4975,30 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
                 "is not a poison message here"
             )
 
-    def _maildir_stores_parsed(self, poison):
-        """Whether this Python's ``mailbox.Maildir.add()`` can store
-        ``poison`` once it has been read back as a message object, which is
-        what MaildirConnection.move_message() does."""
-        scratch = mkdtemp(dir=self._tmp)
-        source = mailbox.Maildir(os.path.join(scratch, "source"), create=True)
-        destination = mailbox.Maildir(os.path.join(scratch, "dest"), create=True)
-        try:
-            destination.add(source[source.add(poison)])
-        except (email.errors.MessageError, RecursionError):
-            return False
-        finally:
-            rmtree(scratch, ignore_errors=True)
-        return True
-
     def test_poison_message_does_not_abort_the_batch(self):
-        """A message the Maildir backend cannot re-serialize while fetching
-        it no longer aborts the batch: the other report is still parsed and
-        archived, sequentially and with n_procs=2.
+        """A message that cannot be re-serialized no longer aborts the
+        batch: the other report is still parsed and archived, sequentially
+        and with n_procs=2, and the poison message is moved to
+        ``Archive/Invalid``.
 
-        Regression test for GHSA-qxwv-2vwj-v828: MaildirConnection's
-        fetch_message() calls Message.as_string(), so the
+        Regression test for GHSA-qxwv-2vwj-v828: parse_report_email()
+        serializes the message's parts, so the
         email.errors.HeaderWriteError (a control character in a sub-message
         header) or RecursionError (deeply nested multiparts) escaped from the
-        fetch, outside the per-message ``except ParserError``, and every
-        run aborted on the same message.
+        mailbox loop's per-message ``except ParserError`` and every run
+        aborted on the same message. parse_report_email() now raises a
+        ParserError, which logs "Unable to parse message with subject ..."
+        and disposes of the message as invalid.
 
-        The message is then disposed of as invalid. move_message() stores
-        it with ``mailbox.Maildir.add()``, which re-serializes it through
-        ``email.generator.BytesGenerator``. The nested message overflows the
-        stack there on every Python, so its move fails, is logged, and the
-        message stays in the INBOX instead of aborting the batch a second
-        way. Whether the control-character message can be stored depends on
-        the interpreter: upstream CPython (e.g. 3.12.9) applies the
-        CVE-2024-6923 header check only in the text ``Generator`` that
-        ``as_string()`` uses, so the move succeeds, while some distribution
-        builds (e.g. Ubuntu's 3.12.3) also apply it in ``BytesGenerator``,
-        so the move fails like the nested one. The expected outcome is
-        decided per message, at runtime."""
-        kept_in_inbox = 0
+        mailsuite 2.3.3 (GHSA-9jx3-p8wm-g8vw) returns the stored bytes from
+        fetch_message() and renames the file in move_message(), so neither
+        step re-serializes the message: the fetch succeeds and the failure
+        surfaces in the parser, and the move always succeeds. (Before 2.3.3
+        the fetch raised, and the move re-added the message through
+        ``mailbox.Maildir.add()``, which left the nested message in the
+        inbox.) A Python whose ``Message.as_string()`` can write the
+        control-character message is skipped for that message, as it is not
+        a poison message there."""
         for poison_name, poison in (
             ("header", POISON_HEADER_EMAIL),
             ("nested", _nested_multipart_email(POISON_NESTING_LEVELS)),
@@ -5022,15 +5006,10 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
             if _reserializes(poison):
                 # Not a poison message on this Python (see _reserializes).
                 continue
-            stored = self._maildir_stores_parsed(poison)
-            if not stored:
-                kept_in_inbox += 1
             for n_procs in (1, 2):
                 with self.subTest(poison=poison_name, n_procs=n_procs):
                     parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
-                    path, poison_key = self._poison_maildir(
-                        f"{poison_name}-{n_procs}", poison
-                    )
+                    path, _ = self._poison_maildir(f"{poison_name}-{n_procs}", poison)
                     conn = MaildirConnection(path, maildir_create=True)
                     with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
                         result = parsedmarc.get_dmarc_reports_from_mailbox(
@@ -5048,32 +5027,18 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
                     self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
                     self.assertTrue(
                         any(
-                            f"Unable to fetch message UID {poison_key}" in line
+                            "Unable to parse message with subject" in line
                             for line in cm.output
                         ),
                         cm.output,
                     )
-                    move_errors = [
-                        line
-                        for line in cm.output
-                        if "Mailbox error: Error moving invalid message UID "
-                        f"{poison_key}" in line
-                    ]
-                    if stored:
-                        self.assertEqual(conn.fetch_messages("INBOX"), [])
-                        self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
-                        self.assertFalse(
-                            [line for line in cm.output if "Mailbox error" in line],
-                            cm.output,
-                        )
-                    else:
-                        self.assertEqual(conn.fetch_messages("INBOX"), [poison_key])
-                        self.assertEqual(conn.fetch_messages("Archive/Invalid"), [])
-                        self.assertTrue(move_errors, cm.output)
-        # The nested message cannot be stored on any Python, so the
-        # kept-in-INBOX branch always runs; the stored branch runs for the
-        # control-character message on upstream CPython.
-        self.assertGreater(kept_in_inbox, 0)
+                    # The poison message was moved, not left to fail again.
+                    self.assertEqual(conn.fetch_messages("INBOX"), [])
+                    self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+                    self.assertFalse(
+                        [line for line in cm.output if "Mailbox error" in line],
+                        cm.output,
+                    )
 
     def test_poison_message_is_deleted_with_delete_invalid(self):
         """With delete_invalid, a message that failed to fetch is deleted
