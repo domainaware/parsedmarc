@@ -1276,9 +1276,10 @@ def sanitize_for_log(value: str) -> str:
     header through an RFC 2047 encoded-word (``=?utf-8?q?a=0D=0Ab?=``
     decodes to a raw CR LF), and an unescaped CR/LF would let it forge
     extra log lines. The characters are escaped rather than stripped so
-    the log still shows that they were present, and so two different
-    values cannot collapse into the same text. Spaces, CJK text, and emoji
-    are printable and pass through unchanged.
+    the log still shows that they were present. The ASCII space, letters
+    in any script, and most emoji are printable and pass through
+    unchanged; non-ASCII spaces (NBSP, U+3000) and format characters such
+    as the zero-width joiner are not, and are escaped.
 
     Args:
         value (str): The string to escape

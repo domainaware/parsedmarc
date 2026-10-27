@@ -3198,6 +3198,39 @@ This is not a DMARC report."""
         self.assertNotIn("\r", message)
         self.assertNotIn("\n", message)
 
+    def testSmtpTlsPolicyTypeControlCharactersEscapedInError(self):
+        """A sender-supplied ``policy-type`` containing CR LF is escaped in
+        the ``Invalid policy type`` error, which the mailbox loops log."""
+        report = json.dumps(
+            {
+                "organization-name": "Example",
+                "date-range": {
+                    "start-datetime": "2016-04-01T00:00:00Z",
+                    "end-datetime": "2016-04-01T23:59:59Z",
+                },
+                "contact-info": "tls@example.com",
+                "report-id": "r-1",
+                "policies": [
+                    {
+                        "policy": {
+                            "policy-type": "sts\r\nWARNING:cli.py:1:INJECTED",
+                            "policy-domain": "example.com",
+                        },
+                        "summary": {
+                            "total-successful-session-count": 1,
+                            "total-failure-session-count": 0,
+                        },
+                    }
+                ],
+            }
+        )
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(report)
+        message = str(ctx.exception)
+        self.assertIn("sts\\r\\nWARNING:cli.py:1:INJECTED", message)
+        self.assertNotIn("\r", message)
+        self.assertNotIn("\n", message)
+
     def testFromHeaderControlCharactersEscapedInInfoLog(self):
         """The ``Parsing mail from`` info line escapes control characters
         in the From header."""

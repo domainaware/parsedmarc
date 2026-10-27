@@ -733,7 +733,9 @@ def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
         policy_type = policy["policy"]["policy-type"]
         failure_details = []
         if policy_type not in policy_types:
-            raise InvalidSMTPTLSReport(f"Invalid policy type {policy_type}")
+            raise InvalidSMTPTLSReport(
+                f"Invalid policy type {sanitize_for_log(str(policy_type))}"
+            )
         new_policy: dict[str, Any] = {
             "policy_domain": policy_domain,
             "policy_type": policy_type,
@@ -2292,11 +2294,10 @@ def parse_report_email(
         result = {"report_type": "failure", "report": failure_report}
         return result
 
-    if result is None:
-        error = f'Message with subject "{subject_text}" is not a valid report'
-        raise InvalidDMARCReport(error)
-
-    return result
+    # Every branch that sets ``result`` returns immediately, so reaching this
+    # point always means no report was found.
+    error = f'Message with subject "{subject_text}" is not a valid report'
+    raise InvalidDMARCReport(error)
 
 
 # An RFC 5322 header field name (printable ASCII excluding the colon) followed
@@ -2522,8 +2523,9 @@ def _classify_parsed_email(
             aggregate_reports.append(parsed_email["report"])
         else:
             logger.debug(
-                f"Skipping duplicate aggregate report from {report_org} "
-                f"with ID: {report_id}"
+                "Skipping duplicate aggregate report from "
+                f"{sanitize_for_log(str(report_org))} "
+                f"with ID: {sanitize_for_log(str(report_id))}"
             )
     elif parsed_email["report_type"] == "failure":
         failure_reports.append(parsed_email["report"])
