@@ -3233,9 +3233,15 @@ This is not a DMARC report."""
 
     def testFromHeaderControlCharactersEscapedInInfoLog(self):
         """The ``Parsing mail from`` info line escapes control characters
-        in the From header."""
+        in the From header.
+
+        The control character is a raw ESC in the display name rather than
+        an RFC 2047 encoded word: mail-parser 4.6.2 decodes encoded words
+        in ``From`` but 4.8.0 (what CI resolves) leaves them encoded, while
+        both keep a raw control character, so the test observes the
+        escaping regardless of which mail-parser is installed."""
         email_str = (
-            "From: =?utf-8?q?a=0D=0AFORGED?= <test@example.com>\n"
+            'From: "a\x1bFORGED" <test@example.com>\n'
             "Subject: Hello\n"
             "Content-Type: text/plain\n\nNot a report."
         )
@@ -3243,8 +3249,8 @@ This is not a DMARC report."""
             with self.assertRaises(parsedmarc.InvalidDMARCReport):
                 parsedmarc.parse_report_email(email_str, offline=True)
         line = next(m for m in logs.output if "Parsing mail from" in m)
-        self.assertIn("\\r\\nFORGED", line)
-        self.assertNotIn("\r", line)
+        self.assertIn("\\x1bFORGED", line)
+        self.assertNotIn("\x1b", line)
         self.assertEqual(len(line.splitlines()), 1)
 
     def testUnparseableDateRaisesParserError(self):
