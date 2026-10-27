@@ -1338,12 +1338,17 @@ def get_filename_safe_string(string: str | None) -> str:
     space (Windows drops both when creating a file, which would make two
     distinct subjects collide on one name), and it is never ``.`` or ``..``
     (both consist only of stripped characters and collapse to ``""``). It
-    is at most 100 characters long. It can be empty -- when the input is
-    empty, consists only of stripped characters, or is truncated to a run
-    of dots and spaces -- so callers that need a non-empty name must supply
-    their own fallback (e.g. ``get_filename_safe_string(subject) or
-    "sample"``). Windows reserved device names such as ``CON`` are not
-    rewritten.
+    is at most 100 characters *and* at most 100 bytes when UTF-8 encoded:
+    filesystems limit a name component to 255 bytes (143 on eCryptfs), not
+    characters, so 84 CJK characters or 63 emoji plus ``.eml`` already
+    exceed the limit, and 100 bytes leaves room for a ``" (N)"``
+    de-duplication suffix and an extension under every real limit. A
+    multi-byte character is never split, and lone surrogates are dropped.
+    It can be empty -- when the input is empty, consists only of stripped
+    characters, or is truncated to a run of dots and spaces -- so callers
+    that need a non-empty name must supply their own fallback (e.g.
+    ``get_filename_safe_string(subject) or "sample"``). Windows reserved
+    device names such as ``CON`` are not rewritten.
 
     Args:
         string (str | None): A string to make safe for a filename.
@@ -1359,8 +1364,14 @@ def get_filename_safe_string(string: str | None) -> str:
         string = string.replace(char, "")
 
     # Truncate before stripping trailing dots and spaces, so that a name cut
-    # off just after one cannot end in it.
-    string = (string[:100]) if len(string) > 100 else string
+    # off just after one cannot end in it. Bound both characters and UTF-8
+    # bytes (GHSA-j53g-34vj-g25q); decoding with errors="ignore" drops a
+    # multi-byte sequence cut in half, and encoding with errors="ignore"
+    # drops lone surrogates, which cannot be encoded at all.
+    string = string[:100]
+    string = string.encode("utf-8", errors="ignore")[:100].decode(
+        "utf-8", errors="ignore"
+    )
     string = string.rstrip(". ")
 
     return string

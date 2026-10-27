@@ -450,6 +450,49 @@ class Test(unittest.TestCase):
         result = parsedmarc.utils.get_filename_safe_string("a" * 200)
         self.assertEqual(len(result), 100)
 
+    def testGetFilenameSafeStringBoundsUtf8Bytes(self):
+        """Multi-byte names are truncated to at most 100 UTF-8 bytes, never
+        splitting a character, so the name plus an extension can be created.
+
+        Regression test for GHSA-j53g-34vj-g25q: the name was truncated to
+        100 *characters*, but filesystems limit a name component to 255
+        *bytes*, so 84 three-byte CJK characters or 63 four-byte emoji plus
+        ``.eml`` (256 bytes) made ``save_output()`` fail with
+        ``ENAMETOOLONG``."""
+        tmpdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmpdir, ignore_errors=True)
+        for subject, expected in (
+            # 33 whole characters (99 bytes); the 34th would straddle byte 100.
+            ("\u4e2d" * 84, "\u4e2d" * 33),
+            # Exactly 25 four-byte characters fit in 100 bytes.
+            ("\U0001f600" * 63, "\U0001f600" * 25),
+        ):
+            with self.subTest(subject=subject[:1]):
+                result = parsedmarc.utils.get_filename_safe_string(subject)
+                self.assertEqual(result, expected)
+                encoded = result.encode("utf-8")
+                self.assertLessEqual(len(encoded), 100)
+                # A strict round trip proves no partial character survived.
+                self.assertEqual(encoded.decode("utf-8"), result)
+                path = os.path.join(tmpdir, result + ".eml")
+                with open(path, "w") as f:
+                    f.write("sample")
+                self.assertTrue(os.path.isfile(path))
+
+    def testGetFilenameSafeStringByteCutAfterDotIsStripped(self):
+        """When the byte bound cuts the name just after a dot, the dot is
+        still stripped: 33 CJK characters (99 bytes) and a dot fill exactly
+        100 bytes, and the name stays under the 100-character bound."""
+        subject = "\u4e2d" * 33 + "." + "\u4e2d" * 10
+        result = parsedmarc.utils.get_filename_safe_string(subject)
+        self.assertEqual(result, "\u4e2d" * 33)
+
+    def testGetFilenameSafeStringDropsLoneSurrogates(self):
+        """A lone surrogate cannot be encoded as UTF-8 (or used in a file
+        name), so it is dropped rather than raising."""
+        result = parsedmarc.utils.get_filename_safe_string("re\ud800port")
+        self.assertEqual(result, "report")
+
     def testGetFilenameSafeStringTrailingDot(self):
         """get_filename_safe_string strips trailing dots"""
         result = parsedmarc.utils.get_filename_safe_string("filename...")

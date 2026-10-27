@@ -88,8 +88,9 @@ def _parse_report_email_job(
     Returns the parsed report on success. A ``ParserError`` raised by
     ``parse_report_email`` is caught and returned as a value (never
     re-raised) so that a single invalid message doesn't need special
-    handling on the submission side; any other exception propagates and
-    surfaces as the future's exception.
+    handling on the submission side. ``parse_report_email`` raises only
+    ``ParserError`` subclasses, whatever the input, so no other exception
+    is expected to propagate from here.
     """
     from parsedmarc import ParserError, parse_report_email
 
