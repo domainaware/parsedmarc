@@ -743,6 +743,40 @@ def configure_ipinfo_api(
         logger.info("IPinfo API configured")
 
 
+def _get_ip_worker_state() -> tuple[str | None, str | None]:
+    """Snapshot the IP-lookup configuration a pool worker must reproduce.
+
+    ``_IPINFO_API_TOKEN`` and ``_IP_DB_PATH`` are process globals set only
+    by the parent (via :func:`configure_ipinfo_api` and :func:`load_ip_db`).
+    Under the ``spawn`` and ``forkserver`` start methods a child process
+    "will only inherit those resources necessary to run the process
+    object's ``run()`` method"
+    (https://docs.python.org/3/library/multiprocessing.html), so a worker
+    without this snapshot would silently skip the IPinfo API and fall back
+    to the bundled MMDB instead of the database the parent selected.
+    ``parsedmarc.parallel.parallel_map`` captures this snapshot in the
+    parent and hands it to its pool initializer, which restores it with
+    :func:`_set_ip_worker_state`.
+
+    A ``None`` element means "not configured in the parent": the worker
+    behaves exactly as the parent would for that element (no IPinfo API;
+    MMDB selected on demand at lookup time).
+    """
+    return _IPINFO_API_TOKEN, _IP_DB_PATH
+
+
+def _set_ip_worker_state(token: str | None, db_path: str | None) -> None:
+    """Restore a snapshot taken by :func:`_get_ip_worker_state`.
+
+    ``_LAST_LOGGED_IP_DB_PATH`` is deliberately not restored: it only
+    deduplicates the database-selection log line within one process, and
+    each worker should log its own (restored) selection once.
+    """
+    global _IPINFO_API_TOKEN, _IP_DB_PATH
+    _IPINFO_API_TOKEN = token
+    _IP_DB_PATH = db_path
+
+
 def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
     """Look up an IP via the IPinfo Lite REST API.
 
