@@ -1007,6 +1007,94 @@ class Test(unittest.TestCase):
         row = next(reader)
         self.assertEqual(row["organization_name"], "ExampleInc.")
 
+    def testCsvSafeNeutralizesFormulaPrefixes(self):
+        """_csv_safe prefixes a string starting with any spreadsheet
+        formula trigger with ``'`` (CWE-1236; OWASP CSV Injection,
+        https://owasp.org/www-community/attacks/CSV_Injection) and leaves
+        everything else alone, including non-strings."""
+        cases = [
+            ("=1+1", "'=1+1"),
+            ("+1", "'+1"),
+            ("-1", "'-1"),
+            ("@SUM(A1)", "'@SUM(A1)"),
+            ("\tcmd", "'\tcmd"),
+            ("\rcmd", "'\rcmd"),
+            ("\x00=1+1", "'=1+1"),
+            ("Example Inc.", "Example Inc."),
+            ("a-b=c+d@e", "a-b=c+d@e"),
+            ("", ""),
+            (15169, 15169),
+            (None, None),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(parsedmarc._csv_safe(value), expected)
+
+    def testAggregateCsvNeutralizesFormulaInOrgName(self):
+        """A reporter-supplied ``=HYPERLINK(...)`` org_name is written to
+        the aggregate CSV with a leading apostrophe, while ordinary
+        values and numeric columns are unchanged."""
+        payload = '=HYPERLINK("http://evil","x")'
+        escaped = payload.replace('"', "&quot;")
+        xml = (
+            "<feedback><report_metadata>"
+            f"<org_name>{escaped}</org_name>"
+            "<email>a@example.com</email><report_id>r-1</report_id>"
+            "<date_range><begin>1529366400</begin><end>1529452799</end>"
+            "</date_range></report_metadata><policy_published>"
+            "<domain>example.com</domain><p>none</p></policy_published>"
+            "<record><row><source_ip>192.0.2.1</source_ip><count>3</count>"
+            "<policy_evaluated><disposition>none</disposition>"
+            "<dkim>fail</dkim><spf>fail</spf></policy_evaluated></row>"
+            "<identifiers><header_from>example.com</header_from>"
+            "</identifiers><auth_results></auth_results></record></feedback>"
+        )
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(report["report_metadata"]["org_name"], payload)
+
+        csv_text = parsedmarc.parsed_aggregate_reports_to_csv(report)
+
+        row = next(csv.DictReader(StringIO(csv_text)))
+        self.assertEqual(row["org_name"], "'" + payload)
+        self.assertEqual(row["domain"], "example.com")
+        self.assertEqual(row["count"], "3")
+
+        report["report_metadata"]["org_name"] = "Example-Org Inc."
+        row = next(
+            csv.DictReader(StringIO(parsedmarc.parsed_aggregate_reports_to_csv(report)))
+        )
+        self.assertEqual(row["org_name"], "Example-Org Inc.")
+
+    def testFailureReportCsvNeutralizesFormulaInSubject(self):
+        """A failure report sample subject starting with ``@`` is written
+        with a leading apostrophe."""
+        parsed_report = cast(
+            FailureReport,
+            parsedmarc.parse_report_file(
+                "samples/failure/dmarc_ruf_report_linkedin.eml", offline=True
+            )["report"],
+        )
+        parsed_report["parsed_sample"]["subject"] = "@evil"
+
+        csv_text = parsedmarc.parsed_failure_reports_to_csv(parsed_report)
+
+        row = next(csv.DictReader(StringIO(csv_text)))
+        self.assertEqual(row["subject"], "'@evil")
+
+    def testSmtpTlsCsvNeutralizesFormulaInOrganizationName(self):
+        """An SMTP TLS report string field starting with ``+`` is written
+        with a leading apostrophe."""
+        result = parsedmarc.parse_report_file(
+            "samples/smtp_tls/smtp_tls.json", offline=True
+        )
+        report = cast(SMTPTLSReport, result["report"])
+        report["organization_name"] = "+1-555-0100"
+
+        csv_text = parsedmarc.parsed_smtp_tls_reports_to_csv(report)
+
+        row = next(csv.DictReader(StringIO(csv_text)))
+        self.assertEqual(row["organization_name"], "'+1-555-0100")
+
     def testAggregateCsvExposesASNColumns(self):
         """The aggregate CSV output should include source_asn, source_as_name,
         and source_as_domain columns."""
@@ -3093,6 +3181,38 @@ Content-Type: text/plain
 This is not a DMARC report."""
         with self.assertRaises(parsedmarc.InvalidDMARCReport):
             parsedmarc.parse_report_email(email_str, offline=True)
+
+    def testSubjectControlCharactersEscapedInErrorMessage(self):
+        """An RFC 2047 subject that decodes to CR LF is escaped in the
+        error message, so a sender cannot forge extra log lines (the
+        mailbox loops log this message at WARNING)."""
+        email_str = (
+            "From: test@example.com\n"
+            "Subject: =?utf-8?q?line1=0D=0AINJECTED=20fake=20log?=\n"
+            "Content-Type: text/plain\n\nNot a report."
+        )
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+            parsedmarc.parse_report_email(email_str, offline=True)
+        message = str(ctx.exception)
+        self.assertIn("line1\\r\\nINJECTED fake log", message)
+        self.assertNotIn("\r", message)
+        self.assertNotIn("\n", message)
+
+    def testFromHeaderControlCharactersEscapedInInfoLog(self):
+        """The ``Parsing mail from`` info line escapes control characters
+        in the From header."""
+        email_str = (
+            "From: =?utf-8?q?a=0D=0AFORGED?= <test@example.com>\n"
+            "Subject: Hello\n"
+            "Content-Type: text/plain\n\nNot a report."
+        )
+        with self.assertLogs("parsedmarc.log", level="INFO") as logs:
+            with self.assertRaises(parsedmarc.InvalidDMARCReport):
+                parsedmarc.parse_report_email(email_str, offline=True)
+        line = next(m for m in logs.output if "Parsing mail from" in m)
+        self.assertIn("\\r\\nFORGED", line)
+        self.assertNotIn("\r", line)
+        self.assertEqual(len(line.splitlines()), 1)
 
     def testUnparseableDateRaisesParserError(self):
         """An unparseable Date header trips the initial mail-parse catch-all"""

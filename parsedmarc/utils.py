@@ -1266,6 +1266,32 @@ def parse_email_address(original_address: str) -> dict[str, str | None]:
     }
 
 
+def sanitize_for_log(value: str) -> str:
+    """Escapes the non-printable characters of a sender-controlled string
+    so it is safe to put in a log line or an error message.
+
+    Every character for which ``str.isprintable()`` is false (CR, LF, tab,
+    ESC, U+2028, NUL, and so on) is replaced by its ``unicode_escape``
+    form, e.g. ``\\r\\n``. A sender can plant such characters in a
+    header through an RFC 2047 encoded-word (``=?utf-8?q?a=0D=0Ab?=``
+    decodes to a raw CR LF), and an unescaped CR/LF would let it forge
+    extra log lines. The characters are escaped rather than stripped so
+    the log still shows that they were present, and so two different
+    values cannot collapse into the same text. Spaces, CJK text, and emoji
+    are printable and pass through unchanged.
+
+    Args:
+        value (str): The string to escape
+
+    Returns:
+        str: ``value`` with non-printable characters escaped
+    """
+    return "".join(
+        ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
+        for ch in value
+    )
+
+
 def get_filename_safe_string(string: str | None) -> str:
     """
     Converts a string to a string that is safe to use as a filename

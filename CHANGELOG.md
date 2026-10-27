@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- **CSV output now neutralizes spreadsheet formulas** (CWE-1236, [OWASP CSV Injection](https://owasp.org/www-community/attacks/CSV_Injection)). Every text field in the aggregate, failure, and SMTP TLS CSV output comes from a report that a third party sent, and a cell beginning with `=`, `+`, `-`, or `@` is evaluated as a formula by Excel, LibreOffice, and Google Sheets, so a reporter could set an `org_name` such as `=HYPERLINK("http://evil","x")` and have it run when an analyst opens the CSV. `_csv_safe()` now prefixes a string field that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return with a single `'`, the OWASP-recommended fix, after the existing NUL strip; non-string values such as ASNs and counts are untouched. Compatibility: only cells starting with one of those six characters change, and real report fields almost never do. The JSON output and the data sent to the other output integrations are unchanged. (Closes #929)
+- **Control characters in sender-controlled strings are escaped before they reach logs and error messages.** An RFC 2047 encoded word in a `Subject` or `From` header can decode to a raw CR LF (`=?utf-8?q?line1=0D=0AINJECTED?=`), and `parse_report_email()` interpolated the decoded subject into its error messages and the `From` header into its `Parsing mail from` info line, so a sender could forge extra log lines in the mailbox watch loop's warnings. The new `parsedmarc.utils.sanitize_for_log()` replaces every non-printable character with its `unicode_escape` form (`\r\n`, `\x1b`, `\u2028`) rather than stripping it, so the log still shows that the characters were there; spaces, CJK text, and emoji pass through. It is applied to the subject and `From` header in `parse_report_email()` and to the RFC 9990 `np`, `testing`, and `discovery_method` values and the per-record parse error that the aggregate parser logs. (Closes #929)
+
 ## 11.0.5
 
 ### Bug fixes
