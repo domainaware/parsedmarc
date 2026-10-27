@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- **mailsuite 2.3.3 or later is now required.** mailsuite 2.3.3 ([GHSA-9jx3-p8wm-g8vw](https://github.com/seanthegeek/mailsuite/security/advisories/GHSA-9jx3-p8wm-g8vw)) makes the Maildir connection return a message's stored bytes from `fetch_message()` and rename the file in `move_message()`, instead of re-serializing it. A report email that cannot be re-serialized (the [GHSA-qxwv-2vwj-v828](https://github.com/domainaware/parsedmarc/security/advisories/GHSA-qxwv-2vwj-v828) messages) is therefore now moved to the `Invalid` folder on Maildir too, instead of staying in the inbox and being logged on every run.
+
 ## 11.1.0
 
 ### Security
