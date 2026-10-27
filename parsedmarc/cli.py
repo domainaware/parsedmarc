@@ -1842,6 +1842,10 @@ def _utils_globals_snapshot() -> dict[str, Any]:
     calls reach, and it only decides whether the selected database path is
     logged again.
 
+    ``parallel._init_worker()`` copies these same three globals into each
+    process-pool worker, since a ``spawn`` or ``forkserver`` worker starts
+    without them; keep the lists in sync.
+
     Returns:
         dict: The values, to be handed to :func:`_restore_utils_globals`.
     """

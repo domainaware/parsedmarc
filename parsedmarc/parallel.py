@@ -21,6 +21,7 @@ def _init_worker(
     log_level: int,
     log_files: list[str],
     ip_worker_state: tuple[str | None, str | None],
+    psl_overrides: list[str],
 ) -> None:
     """Pool initializer that reconstructs the parent's lookup context.
 
@@ -35,6 +36,23 @@ def _init_worker(
     https://docs.python.org/3/library/multiprocessing.html), so its IP
     enrichment would silently fall back to the bundled MMDB and skip the
     IPinfo API; the snapshot captured by the parent is restored here.
+
+    The module-level ``parsedmarc.utils.psl_overrides`` list is restored
+    too. A fresh worker loads the bundled ``psl_overrides.txt`` when it
+    imports ``parsedmarc.utils``. Its reverse DNS map starts empty
+    (``ParserConfig.__setstate__`` rebinds it to the module default), and
+    its first map load calls ``load_psl_overrides()`` with the config's
+    ``psl_overrides_path``/``psl_overrides_url``, so the operator's
+    overrides do take effect, but only after that load: ``get_base_domain()``
+    calls made before that load (the first aggregate report's ``org_name``
+    and the first source IP's reverse DNS name) would use the bundled list.
+    It is restored in place (``[:] =``), never rebound, because
+    ``load_psl_overrides()``, ``get_base_domain()``, and
+    ``cli._restore_utils_globals()`` all share that one list object.
+
+    These are the same three globals ``cli._utils_globals_snapshot()``
+    enumerates for SIGHUP reload; keep the lists in sync.
+
     Called once per worker process by ``ProcessPoolExecutor``'s
     ``initializer``/``initargs``.
     """
@@ -42,6 +60,7 @@ def _init_worker(
     from parsedmarc.log import configure_logging
 
     utils._set_ip_worker_state(*ip_worker_state)
+    utils.psl_overrides[:] = psl_overrides
 
     if not log_files:
         configure_logging(log_level, None)
@@ -144,11 +163,11 @@ def parallel_map(
     stop may block briefly until in-flight jobs finish.
 
     Because ``spawn``/``forkserver`` workers do not inherit the parent's
-    process-global IP-lookup state, the parent's
-    ``parsedmarc.utils._IPINFO_API_TOKEN`` and ``_IP_DB_PATH`` are
-    snapshotted here and restored in every worker by the pool initializer,
-    so IP enrichment matches what the parent configured under every start
-    method.
+    process-global lookup state, the parent's
+    ``parsedmarc.utils._IPINFO_API_TOKEN``, ``_IP_DB_PATH``, and
+    ``psl_overrides`` are snapshotted here, once per pool, and restored in
+    every worker by the pool initializer, so IP enrichment and base-domain
+    lookups match what the parent configured under every start method.
 
     Raises:
         ValueError: If ``n_procs`` is less than 1. Raised eagerly at the
@@ -174,13 +193,14 @@ def parallel_map(
             if isinstance(h, logging.FileHandler)
         ]
         ip_worker_state = utils._get_ip_worker_state()
+        psl_overrides = list(utils.psl_overrides)
 
         window_size = max(window_factor * n_procs, 1)
 
         with ProcessPoolExecutor(
             max_workers=n_procs,
             initializer=_init_worker,
-            initargs=(log_level, log_files, ip_worker_state),
+            initargs=(log_level, log_files, ip_worker_state, psl_overrides),
         ) as executor:
             window: deque[Future[_R]] = deque()
             window.append(executor.submit(func, first_job))
