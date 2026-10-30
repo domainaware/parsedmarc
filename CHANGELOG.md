@@ -6,6 +6,10 @@
 
 - **mailsuite 2.3.3 or later is now required.** mailsuite 2.3.3 ([GHSA-9jx3-p8wm-g8vw](https://github.com/seanthegeek/mailsuite/security/advisories/GHSA-9jx3-p8wm-g8vw)) makes the Maildir connection return a message's stored bytes from `fetch_message()` and rename the file in `move_message()`, instead of re-serializing it. A report email that cannot be re-serialized (the [GHSA-qxwv-2vwj-v828](https://github.com/domainaware/parsedmarc/security/advisories/GHSA-qxwv-2vwj-v828) messages) is therefore now moved to the `Invalid` folder on Maildir too, instead of staying in the inbox and being logged on every run.
 
+### Bug fixes
+
+- **Keep distinct aggregate reports when one reporter reuses a Report-ID for different policy domains.** RFC 9990 §3.5.1 scopes Report-ID uniqueness to the same domain. Both mbox and mailbox ingestion now include the policy domain in the dedup key, using a JSON array to avoid ambiguous field separators. ASCII domain case differences still count as the same domain (RFC 4343 §3), without changing the returned report. Same-domain repeats remain suppressed, and mailbox keys are still committed only after a successful save callback.
+
 ## 11.1.0
 
 ### Security
