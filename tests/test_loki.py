@@ -100,6 +100,16 @@ class TestLokiClientInit(unittest.TestCase):
             client = LokiClient(url)
             self.assertEqual(client.url, "http://loki:3100/loki/api/v1/push")
 
+    def test_push_path_appended_before_query_string(self):
+        for url in (
+            "https://gw.example.org?route=logs",
+            "https://gw.example.org/?route=logs",
+        ):
+            client = LokiClient(url)
+            self.assertEqual(
+                client.url, "https://gw.example.org/loki/api/v1/push?route=logs"
+            )
+
     def test_explicit_push_path_kept(self):
         client = LokiClient("https://gw.example.org/custom/push")
         self.assertEqual(client.url, "https://gw.example.org/custom/push")
@@ -262,6 +272,29 @@ class TestLokiAggregate(unittest.TestCase):
         call = _session(client).post.call_args
         self.assertEqual(call.args[0], "http://loki.example.org:3100/loki/api/v1/push")
         self.assertEqual(call.kwargs["timeout"], 12)
+
+
+class TestLokiOrdering(unittest.TestCase):
+    def test_report_begin_entries_sent_in_timestamp_order(self):
+        """Loki rejects entries more than max_chunk_age/2 behind the newest
+        line of a stream (too_far_behind), so entries must be pushed oldest
+        first even though normalized multi-day aggregate rows arrive
+        source-major: all days of one source, then back to day 1 for the
+        next source."""
+        rows = [
+            {"source_ip_address": ip, "begin_date": f"2024-01-{day:02d} 00:00:00"}
+            for ip in ("192.0.2.1", "192.0.2.2")
+            for day in (1, 2, 3)
+        ]
+        client = _client(timestamp="report_begin", batch_size=2)
+        with patch(
+            "parsedmarc.loki.parsed_aggregate_reports_to_csv_rows", return_value=rows
+        ):
+            client.save_aggregate_report_to_loki(cast(AggregateReport, {}))
+        stamps = [ts for _, ts, _ in _entries(client)]
+        self.assertEqual(len(stamps), 6)
+        self.assertEqual(len(_session(client).post.call_args_list), 3)
+        self.assertEqual(stamps, sorted(stamps))
 
 
 class TestLokiOtherReportTypes(unittest.TestCase):

@@ -102,8 +102,11 @@ class LokiClient(object):
             if not _LABEL_NAME.match(name):
                 raise ValueError(f"Invalid Loki label name '{name}'")
 
-        stripped = url.rstrip("/")
-        self.url = stripped + PUSH_PATH if httpx.URL(url).path in ("", "/") else url
+        parsed = httpx.URL(url)
+        # copy_with(path=...) keeps any query string, userinfo and port intact
+        self.url = (
+            str(parsed.copy_with(path=PUSH_PATH)) if parsed.path in ("", "/") else url
+        )
         self.timestamp = timestamp
         self.timeout = timeout
         self.batch_size = max(1, int(batch_size))
@@ -155,6 +158,13 @@ class LokiClient(object):
                 except Exception:
                     logger.debug(f"Unparsable {begin_field}, using ingest time")
             entries.append((self._stream_labels(line), ts + i, line))
+
+        # Loki only accepts out-of-order entries within half of max_chunk_age
+        # (so 1h by default) of the newest line in a stream, else it rejects
+        # them with too_far_behind. Aggregate rows come source-major then per
+        # day, so sort the whole list (not per push, which would still go
+        # backwards across batches).
+        entries.sort(key=lambda entry: entry[1])
 
         for start in range(0, len(entries), self.batch_size):
             self._push(entries[start : start + self.batch_size])
