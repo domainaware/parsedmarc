@@ -8,12 +8,14 @@ import unittest
 from datetime import datetime, timezone
 from importlib.resources import files
 from tempfile import NamedTemporaryFile
+from types import SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
 import dns.exception
 import dns.message
 import dns.nameserver
+import dns.query
 import dns.rdata
 import dns.rdataclass
 import dns.rdatatype
@@ -1397,14 +1399,24 @@ class TestQueryDnsRetries(unittest.TestCase):
         self.assertEqual(mock_resolve.call_count, 3)
 
 
+def _dnspython_http_module():
+    """Returns the HTTP library dnspython's DoH code imported: httpx2 on
+    dnspython 2.9+, httpx on 2.7 and 2.8. Derived from dnspython rather than
+    from parsedmarc's helper, so the tests below check the helper against
+    what ``dns.query.https()`` actually accepts."""
+    return getattr(dns.query, "httpx2", None) or httpx
+
+
 class TestEncryptedDnsNameservers(unittest.TestCase):
     """Tests for the DNS over HTTPS and DNS over TLS transports selected by
     the form of each ``nameservers`` entry
-    (https://github.com/domainaware/parsedmarc/issues/880). The end-to-end
+    (https://github.com/domainaware/parsedmarc/issues/880). Most end-to-end
     tests mock at the dnspython SDK boundary (``dns.query.https`` /
     ``dns.query.tls``) and assert on the answer query_dns parses back out of
     a real DNS response message, so the whole chain — entry mapping,
-    resolver, nameserver object, transport call — is exercised."""
+    resolver, nameserver object, transport call — is exercised. The DoH
+    session regression test (issue #935) runs the real ``dns.query.https``
+    and fakes only the HTTP transport underneath it."""
 
     def setUp(self):
         # The DoH session is process-wide state; keep test ordering from
@@ -1424,25 +1436,31 @@ class TestEncryptedDnsNameservers(unittest.TestCase):
         self.addCleanup(restore)
 
     @staticmethod
-    def _ptr_responder(captured: list, answer: str = "dns.example."):
+    def _ptr_response(request: dns.message.Message, answer: str = "dns.example."):
+        """Builds a response to ``request`` answering its PTR question with
+        ``answer``."""
+        response = dns.message.make_response(request)
+        # find_rrset(create=True) rather than appending to response.answer,
+        # so the message's rrset index is updated too — dnspython looks the
+        # answer up through that index.
+        rrset = response.find_rrset(
+            response.answer,
+            request.question[0].name,
+            dns.rdataclass.IN,
+            dns.rdatatype.PTR,
+            create=True,
+        )
+        rrset.add(dns.rdata.from_text("IN", "PTR", answer), 300)
+        return response
+
+    @classmethod
+    def _ptr_responder(cls, captured: list, answer: str = "dns.example."):
         """Builds a dns.query stand-in that answers any PTR query with
         ``answer``, recording the keyword arguments it was called with."""
 
         def responder(request, *args, **kwargs):
             captured.append(kwargs)
-            response = dns.message.make_response(request)
-            # find_rrset(create=True) rather than appending to
-            # response.answer, so the message's rrset index is updated too —
-            # dnspython looks the answer up through that index.
-            rrset = response.find_rrset(
-                response.answer,
-                request.question[0].name,
-                dns.rdataclass.IN,
-                dns.rdatatype.PTR,
-                create=True,
-            )
-            rrset.add(dns.rdata.from_text("IN", "PTR", answer), 300)
-            return response
+            return cls._ptr_response(request, answer)
 
         return responder
 
@@ -1563,10 +1581,12 @@ class TestEncryptedDnsNameservers(unittest.TestCase):
         with self.assertRaises(ValueError):
             dns.resolver.Resolver(configure=False).nameservers = [entry]
 
-    def test_doh_query_returns_answers_through_a_shared_httpx_client(self):
+    def test_doh_query_returns_answers_through_a_shared_http_client(self):
         """An https:// nameserver resolves through dns.query.https, and the
-        session it is given is the module's shared client, an httpx.Client
-        with trust_env left on — httpx's documented switch for honoring
+        session it is given is the module's shared client, an instance of the
+        Client class of the HTTP library dnspython imported (httpx2 on
+        dnspython 2.9+, httpx before) with trust_env left on — the
+        documented switch, in both libraries, for honoring
         HTTP_PROXY/HTTPS_PROXY/NO_PROXY and SSL_CERT_FILE, which is what a
         proxy-only network needs (issue #880). dnspython's stock DoH
         nameserver passes no session at all, and the client dns.query.https
@@ -1586,7 +1606,7 @@ class TestEncryptedDnsNameservers(unittest.TestCase):
         self.assertEqual(records, ["dns.example"])
         self.assertEqual(len(captured), 1)
         session = captured[0]["session"]
-        self.assertIsInstance(session, httpx.Client)
+        self.assertIsInstance(session, _dnspython_http_module().Client)
         self.assertIs(session.trust_env, True)
         self.assertIs(session, parsedmarc.utils._DOH_SESSION)
 
@@ -1607,6 +1627,72 @@ class TestEncryptedDnsNameservers(unittest.TestCase):
         self.assertEqual(len(captured), 1)
         self.assertEqual(captured[0]["server_hostname"], "dns.quad9.net")
         self.assertEqual(captured[0]["port"], 853)
+
+    def test_doh_session_is_accepted_by_the_real_dns_query_https(self):
+        """Regression test for issue #935: dnspython 2.9 moved DoH to
+        httpx2, and ``dns.query.https()`` rejects a session of any other
+        class before sending anything (dnspython 2.9.1 ``dns/query.py``
+        line 551: ``if session and not isinstance(session, httpx2.Client):
+        raise ValueError("session parameter must be an httpx2.Client")``;
+        2.8.0 checks ``httpx.Client`` the same way at line 566). The old
+        ``httpx.Client`` session therefore failed every DoH query under 2.9,
+        and the resolver retried it until the lifetime ran out. Here the real
+        ``dns.query.https`` runs, and only the network is faked, by patching
+        the ``HTTPTransport`` of the library dnspython imported; a session
+        of the wrong class raises LifetimeTimeout instead of returning the
+        answer. The transport also observes the POSTed DNS query itself."""
+        http_module = _dnspython_http_module()
+        questions: list = []
+
+        def handle_request(transport, request):
+            query = dns.message.from_wire(request.read())
+            questions.append(query.question[0].to_text())
+            return http_module.Response(
+                200,
+                headers={"content-type": "application/dns-message"},
+                # An iterator rather than bytes: a bytes body counts as read
+                # already, so the client never closes the stream, and
+                # ``response.elapsed``, which dns.query.https reads, is set
+                # only on close
+                content=iter([self._ptr_response(query).to_wire()]),
+                request=request,
+            )
+
+        with patch.object(http_module.HTTPTransport, "handle_request", handle_request):
+            records = parsedmarc.utils.query_dns(
+                "1.0.0.1.in-addr.arpa",
+                "PTR",
+                nameservers=["https://dns.example/dns-query"],
+                timeout=0.5,
+            )
+        self.assertEqual(records, ["dns.example"])
+        self.assertEqual(questions, ["1.0.0.1.in-addr.arpa. IN PTR"])
+
+    def test_doh_client_class_prefers_httpx2_when_dnspython_imported_it(self):
+        """dnspython 2.9+ binds ``dns.query.httpx2``; its Client is the one
+        ``dns.query.https()`` accepts, even with httpx importable too."""
+        fake_httpx2 = SimpleNamespace(Client=type("Client", (), {}))
+        with patch.dict(dns.query.__dict__, {"httpx2": fake_httpx2, "httpx": httpx}):
+            self.assertIs(parsedmarc.utils._doh_client_class(), fake_httpx2.Client)
+
+    def test_doh_client_class_uses_httpx_when_dnspython_imported_it(self):
+        """dnspython 2.7 and 2.8 bind ``dns.query.httpx`` and no httpx2, so
+        the class is ``httpx.Client`` — even if an unrelated httpx2 install
+        exists, since dnspython 2.8 never checks against it."""
+        fake_httpx = SimpleNamespace(Client=type("Client", (), {}))
+        with patch.dict(dns.query.__dict__, {"httpx": fake_httpx}):
+            dns.query.__dict__.pop("httpx2", None)
+            self.assertIs(parsedmarc.utils._doh_client_class(), fake_httpx.Client)
+
+    def test_doh_client_class_falls_back_to_httpx(self):
+        """With neither library bound in dns.query (dnspython without its
+        [doh] extra), the class falls back to ``httpx.Client``; dnspython
+        (or httpx, if h2 is also missing) then raises its own error when a
+        DoH query is made."""
+        with patch.dict(dns.query.__dict__):
+            dns.query.__dict__.pop("httpx2", None)
+            dns.query.__dict__.pop("httpx", None)
+            self.assertIs(parsedmarc.utils._doh_client_class(), httpx.Client)
 
     def test_doh_session_is_reused_within_a_process(self):
         """Consecutive calls hand back the same client, so DoH lookups
