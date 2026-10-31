@@ -587,16 +587,26 @@ The full set of configuration options is:
   - `index_suffix` - str: A suffix to apply to the index names
   - `index_prefix` - str: A prefix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
+    (ignored, with a warning, when `use_data_streams` is `True`)
   - `number_of_shards` - int: The number of shards to use when
-    creating the index (Default: `1`)
+    creating the index, or each backing index of a data stream
+    (Default: `1`)
   - `number_of_replicas` - int: The number of replicas to use when
-    creating the index (Default: `0`)
+    creating the index, or each backing index of a data stream
+    (Default: `0`)
+  - `use_data_streams` - bool: Save each report type to a data stream
+    named like the index without the date suffix (e.g. `dmarc_aggregate`)
+    instead of to daily or monthly indexes. parsedmarc creates the stream
+    and its index template; retention is left to an ILM policy you attach.
+    See [Data streams and records retention](elasticsearch.md#data-streams-and-records-retention)
+    (Default: `False`)
   - `serverless` - bool: Set to `True` when targeting an Elastic Cloud
     Serverless project. Serverless manages sharding and replication itself
     and rejects the `number_of_shards` / `number_of_replicas` index settings
     with HTTP 400. With this flag set, parsedmarc strips those keys from the
-    settings sent at index creation; any other settings (e.g.
-    `refresh_interval`) are passed through unchanged (Default: `False`)
+    settings sent at index creation (or in a data stream's index template);
+    any other settings (e.g. `refresh_interval`) are passed through
+    unchanged (Default: `False`)
 - `opensearch`
 
   Requires the `opensearch` extra: `pip install "parsedmarc[opensearch]"`
@@ -625,10 +635,19 @@ The full set of configuration options is:
   - `index_suffix` - str: A suffix to apply to the index names
   - `index_prefix` - str: A prefix to apply to the index names
   - `monthly_indexes` - bool: Use monthly indexes instead of daily indexes
+    (ignored, with a warning, when `use_data_streams` is `True`)
   - `number_of_shards` - int: The number of shards to use when
-    creating the index (Default: `1`)
+    creating the index, or each backing index of a data stream
+    (Default: `1`)
   - `number_of_replicas` - int: The number of replicas to use when
-    creating the index (Default: `0`)
+    creating the index, or each backing index of a data stream
+    (Default: `0`)
+  - `use_data_streams` - bool: Save each report type to a data stream
+    named like the index without the date suffix (e.g. `dmarc_aggregate`)
+    instead of to daily or monthly indexes. parsedmarc creates the stream
+    and its index template; retention is left to an ISM policy you attach.
+    See [Data streams and records retention](opensearch.md#data-streams-and-records-retention)
+    (Default: `False`)
 - `splunk_hec`
   - `url` - str: The URL of the Splunk HTTP Events Collector (HEC)
   - `token` - str: The HEC token

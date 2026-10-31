@@ -7837,6 +7837,162 @@ class TestParseConfigOpenSearch(unittest.TestCase):
             _parse_config(cp, _opts())
 
 
+class TestParseConfigUseDataStreams(unittest.TestCase):
+    """``use_data_streams`` in [elasticsearch] and [opensearch] (issue
+    #842), and the warning that ``monthly_indexes`` is ignored with it."""
+
+    SECTIONS = ("elasticsearch", "opensearch")
+
+    def test_option_parsed_for_each_section(self):
+        from parsedmarc.cli import _parse_config
+
+        for section in self.SECTIONS:
+            for raw, expected in (("true", True), ("false", False)):
+                with self.subTest(section=section, value=raw):
+                    cp = _config_with(
+                        section, {"hosts": "h:9200", "use_data_streams": raw}
+                    )
+                    opts = _opts()
+                    _parse_config(cp, opts)
+                    self.assertIs(
+                        getattr(opts, f"{section}_use_data_streams"), expected
+                    )
+
+    def test_option_absent_leaves_attribute_unset(self):
+        """The default comes from the CLI's Namespace defaults, which the
+        real CLI builds before _parse_config runs."""
+        from parsedmarc.cli import _parse_config
+
+        for section in self.SECTIONS:
+            with self.subTest(section=section):
+                cp = _config_with(section, {"hosts": "h:9200"})
+                opts = _opts()
+                _parse_config(cp, opts)
+                self.assertFalse(hasattr(opts, f"{section}_use_data_streams"))
+
+    def test_monthly_indexes_with_data_streams_warns(self):
+        from parsedmarc.cli import _parse_config
+
+        for section in self.SECTIONS:
+            with self.subTest(section=section):
+                cp = _config_with(
+                    section,
+                    {
+                        "hosts": "h:9200",
+                        "monthly_indexes": "true",
+                        "use_data_streams": "true",
+                    },
+                )
+                opts = _opts()
+                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                    _parse_config(cp, opts)
+                self.assertEqual(len(cm.records), 1)
+                self.assertIn(f"[{section}] monthly_indexes", cm.output[0])
+                self.assertIn("use_data_streams", cm.output[0])
+                # Still parsed; the save functions ignore it in stream mode.
+                self.assertTrue(getattr(opts, f"{section}_monthly_indexes"))
+
+    def test_no_warning_unless_both_are_enabled(self):
+        from parsedmarc.cli import _parse_config
+
+        combinations = (
+            {"monthly_indexes": "true"},
+            {"use_data_streams": "true"},
+            {"monthly_indexes": "true", "use_data_streams": "false"},
+            {"monthly_indexes": "false", "use_data_streams": "true"},
+        )
+        for section in self.SECTIONS:
+            for settings in combinations:
+                with self.subTest(section=section, settings=settings):
+                    cp = _config_with(section, {"hosts": "h:9200", **settings})
+                    with self.assertNoLogs("parsedmarc.log", level="WARNING"):
+                        _parse_config(cp, _opts())
+
+
+class TestUseDataStreamsPassthrough(unittest.TestCase):
+    """The parsed option reaches every save call, for all three report
+    types and both backends, and is False when the option is absent."""
+
+    def _run(self, extra: str) -> dict[str, MagicMock]:
+        names = (
+            "elastic.save_aggregate_report_to_elasticsearch",
+            "elastic.save_failure_report_to_elasticsearch",
+            "elastic.save_smtp_tls_report_to_elasticsearch",
+            "opensearch.save_aggregate_report_to_opensearch",
+            "opensearch.save_failure_report_to_opensearch",
+            "opensearch.save_smtp_tls_report_to_opensearch",
+        )
+        config = f"""[general]
+save_aggregate = true
+save_failure = true
+save_smtp_tls = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+{extra}
+
+[opensearch]
+hosts = localhost
+{extra}
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        saves = {name: MagicMock() for name in names}
+        patches = [patch(f"parsedmarc.cli.{name}", saves[name]) for name in names]
+        patches += [
+            patch("parsedmarc.cli.elastic.set_hosts"),
+            patch("parsedmarc.cli.elastic.migrate_indexes"),
+            patch("parsedmarc.cli.opensearch.set_hosts"),
+            patch("parsedmarc.cli.opensearch.migrate_indexes"),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                side_effect=_fetch_invoking_save_callback(
+                    {
+                        "aggregate_reports": [
+                            {"policy_published": {"domain": "example.com"}}
+                        ],
+                        "failure_reports": [{"reported_domain": "example.com"}],
+                        "smtp_tls_reports": [
+                            {"policies": [{"policy_domain": "example.com"}]}
+                        ],
+                    }
+                ),
+            ),
+            patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        parsedmarc.cli._main()
+        return saves
+
+    def test_enabled_reaches_every_save_call(self):
+        saves = self._run("use_data_streams = true")
+        for name, save in saves.items():
+            with self.subTest(save=name):
+                save.assert_called_once()
+                self.assertIs(save.call_args.kwargs["use_data_streams"], True)
+
+    def test_absent_defaults_to_false(self):
+        saves = self._run("")
+        for name, save in saves.items():
+            with self.subTest(save=name):
+                save.assert_called_once()
+                self.assertIs(save.call_args.kwargs["use_data_streams"], False)
+
+
 class TestParseConfigSplunkHec(unittest.TestCase):
     def test_splunk_hec_complete(self):
         from parsedmarc.cli import _parse_config

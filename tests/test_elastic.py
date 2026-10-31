@@ -8,14 +8,20 @@ queries, error wrapping — without needing a running Elasticsearch cluster.
 
 import time
 import unittest
+from collections.abc import Iterator
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from typing import cast
 from unittest.mock import MagicMock, call, patch
+
+from elasticsearch import NotFoundError
 
 import parsedmarc.elastic as elastic_module
 from parsedmarc import InvalidFailureReport, parse_report_file
 from parsedmarc.elastic import (
     AlreadySaved,
     ElasticsearchError,
+    create_data_streams,
     create_indexes,
     migrate_indexes,
     save_aggregate_report_to_elasticsearch,
@@ -1526,6 +1532,414 @@ class TestSaveSmtpTlsReport(unittest.TestCase):
         self.assertIsNone(failure_detail.sending_mta_ip)
         self.assertIsNone(failure_detail.receiving_ip)
         self.assertEqual(failure_detail.failure_reason_code, "no-policy-served")
+
+
+# ---------------------------------------------------------------------------
+# Data streams (issue #842)
+# ---------------------------------------------------------------------------
+
+
+def _not_found() -> NotFoundError:
+    """The exception elasticsearch-py raises for an HTTP 404."""
+    return NotFoundError(
+        "index_not_found_exception", meta=MagicMock(status=404), body={}
+    )
+
+
+def _stream_listing(*names: str) -> dict:
+    """A GET _data_stream/<name> response body listing *names*."""
+    return {"data_streams": [{"name": name} for name in names]}
+
+
+@contextmanager
+def _registered_client() -> Iterator[MagicMock]:
+    """Register a mock client as the ``default`` connection.
+
+    Both ``create_data_streams`` and ``Document.save`` resolve the client
+    through the connection registry, so registering the mock there (rather
+    than patching either function) lets the real save path run and the test
+    read what reached the transport. The previous registration is put back
+    afterwards.
+    """
+    client = MagicMock()
+    client.index.return_value = {"_index": "x", "_id": "1", "result": "created"}
+    try:
+        previous = elastic_module.connections.get_connection("default")
+    except KeyError:
+        previous = None
+    elastic_module.connections.add_connection("default", client)
+    try:
+        yield client
+    finally:
+        if previous is None:
+            elastic_module.connections.remove_connection("default")
+        else:
+            elastic_module.connections.add_connection("default", previous)
+
+
+class _DataStreamTestCase(unittest.TestCase):
+    """Isolates each test from the module's data stream memo and the
+    Serverless flag."""
+
+    def setUp(self):
+        self._serverless = elastic_module._SERVERLESS
+        elastic_module._SERVERLESS = False
+        elastic_module._READY_DATA_STREAMS.clear()
+
+    def tearDown(self):
+        elastic_module._SERVERLESS = self._serverless
+        elastic_module._READY_DATA_STREAMS.clear()
+
+
+class TestCreateDataStreams(_DataStreamTestCase):
+    def test_creates_template_and_stream_when_missing(self):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            create_data_streams(
+                ["dmarc_aggregate"],
+                {"number_of_shards": 2, "number_of_replicas": 1},
+            )
+        template = client.indices.put_index_template.call_args.kwargs
+        self.assertEqual(template["name"], "dmarc_aggregate")
+        # Exact name, no wildcard: the template must never claim the
+        # date-suffixed indexes written without data streams.
+        self.assertEqual(template["index_patterns"], ["dmarc_aggregate"])
+        self.assertEqual(template["data_stream"], {})
+        self.assertEqual(template["priority"], 501)
+        self.assertEqual(template["composed_of"], ["dmarc_aggregate@custom"])
+        self.assertEqual(
+            template["ignore_missing_component_templates"],
+            ["dmarc_aggregate@custom"],
+        )
+        self.assertEqual(
+            template["template"],
+            {
+                "settings": {"number_of_shards": 2, "number_of_replicas": 1},
+                "mappings": {"properties": {"@timestamp": {"type": "date"}}},
+            },
+        )
+        self.assertIn("dmarc_aggregate@custom", template["meta"]["description"])
+        client.indices.create_data_stream.assert_called_once_with(
+            name="dmarc_aggregate"
+        )
+        # No concrete index is created for a stream.
+        mock_index_cls.return_value.create.assert_not_called()
+        self.assertIn("dmarc_aggregate", elastic_module._READY_DATA_STREAMS)
+
+    def test_default_settings_are_one_shard_no_replicas(self):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            create_data_streams(["smtp_tls"])
+        settings = client.indices.put_index_template.call_args.kwargs["template"][
+            "settings"
+        ]
+        self.assertEqual(settings, {"number_of_shards": 1, "number_of_replicas": 0})
+
+    def test_existing_stream_gets_template_but_is_not_recreated(self):
+        """The template is put again so that settings changes reach the
+        next backing index; the stream itself already exists."""
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.return_value = _stream_listing(
+                "dmarc_failure"
+            )
+            create_data_streams(["dmarc_failure"])
+        client.indices.put_index_template.assert_called_once()
+        client.indices.create_data_stream.assert_not_called()
+        mock_index_cls.return_value.exists.assert_not_called()
+        self.assertIn("dmarc_failure", elastic_module._READY_DATA_STREAMS)
+
+    def test_concrete_index_holding_the_name_raises_without_writing(self):
+        """Elasticsearch answers GET _data_stream/<name> for a name held by
+        a concrete index with 200 and an empty list, not a 404 (verified
+        against 8.19). Treating that 200 as "stream exists" would send
+        every document into the old undated index, such as one left by a
+        pre-5.0.0 release."""
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.return_value = _stream_listing()
+            mock_index_cls.return_value.exists.return_value = True
+            with self.assertRaises(ElasticsearchError) as ctx:
+                create_data_streams(["dmarc_aggregate"])
+        mock_index_cls.assert_called_with("dmarc_aggregate")
+        self.assertIn("already exists", str(ctx.exception))
+        self.assertIn("dmarc_aggregate", str(ctx.exception))
+        client.indices.put_index_template.assert_not_called()
+        client.indices.create_data_stream.assert_not_called()
+        self.assertNotIn("dmarc_aggregate", elastic_module._READY_DATA_STREAMS)
+
+    def test_alias_holding_the_name_raises(self):
+        """A missing stream is a 404; an alias with the name still exists
+        as far as Index.exists() is concerned."""
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = True
+            with self.assertRaises(ElasticsearchError):
+                create_data_streams(["smtp_tls"])
+        client.indices.put_index_template.assert_not_called()
+        client.indices.create_data_stream.assert_not_called()
+
+    def test_ready_stream_is_not_set_up_again(self):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            create_data_streams(["dmarc_aggregate"])
+            create_data_streams(["dmarc_aggregate"])
+        self.assertEqual(client.indices.get_data_stream.call_count, 1)
+        self.assertEqual(client.indices.put_index_template.call_count, 1)
+        self.assertEqual(client.indices.create_data_stream.call_count, 1)
+
+    def test_set_hosts_forgets_ready_streams(self):
+        """A new connection may be a different cluster or carry new index
+        settings, so the template has to be put again."""
+        elastic_module._READY_DATA_STREAMS.add("dmarc_aggregate")
+        with patch("parsedmarc.elastic.connections.create_connection"):
+            set_hosts("es:9200")
+        self.assertEqual(elastic_module._READY_DATA_STREAMS, set())
+
+    def test_sdk_error_is_wrapped_and_retried_next_time(self):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            client.indices.put_index_template.side_effect = RuntimeError("cluster down")
+            with self.assertRaises(ElasticsearchError) as ctx:
+                create_data_streams(["dmarc_aggregate"])
+            self.assertIn("cluster down", str(ctx.exception))
+            self.assertNotIn("dmarc_aggregate", elastic_module._READY_DATA_STREAMS)
+            client.indices.create_data_stream.assert_not_called()
+
+            client.indices.put_index_template.side_effect = None
+            create_data_streams(["dmarc_aggregate"])
+        client.indices.create_data_stream.assert_called_once_with(
+            name="dmarc_aggregate"
+        )
+        self.assertIn("dmarc_aggregate", elastic_module._READY_DATA_STREAMS)
+
+    def test_serverless_strips_rejected_settings_from_template(self):
+        elastic_module._SERVERLESS = True
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            create_data_streams(
+                ["dmarc_aggregate"],
+                {
+                    "number_of_shards": 1,
+                    "number_of_replicas": 0,
+                    "refresh_interval": "5s",
+                },
+            )
+        settings = client.indices.put_index_template.call_args.kwargs["template"][
+            "settings"
+        ]
+        self.assertEqual(settings, {"refresh_interval": "5s"})
+
+
+class TestSaveToDataStreams(_DataStreamTestCase):
+    """Each save function, run through the real Document.save() into a
+    mock client: in stream mode the document goes to the undated name
+    with op_type=create and an @timestamp; in the default mode it goes to
+    the dated index as before, with the same op_type and @timestamp."""
+
+    def _save(self, save_function, report, **kwargs):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Search") as mock_search_cls,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            mock_search_cls.return_value.execute.return_value = []
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            save_function(report, **kwargs)
+        return client, mock_search_cls, mock_index_cls
+
+    def test_aggregate_report_goes_to_the_stream(self):
+        client, mock_search_cls, mock_index_cls = self._save(
+            save_aggregate_report_to_elasticsearch,
+            _aggregate_report(),
+            index_prefix="cust_",
+            index_suffix="tenant_a",
+            # Ignored in stream mode.
+            monthly_indexes=True,
+            use_data_streams=True,
+        )
+        index_call = client.index.call_args.kwargs
+        self.assertEqual(index_call["index"], "cust_dmarc_aggregate_tenant_a")
+        self.assertEqual(index_call["op_type"], "create")
+        self.assertEqual(
+            index_call["body"]["@timestamp"],
+            datetime(2024, 1, 15, tzinfo=timezone.utc),
+        )
+        self.assertEqual(index_call["body"]["report_id"], "agg-1")
+        self.assertEqual(
+            client.indices.put_index_template.call_args.kwargs["index_patterns"],
+            ["cust_dmarc_aggregate_tenant_a"],
+        )
+        client.indices.create_data_stream.assert_called_once_with(
+            name="cust_dmarc_aggregate_tenant_a"
+        )
+        mock_index_cls.return_value.create.assert_not_called()
+        # The dedup search still uses the wildcard, which matches the
+        # stream as well as dated indexes written before the switch.
+        self.assertEqual(
+            mock_search_cls.call_args.kwargs["index"],
+            "cust_dmarc_aggregate_tenant_a*",
+        )
+
+    def test_aggregate_report_dated_mode_unchanged_apart_from_timestamp(self):
+        client, _, mock_index_cls = self._save(
+            save_aggregate_report_to_elasticsearch, _aggregate_report()
+        )
+        index_call = client.index.call_args.kwargs
+        self.assertEqual(index_call["index"], "dmarc_aggregate-2024-01-15")
+        self.assertEqual(index_call["op_type"], "create")
+        self.assertEqual(
+            index_call["body"]["@timestamp"],
+            datetime(2024, 1, 15, tzinfo=timezone.utc),
+        )
+        mock_index_cls.return_value.create.assert_called_once()
+        client.indices.put_index_template.assert_not_called()
+        client.indices.create_data_stream.assert_not_called()
+
+    def test_failure_report_goes_to_the_stream(self):
+        client, mock_search_cls, mock_index_cls = self._save(
+            save_failure_report_to_elasticsearch,
+            _failure_report(),
+            monthly_indexes=True,
+            use_data_streams=True,
+        )
+        index_call = client.index.call_args.kwargs
+        self.assertEqual(index_call["index"], "dmarc_failure")
+        self.assertEqual(index_call["op_type"], "create")
+        self.assertEqual(
+            index_call["body"]["@timestamp"],
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        client.indices.create_data_stream.assert_called_once_with(name="dmarc_failure")
+        mock_index_cls.return_value.create.assert_not_called()
+        self.assertEqual(
+            mock_search_cls.call_args.kwargs["index"],
+            "dmarc_failure*,dmarc_forensic*",
+        )
+
+    def test_failure_report_dated_mode_unchanged_apart_from_timestamp(self):
+        client, _, _ = self._save(
+            save_failure_report_to_elasticsearch, _failure_report()
+        )
+        index_call = client.index.call_args.kwargs
+        self.assertEqual(index_call["index"], "dmarc_failure-2024-01-01")
+        self.assertEqual(index_call["op_type"], "create")
+        self.assertEqual(
+            index_call["body"]["@timestamp"],
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+        )
+        client.indices.create_data_stream.assert_not_called()
+
+    def test_smtp_tls_report_goes_to_the_stream(self):
+        client, mock_search_cls, mock_index_cls = self._save(
+            save_smtp_tls_report_to_elasticsearch,
+            _smtp_tls_report(),
+            index_prefix="cust_",
+            use_data_streams=True,
+        )
+        index_call = client.index.call_args.kwargs
+        self.assertEqual(index_call["index"], "cust_smtp_tls")
+        self.assertEqual(index_call["op_type"], "create")
+        self.assertEqual(
+            index_call["body"]["@timestamp"],
+            datetime(2024, 2, 3, tzinfo=timezone.utc),
+        )
+        client.indices.create_data_stream.assert_called_once_with(name="cust_smtp_tls")
+        mock_index_cls.return_value.create.assert_not_called()
+        self.assertEqual(mock_search_cls.call_args.kwargs["index"], "cust_smtp_tls*")
+
+    def test_smtp_tls_report_dated_mode_unchanged_apart_from_timestamp(self):
+        client, _, _ = self._save(
+            save_smtp_tls_report_to_elasticsearch, _smtp_tls_report()
+        )
+        index_call = client.index.call_args.kwargs
+        self.assertEqual(index_call["index"], "smtp_tls-2024-02-03")
+        self.assertEqual(index_call["op_type"], "create")
+        self.assertEqual(
+            index_call["body"]["@timestamp"],
+            datetime(2024, 2, 3, tzinfo=timezone.utc),
+        )
+        client.indices.create_data_stream.assert_not_called()
+
+    def test_stream_set_up_once_for_a_multi_record_report(self):
+        report = _aggregate_report()
+        report["records"].append(report["records"][0].copy())
+        client, _, _ = self._save(
+            save_aggregate_report_to_elasticsearch, report, use_data_streams=True
+        )
+        self.assertEqual(client.index.call_count, 2)
+        self.assertEqual(client.indices.put_index_template.call_count, 1)
+
+    def test_name_collision_saves_nothing(self):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Search") as mock_search_cls,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            mock_search_cls.return_value.execute.return_value = []
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = True
+            with self.assertRaises(ElasticsearchError):
+                save_smtp_tls_report_to_elasticsearch(
+                    _smtp_tls_report(), use_data_streams=True
+                )
+        client.index.assert_not_called()
+
+
+class TestMigrateIndexesWithDataStream(unittest.TestCase):
+    def test_legacy_fo_migration_skips_a_stream_with_the_name(self):
+        """With use_data_streams the undated legacy name is the stream
+        itself. Index.exists() is true for it, and the field mapping comes
+        back keyed by a backing index; its fo is text, so nothing is
+        migrated or deleted."""
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.reindex") as mock_reindex,
+        ):
+            index = mock_index_cls.return_value
+            index.exists.return_value = True
+            index.get_field_mapping.return_value = {
+                ".ds-dmarc_aggregate-2026.10.31-000001": {
+                    "mappings": {
+                        "published_policy.fo": {
+                            "full_name": "published_policy.fo",
+                            "mapping": {"fo": {"type": "text"}},
+                        }
+                    }
+                }
+            }
+            migrate_indexes(legacy_fo_indexes=["dmarc_aggregate"])
+        mock_reindex.assert_not_called()
+        index.create.assert_not_called()
+        index.delete.assert_not_called()
 
 
 class TestBackwardCompatAlias(unittest.TestCase):

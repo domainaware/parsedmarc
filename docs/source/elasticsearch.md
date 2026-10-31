@@ -405,13 +405,164 @@ curl -X POST "http://localhost:9200/smtp_tls*/_update_by_query?conflicts=proceed
 It works identically on OpenSearch; just adjust the URL and credentials, same
 as the aggregate command above.
 
-## Records retention
+## Data streams and records retention
 
 Starting in version 5.0.0, `parsedmarc` stores data in a separate
-index for each day to make it easy to comply with records
-retention regulations such as GDPR. For more information,
+index for each day (or each month, with `monthly_indexes`), named after
+the report's date, such as `dmarc_aggregate-2024-03-31`. That makes it
+easy to comply with records retention regulations such as GDPR: delete
+the indexes for the dates you no longer keep. For more information,
 check out the Elastic guide to [managing time-based indexes efficiently](https://www.elastic.co/blog/managing-time-based-indices-efficiently).
 
+Data streams need Elasticsearch 8.7 or later, because the index template
+uses `ignore_missing_component_templates`.
+
+Set `use_data_streams = True` in the `[elasticsearch]` section to write
+to [data streams] instead. Each report type then goes to one data stream
+named like the indexes without the date: `dmarc_aggregate`,
+`dmarc_failure`, and `smtp_tls`, with `index_prefix`, `index_suffix`, or
+the `index_prefix_domain_map` prefix applied as usual. The cluster
+creates the stream's backing indices (`.ds-dmarc_aggregate-…`) and rolls
+them over, and an ILM policy you attach deletes old data, so there is
+one stable name per report type and far fewer shards.
+
+Before a parsedmarc process first saves to a stream, it puts an index
+template named after the stream and creates the stream if it does not
+exist yet. The template:
+
+- matches exactly the stream's name, with no wildcard, so it never applies
+  to the dated indexes;
+- has priority 501 and sets `number_of_shards` and `number_of_replicas`
+  from the configuration, for each new backing index;
+- maps `@timestamp` as a date. Every document parsedmarc saves carries
+  `@timestamp`: the report's begin date for aggregate reports (on
+  every record's document), the arrival date for failure reports, and the report's begin date for SMTP
+  TLS reports. The other fields are mapped dynamically, as in the dated
+  indexes;
+- includes a component template named `<stream>@custom`, such as
+  `dmarc_aggregate@custom`, if one exists.
+
+parsedmarc puts the template again in every process, so changes made to
+it directly do not last. Put your own settings, such as the ILM policy,
+in the `@custom` component template instead.
+
+parsedmarc does not create or change any ILM policy. Here is an example
+that rolls each stream over every 30 days, or sooner when a primary
+shard reaches 50 GB, and deletes a backing index 180 days after its
+rollover:
+
+```text
+PUT _ilm/policy/parsedmarc
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "actions": {
+          "rollover": {
+            "max_age": "30d",
+            "max_primary_shard_size": "50gb"
+          }
+        }
+      },
+      "delete": {
+        "min_age": "180d",
+        "actions": {
+          "delete": {}
+        }
+      }
+    }
+  }
+}
+```
+
+Attach it to each stream through its `@custom` component template:
+
+```text
+PUT _component_template/dmarc_aggregate@custom
+{
+  "template": {
+    "settings": {
+      "index.lifecycle.name": "parsedmarc"
+    }
+  }
+}
+```
+
+Repeat that for `dmarc_failure@custom` and `smtp_tls@custom`, and for the
+prefixed or suffixed names if you use them. The component template
+applies to backing indices created after it, so a stream that already
+exists picks the policy up at its next rollover. To attach it to the
+existing backing indices now:
+
+```text
+PUT .ds-dmarc_aggregate-*/_settings
+{
+  "index.lifecycle.name": "parsedmarc"
+}
+```
+
+The delete phase's `min_age` counts from the rollover, not from the
+report dates, so a backing index is deleted 180 days after it stopped
+receiving documents, whatever dates the reports in it cover. If you need
+retention by report date, keep using dated indexes and delete them by
+name.
+
+On Elastic Cloud Serverless, which has no ILM, use a
+[data stream lifecycle] instead:
+
+```text
+PUT _data_stream/dmarc_aggregate/_lifecycle
+{
+  "data_retention": "180d"
+}
+```
+
+### Switching an existing installation to data streams
+
+Dated indexes that already exist are left alone. They keep working next
+to the streams: the shipped dashboards use the `dmarc_aggregate*`,
+`dmarc_f*`, and `smtp_tls*` index patterns, which match both, and the
+check for duplicate reports searches both, so a report that is already
+in a dated index is not saved again into a stream. You can delete the
+dated indexes when they age out of your retention period, or move their
+documents into the streams. Documents saved by earlier releases have no
+`@timestamp`, which a data stream requires, so add it while reindexing:
+
+```text
+POST _reindex
+{
+  "source": {"index": "dmarc_aggregate-*"},
+  "dest": {"index": "dmarc_aggregate", "op_type": "create"},
+  "script": {
+    "lang": "painless",
+    "source": "ctx._source['@timestamp'] = ctx._source.date_begin"
+  }
+}
+```
+
+Use `date_begin` for `smtp_tls-*` too, and `arrival_date` for
+`dmarc_failure-*`. Delete the dated indexes once the reindex has
+finished; until then, the dashboards count every document twice.
+
+If saving fails with `cannot create the data stream dmarc_aggregate: an
+index or alias with that name already exists`, an index or alias already
+uses the stream's name. parsedmarc releases before 5.0.0 wrote to an
+undated `dmarc_aggregate` index, for example. parsedmarc never writes
+into it in that case. Move its documents to a dated name, which the
+dashboards still match, and delete it:
+
+```text
+POST _reindex
+{
+  "source": {"index": "dmarc_aggregate"},
+  "dest": {"index": "dmarc_aggregate-legacy"}
+}
+
+DELETE dmarc_aggregate
+```
+
+[data stream lifecycle]: https://www.elastic.co/docs/manage-data/lifecycle/data-stream
+[data streams]: https://www.elastic.co/docs/manage-data/data-store/data-streams
 [elasticsearch]: https://www.elastic.co/guide/en/elasticsearch/reference/current/rpm.html
 [opensearch_dashboards.ndjson]: https://raw.githubusercontent.com/domainaware/parsedmarc/master/dashboards/opensearch/opensearch_dashboards.ndjson
 [kibana]: https://www.elastic.co/guide/en/kibana/current/rpm.html

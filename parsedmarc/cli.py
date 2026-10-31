@@ -1173,6 +1173,17 @@ def _parse_config(config: ConfigParser, opts):
             opts.elasticsearch_serverless = elasticsearch_config.getboolean(
                 "serverless"
             )
+        if "use_data_streams" in elasticsearch_config:
+            opts.elasticsearch_use_data_streams = bool(
+                elasticsearch_config.getboolean("use_data_streams")
+            )
+        if getattr(opts, "elasticsearch_use_data_streams", False) and getattr(
+            opts, "elasticsearch_monthly_indexes", False
+        ):
+            logger.warning(
+                "[elasticsearch] monthly_indexes is ignored because "
+                "use_data_streams is enabled"
+            )
 
     if "opensearch" in config:
         opensearch_config = config["opensearch"]
@@ -1226,6 +1237,17 @@ def _parse_config(config: ConfigParser, opts):
             opts.opensearch_aws_region = opensearch_config["aws_region"].strip()
         if "aws_service" in opensearch_config:
             opts.opensearch_aws_service = opensearch_config["aws_service"].strip()
+        if "use_data_streams" in opensearch_config:
+            opts.opensearch_use_data_streams = bool(
+                opensearch_config.getboolean("use_data_streams")
+            )
+        if getattr(opts, "opensearch_use_data_streams", False) and getattr(
+            opts, "opensearch_monthly_indexes", False
+        ):
+            logger.warning(
+                "[opensearch] monthly_indexes is ignored because "
+                "use_data_streams is enabled"
+            )
 
     if "splunk_hec" in config.sections():
         hec_config = config["splunk_hec"]
@@ -1748,9 +1770,12 @@ def _search_alias_snapshot() -> list[tuple[Any, Any, Any]]:
         # private is the same liberty this function already takes with
         # ``connections``; without it, a failed reload that flipped
         # ``[elasticsearch] serverless`` would pair the restored old client
-        # with the new config's flag. opensearch.py declares no module
-        # globals at all (no ``global`` statement in the file), so there is
-        # nothing to pair with it.
+        # with the new config's flag. opensearch.py has no equivalent flag,
+        # so there is nothing to pair with it. Both set_hosts() also clear
+        # their module's _READY_DATA_STREAMS memo, which is deliberately not
+        # snapshotted: an emptied memo only makes the next save re-put its
+        # data stream's index template, which is idempotent, so it is
+        # correct for the restored client too.
         serverless = elastic._SERVERLESS if module is elastic else None
         snapshot.append((module, connection, serverless))
     return snapshot
@@ -2056,8 +2081,10 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
     # places rather than one: connections.create_connection() registers the
     # new client under the ``default`` alias, and elastic.set_hosts() also
     # assigns elastic._SERVERLESS. _init_output_clients() rolls both back if
-    # a later step fails. They are still initialized last, so that a failure
-    # in any other output happens before either registry has been touched.
+    # a later step fails. (Both set_hosts() also clear their data stream
+    # memo, which needs no rollback; see _search_alias_snapshot().) They are
+    # still initialized last, so that a failure in any other output happens
+    # before either registry has been touched.
     if opts.save_aggregate or opts.save_failure or opts.save_smtp_tls:
         # Scoped to the same condition as the constructors below, which is
         # also the condition under which process_reports() dereferences
@@ -2477,6 +2504,7 @@ def _main():
                             index_prefix=opts.elasticsearch_index_prefix
                             or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
+                            use_data_streams=opts.elasticsearch_use_data_streams,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
                         )
@@ -2497,6 +2525,7 @@ def _main():
                             index_prefix=opts.opensearch_index_prefix
                             or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
+                            use_data_streams=opts.opensearch_use_data_streams,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
                         )
@@ -2570,6 +2599,7 @@ def _main():
                             index_prefix=opts.elasticsearch_index_prefix
                             or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
+                            use_data_streams=opts.elasticsearch_use_data_streams,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
                         )
@@ -2590,6 +2620,7 @@ def _main():
                             index_prefix=opts.opensearch_index_prefix
                             or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
+                            use_data_streams=opts.opensearch_use_data_streams,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
                         )
@@ -2663,6 +2694,7 @@ def _main():
                             index_prefix=opts.elasticsearch_index_prefix
                             or get_index_prefix(report),
                             monthly_indexes=opts.elasticsearch_monthly_indexes,
+                            use_data_streams=opts.elasticsearch_use_data_streams,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
                         )
@@ -2683,6 +2715,7 @@ def _main():
                             index_prefix=opts.opensearch_index_prefix
                             or get_index_prefix(report),
                             monthly_indexes=opts.opensearch_monthly_indexes,
+                            use_data_streams=opts.opensearch_use_data_streams,
                             number_of_shards=shards,
                             number_of_replicas=replicas,
                         )
@@ -2968,6 +3001,7 @@ def _main():
         elasticsearch_password=None,
         elasticsearch_api_key=None,
         elasticsearch_serverless=False,
+        elasticsearch_use_data_streams=False,
         opensearch_hosts=None,
         opensearch_timeout=60,
         opensearch_number_of_shards=1,
@@ -2984,6 +3018,7 @@ def _main():
         opensearch_auth_type="basic",
         opensearch_aws_region=None,
         opensearch_aws_service="es",
+        opensearch_use_data_streams=False,
         kafka_hosts=None,
         kafka_username=None,
         kafka_password=None,
