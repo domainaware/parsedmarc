@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import parsedmarc
 from parsedmarc.parallel import (
-    _init_worker_logging,
+    _init_worker,
     _parse_report_email_job,
     _parse_report_file_job,
     parallel_map,
@@ -240,10 +240,11 @@ class TestWorkerLogging(_ParallelTestCase):
 
 
 class TestInitWorkerLogging(unittest.TestCase):
-    """_init_worker_logging must be usable directly as a pool initializer:
-    with no log files it sets the level (configure_logging still ensures
-    a console handler), and with log files it attaches a FileHandler per
-    path."""
+    """_init_worker must be usable directly as a pool initializer: with no
+    log files it sets the level (configure_logging still ensures a console
+    handler), and with log files it attaches a FileHandler per path. The
+    IP-lookup state and PSL overrides it also restores are passed through
+    unchanged here so these tests exercise only the logging side."""
 
     def setUp(self):
         from parsedmarc.log import logger as plog
@@ -263,25 +264,107 @@ class TestInitWorkerLogging(unittest.TestCase):
         plog.setLevel(self._saved_level)
 
     def test_no_log_files_sets_level_only(self):
+        from parsedmarc import utils
         from parsedmarc.log import logger as plog
 
-        _init_worker_logging(logging.WARNING, [])
+        _init_worker(
+            logging.WARNING,
+            [],
+            utils._get_ip_worker_state(),
+            list(utils.psl_overrides),
+        )
         self.assertEqual(plog.level, logging.WARNING)
 
     def test_log_files_attach_file_handlers(self):
+        from parsedmarc import utils
         from parsedmarc.log import logger as plog
 
         with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as tf:
             log_path = tf.name
         self.addCleanup(lambda: os.path.exists(log_path) and os.remove(log_path))
 
-        _init_worker_logging(logging.DEBUG, [log_path])
+        _init_worker(
+            logging.DEBUG,
+            [log_path],
+            utils._get_ip_worker_state(),
+            list(utils.psl_overrides),
+        )
 
         self.assertEqual(plog.level, logging.DEBUG)
         file_handlers = [h for h in plog.handlers if isinstance(h, logging.FileHandler)]
         self.assertTrue(any(h.baseFilename == log_path for h in file_handlers))
         for h in file_handlers:
             h.close()
+
+
+def _ip_worker_state_job(_):
+    """Read the worker process's IP-lookup state and PSL overrides so a
+    test can compare them with what the parent configured. Module-level and
+    picklable (a spawn child re-imports this module to unpickle it)."""
+    from parsedmarc import utils
+
+    return (utils._IPINFO_API_TOKEN, utils._IP_DB_PATH, list(utils.psl_overrides))
+
+
+class TestWorkerIPState(unittest.TestCase):
+    """parallel_map workers must make the same IPinfo API / MMDB selections
+    and use the same PSL overrides the parent configured, whatever the
+    start method.
+
+    parsedmarc.utils._IPINFO_API_TOKEN (configure_ipinfo_api),
+    parsedmarc.utils._IP_DB_PATH (load_ip_db), and the module-level
+    parsedmarc.utils.psl_overrides list (load_psl_overrides) are process
+    globals. Under ``fork`` a worker inherits them ("All resources of the
+    parent are inherited by the child process"), but under ``spawn`` and
+    ``forkserver`` it does not ("The child process will only inherit those
+    resources necessary to run the process object's ``run()`` method") -
+    https://docs.python.org/3/library/multiprocessing.html. The pool
+    initializer therefore restores the parent's snapshot in every worker.
+    This test forces each non-fork start method so it guards that path on
+    every Python version, not only the ones whose default start method
+    already exercises it (Linux defaults to forkserver from 3.14, macOS
+    and Windows to spawn).
+
+    With the ``psl_overrides`` restore removed from ``_init_worker``, the
+    PSL assertion failed under both ``spawn`` and ``forkserver``: each
+    worker reported the bundled ``psl_overrides.txt`` list it loads at
+    import, not the parent's ``["example.test"]``.
+    """
+
+    def test_workers_see_parent_ip_state_under_spawn_and_forkserver(self):
+        import multiprocessing
+
+        import parsedmarc.utils as utils
+
+        methods = [
+            m
+            for m in ("spawn", "forkserver")
+            if m in multiprocessing.get_all_start_methods()
+        ]
+        self.assertIn("spawn", methods)
+
+        original_state = utils._get_ip_worker_state()
+        original_psl = list(utils.psl_overrides)
+        original_method = multiprocessing.get_start_method()
+        utils._set_ip_worker_state(
+            "worker-state-test-token", "/parent/only/ipinfo_lite.mmdb"
+        )
+        utils.psl_overrides[:] = ["example.test"]
+        self.addCleanup(utils._set_ip_worker_state, *original_state)
+        self.addCleanup(utils.psl_overrides.__setitem__, slice(None), original_psl)
+        self.addCleanup(multiprocessing.set_start_method, original_method, force=True)
+
+        for method in methods:
+            with self.subTest(start_method=method):
+                multiprocessing.set_start_method(method, force=True)
+
+                results = list(parallel_map(_ip_worker_state_job, range(8), n_procs=2))
+
+                self.assertEqual(len(results), 8)
+                for token, db_path, psl in results:
+                    self.assertEqual(token, "worker-state-test-token")
+                    self.assertEqual(db_path, "/parent/only/ipinfo_lite.mmdb")
+                    self.assertEqual(psl, ["example.test"])
 
 
 class TestParseReportEmailJob(_ParallelTestCase):

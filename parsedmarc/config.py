@@ -121,8 +121,9 @@ class ParserConfig:
         normalize_timespan_threshold_hours: Aggregate reports whose
             timespan exceeds this many hours are normalized/split.
         ip_address_cache: Cache of IP address enrichment results.
-        seen_aggregate_report_ids: Cache of already-seen aggregate report
-            IDs, used for de-duplication.
+        seen_aggregate_report_ids: Cache of already-seen aggregate reports,
+            keyed on reporter, Report-ID, and policy domain, used for
+            de-duplication.
         reverse_dns_map: The reverse DNS map used to classify base domains
             found via reverse DNS.
     """

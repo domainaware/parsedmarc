@@ -743,6 +743,40 @@ def configure_ipinfo_api(
         logger.info("IPinfo API configured")
 
 
+def _get_ip_worker_state() -> tuple[str | None, str | None]:
+    """Snapshot the IP-lookup configuration a pool worker must reproduce.
+
+    ``_IPINFO_API_TOKEN`` and ``_IP_DB_PATH`` are process globals set only
+    by the parent (via :func:`configure_ipinfo_api` and :func:`load_ip_db`).
+    Under the ``spawn`` and ``forkserver`` start methods a child process
+    "will only inherit those resources necessary to run the process
+    object's ``run()`` method"
+    (https://docs.python.org/3/library/multiprocessing.html), so a worker
+    without this snapshot would silently skip the IPinfo API and fall back
+    to the bundled MMDB instead of the database the parent selected.
+    ``parsedmarc.parallel.parallel_map`` captures this snapshot in the
+    parent and hands it to its pool initializer, which restores it with
+    :func:`_set_ip_worker_state`.
+
+    A ``None`` element means "not configured in the parent": the worker
+    behaves exactly as the parent would for that element (no IPinfo API;
+    MMDB selected on demand at lookup time).
+    """
+    return _IPINFO_API_TOKEN, _IP_DB_PATH
+
+
+def _set_ip_worker_state(token: str | None, db_path: str | None) -> None:
+    """Restore a snapshot taken by :func:`_get_ip_worker_state`.
+
+    ``_LAST_LOGGED_IP_DB_PATH`` is deliberately not restored: it only
+    deduplicates the database-selection log line within one process, and
+    each worker should log its own (restored) selection once.
+    """
+    global _IPINFO_API_TOKEN, _IP_DB_PATH
+    _IPINFO_API_TOKEN = token
+    _IP_DB_PATH = db_path
+
+
 def _ipinfo_api_lookup(ip_address: str) -> _IPDatabaseRecord | None:
     """Look up an IP via the IPinfo Lite REST API.
 
@@ -1266,6 +1300,33 @@ def parse_email_address(original_address: str) -> dict[str, str | None]:
     }
 
 
+def sanitize_for_log(value: str) -> str:
+    """Escapes the non-printable characters of a sender-controlled string
+    so it is safe to put in a log line or an error message.
+
+    Every character for which ``str.isprintable()`` is false (CR, LF, tab,
+    ESC, U+2028, NUL, and so on) is replaced by its ``unicode_escape``
+    form, e.g. ``\\r\\n``. A sender can plant such characters in a
+    header through an RFC 2047 encoded-word (``=?utf-8?q?a=0D=0Ab?=``
+    decodes to a raw CR LF), and an unescaped CR/LF would let it forge
+    extra log lines. The characters are escaped rather than stripped so
+    the log still shows that they were present. The ASCII space, letters
+    in any script, and most emoji are printable and pass through
+    unchanged; non-ASCII spaces (NBSP, U+3000) and format characters such
+    as the zero-width joiner are not, and are escaped.
+
+    Args:
+        value (str): The string to escape
+
+    Returns:
+        str: ``value`` with non-printable characters escaped
+    """
+    return "".join(
+        ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
+        for ch in value
+    )
+
+
 def get_filename_safe_string(string: str | None) -> str:
     """
     Converts a string to a string that is safe to use as a filename
@@ -1277,12 +1338,17 @@ def get_filename_safe_string(string: str | None) -> str:
     space (Windows drops both when creating a file, which would make two
     distinct subjects collide on one name), and it is never ``.`` or ``..``
     (both consist only of stripped characters and collapse to ``""``). It
-    is at most 100 characters long. It can be empty -- when the input is
-    empty, consists only of stripped characters, or is truncated to a run
-    of dots and spaces -- so callers that need a non-empty name must supply
-    their own fallback (e.g. ``get_filename_safe_string(subject) or
-    "sample"``). Windows reserved device names such as ``CON`` are not
-    rewritten.
+    is at most 100 characters *and* at most 100 bytes when UTF-8 encoded:
+    filesystems limit a name component to 255 bytes (143 on eCryptfs), not
+    characters, so 84 CJK characters or 63 emoji plus ``.eml`` already
+    exceed the limit, and 100 bytes leaves room for a ``" (N)"``
+    de-duplication suffix and an extension under every real limit. A
+    multi-byte character is never split, and lone surrogates are dropped.
+    It can be empty -- when the input is empty, consists only of stripped
+    characters, or is truncated to a run of dots and spaces -- so callers
+    that need a non-empty name must supply their own fallback (e.g.
+    ``get_filename_safe_string(subject) or "sample"``). Windows reserved
+    device names such as ``CON`` are not rewritten.
 
     Args:
         string (str | None): A string to make safe for a filename.
@@ -1298,8 +1364,14 @@ def get_filename_safe_string(string: str | None) -> str:
         string = string.replace(char, "")
 
     # Truncate before stripping trailing dots and spaces, so that a name cut
-    # off just after one cannot end in it.
-    string = (string[:100]) if len(string) > 100 else string
+    # off just after one cannot end in it. Bound both characters and UTF-8
+    # bytes (GHSA-j53g-34vj-g25q); decoding with errors="ignore" drops a
+    # multi-byte sequence cut in half, and encoding with errors="ignore"
+    # drops lone surrogates, which cannot be encoded at all.
+    string = string[:100]
+    string = string.encode("utf-8", errors="ignore")[:100].decode(
+        "utf-8", errors="ignore"
+    )
     string = string.rstrip(". ")
 
     return string

@@ -9,6 +9,7 @@ import base64
 import binascii
 import csv
 import email
+import email.errors
 import gzip
 import inspect
 import json
@@ -20,6 +21,7 @@ import time
 import unittest
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
@@ -35,7 +37,7 @@ from lxml import etree  # type: ignore[import-untyped]
 
 import parsedmarc
 import parsedmarc.constants as constants
-from parsedmarc.mail import MaildirConnection, MSGraphConnection
+from parsedmarc.mail import IMAPConnection, MaildirConnection, MSGraphConnection
 from parsedmarc.types import (
     AggregateReport,
     FailureReport,
@@ -166,6 +168,56 @@ def compare_xml(xml1, xml2):
     tree1 = etree.fromstring(xml1.encode("utf-8"), parser)
     tree2 = etree.fromstring(xml2.encode("utf-8"), parser)
     return etree.tostring(tree1) == etree.tostring(tree2)
+
+
+# GHSA-qxwv-2vwj-v828 fixtures. A failure report whose message/rfc822 sample
+# has a header containing \x1c, which str.splitlines() treats as a line
+# break, so re-serializing the sample raises email.errors.HeaderWriteError.
+POISON_HEADER_EMAIL = (
+    "From: a@example.com\nSubject: x\nDate: Mon, 1 Jan 2024 00:00:00 +0000\n"
+    "MIME-Version: 1.0\n"
+    "Content-Type: multipart/report; report-type=feedback-report; boundary=B\n\n"
+    "--B\nContent-Type: text/plain\n\nhi\n"
+    "--B\nContent-Type: message/feedback-report\n\n"
+    "Feedback-Type: auth-failure\nVersion: 1\nSource-IP: 192.0.2.1\n"
+    "Arrival-Date: Mon, 1 Jan 2024 00:00:00 +0000\nReported-Domain: example.com\n"
+    "Authentication-Results: x\n\n"
+    "--B\nContent-Type: message/rfc822\n\nFrom: a@b\nX-A: a\x1cb\n\nbody\n--B--\n"
+).encode()
+
+
+# Far past the recursion limit wherever the message is re-serialized: the
+# email generator recurses a few frames per level, so the smallest failing
+# depth is about 247 levels from a shallow main thread and drops with every
+# frame already on the stack (about 222 at +100 frames), while mail-parser's
+# own nesting guard only trips far above this. Still parses in milliseconds.
+POISON_NESTING_LEVELS = 400
+# Comfortably below the limit even from a deep stack.
+SHALLOW_NESTING_LEVELS = 50
+
+
+def _nested_multipart_email(levels: int) -> bytes:
+    """A message with ``levels`` nested ``multipart/mixed`` parts around one
+    text part; re-serializing ``POISON_NESTING_LEVELS`` levels exceeds the
+    recursion limit."""
+    message = "Subject: s\n"
+    for i in range(levels):
+        message += f"Content-Type: multipart/mixed; boundary=b{i}\n\n--b{i}\n"
+    message += "Content-Type: text/plain\n\nx\n"
+    for i in range(levels - 1, -1, -1):
+        message += f"--b{i}--\n"
+    return message.encode()
+
+
+def _reserializes(raw: bytes) -> bool:
+    """Whether this Python can parse and re-serialize ``raw``; a Python
+    predating the header-injection check (CVE-2024-6923) writes
+    POISON_HEADER_EMAIL without raising."""
+    try:
+        email.message_from_bytes(raw).as_string()
+    except (email.errors.MessageError, RecursionError):
+        return False
+    return True
 
 
 class Test(unittest.TestCase):
@@ -1006,6 +1058,94 @@ class Test(unittest.TestCase):
         reader = csv.DictReader(StringIO(csv_text))
         row = next(reader)
         self.assertEqual(row["organization_name"], "ExampleInc.")
+
+    def testCsvSafeNeutralizesFormulaPrefixes(self):
+        """_csv_safe prefixes a string starting with any spreadsheet
+        formula trigger with ``'`` (CWE-1236; OWASP CSV Injection,
+        https://owasp.org/www-community/attacks/CSV_Injection) and leaves
+        everything else alone, including non-strings."""
+        cases = [
+            ("=1+1", "'=1+1"),
+            ("+1", "'+1"),
+            ("-1", "'-1"),
+            ("@SUM(A1)", "'@SUM(A1)"),
+            ("\tcmd", "'\tcmd"),
+            ("\rcmd", "'\rcmd"),
+            ("\x00=1+1", "'=1+1"),
+            ("Example Inc.", "Example Inc."),
+            ("a-b=c+d@e", "a-b=c+d@e"),
+            ("", ""),
+            (15169, 15169),
+            (None, None),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(parsedmarc._csv_safe(value), expected)
+
+    def testAggregateCsvNeutralizesFormulaInOrgName(self):
+        """A reporter-supplied ``=HYPERLINK(...)`` org_name is written to
+        the aggregate CSV with a leading apostrophe, while ordinary
+        values and numeric columns are unchanged."""
+        payload = '=HYPERLINK("http://evil","x")'
+        escaped = payload.replace('"', "&quot;")
+        xml = (
+            "<feedback><report_metadata>"
+            f"<org_name>{escaped}</org_name>"
+            "<email>a@example.com</email><report_id>r-1</report_id>"
+            "<date_range><begin>1529366400</begin><end>1529452799</end>"
+            "</date_range></report_metadata><policy_published>"
+            "<domain>example.com</domain><p>none</p></policy_published>"
+            "<record><row><source_ip>192.0.2.1</source_ip><count>3</count>"
+            "<policy_evaluated><disposition>none</disposition>"
+            "<dkim>fail</dkim><spf>fail</spf></policy_evaluated></row>"
+            "<identifiers><header_from>example.com</header_from>"
+            "</identifiers><auth_results></auth_results></record></feedback>"
+        )
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(report["report_metadata"]["org_name"], payload)
+
+        csv_text = parsedmarc.parsed_aggregate_reports_to_csv(report)
+
+        row = next(csv.DictReader(StringIO(csv_text)))
+        self.assertEqual(row["org_name"], "'" + payload)
+        self.assertEqual(row["domain"], "example.com")
+        self.assertEqual(row["count"], "3")
+
+        report["report_metadata"]["org_name"] = "Example-Org Inc."
+        row = next(
+            csv.DictReader(StringIO(parsedmarc.parsed_aggregate_reports_to_csv(report)))
+        )
+        self.assertEqual(row["org_name"], "Example-Org Inc.")
+
+    def testFailureReportCsvNeutralizesFormulaInSubject(self):
+        """A failure report sample subject starting with ``@`` is written
+        with a leading apostrophe."""
+        parsed_report = cast(
+            FailureReport,
+            parsedmarc.parse_report_file(
+                "samples/failure/dmarc_ruf_report_linkedin.eml", offline=True
+            )["report"],
+        )
+        parsed_report["parsed_sample"]["subject"] = "@evil"
+
+        csv_text = parsedmarc.parsed_failure_reports_to_csv(parsed_report)
+
+        row = next(csv.DictReader(StringIO(csv_text)))
+        self.assertEqual(row["subject"], "'@evil")
+
+    def testSmtpTlsCsvNeutralizesFormulaInOrganizationName(self):
+        """An SMTP TLS report string field starting with ``+`` is written
+        with a leading apostrophe."""
+        result = parsedmarc.parse_report_file(
+            "samples/smtp_tls/smtp_tls.json", offline=True
+        )
+        report = cast(SMTPTLSReport, result["report"])
+        report["organization_name"] = "+1-555-0100"
+
+        csv_text = parsedmarc.parsed_smtp_tls_reports_to_csv(report)
+
+        row = next(csv.DictReader(StringIO(csv_text)))
+        self.assertEqual(row["organization_name"], "'+1-555-0100")
 
     def testAggregateCsvExposesASNColumns(self):
         """The aggregate CSV output should include source_asn, source_as_name,
@@ -2673,6 +2813,93 @@ class TestMalformedXmlRecovery(unittest.TestCase):
         self.assertEqual(len(report["records"]), len(expected["records"]))
         self.assertGreater(len(report["records"]), 0)
 
+    DOCTYPE_SAMPLE = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+
+    def _sample_with_doctype(self, doctype, declaration=None):
+        """The sample report with ``doctype`` inserted right after its XML
+        declaration, which is replaced by ``declaration`` when given"""
+        with open(self.DOCTYPE_SAMPLE, encoding="utf-8") as f:
+            original = f.read()
+        self.assertTrue(original.startswith("<?xml"))
+        header, body = original.split("?>", 1)
+        return (declaration or header + "?>") + doctype + body
+
+    def testDoctypeIsRejected(self):
+        """An aggregate report carrying any DOCTYPE is rejected.
+
+        Regression test for GHSA-m47j-wp78-fqjg: an internal DTD subset can
+        declare default attributes that expat applies to every matching
+        element, so the parser used to accept, and expand, this report.
+        Real aggregate reports never carry a DOCTYPE."""
+        # The sample parses without the DOCTYPE, so only it is rejected.
+        parsedmarc.parse_aggregate_report_xml(
+            self._sample_with_doctype(""), offline=OFFLINE_MODE
+        )
+        for doctype in (
+            '<!DOCTYPE feedback [<!ATTLIST record a CDATA "x">]>',
+            "<!DOCTYPE feedback>",
+        ):
+            with self.subTest(doctype=doctype):
+                with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+                    parsedmarc.parse_aggregate_report_xml(
+                        self._sample_with_doctype(doctype), offline=OFFLINE_MODE
+                    )
+                self.assertIn("DOCTYPE", str(ctx.exception))
+
+    def testDoctypeIsRejectedOnTheRecoveryPath(self):
+        """A DOCTYPE behind a malformed XML declaration is rejected too.
+
+        The malformed declaration makes the first parse fail before expat
+        reaches the DOCTYPE, so the document goes through the lxml recovery
+        path, which must apply the same check (GHSA-m47j-wp78-fqjg)."""
+        declaration = '<?xml version="1.0" foo?>'
+        # Without a DOCTYPE, the recovery path parses the report.
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._sample_with_doctype("", declaration=declaration),
+            offline=OFFLINE_MODE,
+        )
+        self.assertTrue(
+            any(
+                e.startswith("Invalid XML") for e in report["report_metadata"]["errors"]
+            )
+        )
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(
+                self._sample_with_doctype(
+                    '<!DOCTYPE feedback [<!ATTLIST record a CDATA "x">]>',
+                    declaration=declaration,
+                ),
+                offline=OFFLINE_MODE,
+            )
+        self.assertIn("DOCTYPE", str(ctx.exception))
+
+    def testEmptyDocumentIsInvalid(self):
+        """A document lxml cannot recover anything from (it raises "Document
+        is empty") is still reported as an InvalidAggregateReport."""
+        with self.assertRaises(parsedmarc.InvalidAggregateReport):
+            parsedmarc.parse_aggregate_report_xml("", offline=OFFLINE_MODE)
+
+    def testAttlistDefaultAttributeAmplificationIsRejectedQuickly(self):
+        """The advisory's default-attribute amplification document is
+        rejected before expat expands it.
+
+        Regression test for GHSA-m47j-wp78-fqjg: ``<!ATTLIST z>`` declaring
+        1,000 default attributes, followed by 10,000 ``<z/>`` elements (64 KB
+        of XML), made xmltodict build 10 million dict entries. Measured
+        locally, the old code took 4.0 s and 1.4 GB RSS on this input; the
+        reporter measured 29 s and 1.4 GB from a 3.8 KB gzip email. The fixed
+        code rejects it in about 0.1 ms, so the 1 s bound is not flaky."""
+        attributes = " ".join(f'a{i} CDATA "vvvvvvvvvv"' for i in range(1000))
+        xml = (
+            f"<!DOCTYPE feedback [<!ATTLIST z {attributes}>]>"
+            f"<feedback><record>{'<z/>' * 10_000}</record></feedback>"
+        )
+        start = time.perf_counter()
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=OFFLINE_MODE)
+        self.assertLess(time.perf_counter() - start, 1)
+        self.assertIn("DOCTYPE", str(ctx.exception))
+
 
 class TestPolicyPublishedEdgeCases(unittest.TestCase):
     """Tests for edge cases in policy_published parsing"""
@@ -3094,6 +3321,77 @@ This is not a DMARC report."""
         with self.assertRaises(parsedmarc.InvalidDMARCReport):
             parsedmarc.parse_report_email(email_str, offline=True)
 
+    def testSubjectControlCharactersEscapedInErrorMessage(self):
+        """An RFC 2047 subject that decodes to CR LF is escaped in the
+        error message, so a sender cannot forge extra log lines (the
+        mailbox loops log this message at WARNING)."""
+        email_str = (
+            "From: test@example.com\n"
+            "Subject: =?utf-8?q?line1=0D=0AINJECTED=20fake=20log?=\n"
+            "Content-Type: text/plain\n\nNot a report."
+        )
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+            parsedmarc.parse_report_email(email_str, offline=True)
+        message = str(ctx.exception)
+        self.assertIn("line1\\r\\nINJECTED fake log", message)
+        self.assertNotIn("\r", message)
+        self.assertNotIn("\n", message)
+
+    def testSmtpTlsPolicyTypeControlCharactersEscapedInError(self):
+        """A sender-supplied ``policy-type`` containing CR LF is escaped in
+        the ``Invalid policy type`` error, which the mailbox loops log."""
+        report = json.dumps(
+            {
+                "organization-name": "Example",
+                "date-range": {
+                    "start-datetime": "2016-04-01T00:00:00Z",
+                    "end-datetime": "2016-04-01T23:59:59Z",
+                },
+                "contact-info": "tls@example.com",
+                "report-id": "r-1",
+                "policies": [
+                    {
+                        "policy": {
+                            "policy-type": "sts\r\nWARNING:cli.py:1:INJECTED",
+                            "policy-domain": "example.com",
+                        },
+                        "summary": {
+                            "total-successful-session-count": 1,
+                            "total-failure-session-count": 0,
+                        },
+                    }
+                ],
+            }
+        )
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(report)
+        message = str(ctx.exception)
+        self.assertIn("sts\\r\\nWARNING:cli.py:1:INJECTED", message)
+        self.assertNotIn("\r", message)
+        self.assertNotIn("\n", message)
+
+    def testFromHeaderControlCharactersEscapedInInfoLog(self):
+        """The ``Parsing mail from`` info line escapes control characters
+        in the From header.
+
+        The control character is a raw ESC in the display name rather than
+        an RFC 2047 encoded word: mail-parser 4.6.2 decodes encoded words
+        in ``From`` but 4.8.0 (what CI resolves) leaves them encoded, while
+        both keep a raw control character, so the test observes the
+        escaping regardless of which mail-parser is installed."""
+        email_str = (
+            'From: "a\x1bFORGED" <test@example.com>\n'
+            "Subject: Hello\n"
+            "Content-Type: text/plain\n\nNot a report."
+        )
+        with self.assertLogs("parsedmarc.log", level="INFO") as logs:
+            with self.assertRaises(parsedmarc.InvalidDMARCReport):
+                parsedmarc.parse_report_email(email_str, offline=True)
+        line = next(m for m in logs.output if "Parsing mail from" in m)
+        self.assertIn("\\x1bFORGED", line)
+        self.assertNotIn("\x1b", line)
+        self.assertEqual(len(line.splitlines()), 1)
+
     def testUnparseableDateRaisesParserError(self):
         """An unparseable Date header trips the initial mail-parse catch-all"""
         # human_timestamp_to_datetime() raises on a junk Date, which the
@@ -3212,6 +3510,98 @@ This is not a DMARC report."""
                 "Received Date: Mon, 01 Jan 2024 00:00:00 +0000\r\n"
             ),
             [("Received Date", "Mon, 01 Jan 2024 00:00:00 +0000")],
+        )
+
+    def testUnserializableSubMessageRaisesParserError(self):
+        """A ``message/rfc822`` part whose header holds a control character
+        raises ``ParserError``, not ``email.errors.HeaderWriteError``.
+
+        Regression test for GHSA-qxwv-2vwj-v828: re-serializing the part
+        raised ``HeaderWriteError``, which escaped the mailbox loop's
+        ``except ParserError`` and aborted the whole batch on every run.
+        (A Python without the header-injection check instead parses the
+        message as an invalid failure report, which is also a
+        ``ParserError``.)"""
+        with self.assertRaises(parsedmarc.ParserError):
+            parsedmarc.parse_report_email(POISON_HEADER_EMAIL, offline=True)
+
+    def testDeeplyNestedMultipartRaisesParserError(self):
+        """Multiparts nested past the recursion limit raise ``ParserError``,
+        not ``RecursionError`` (GHSA-qxwv-2vwj-v828); a shallow nesting is
+        walked without error and rejected as not a report, as before."""
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_email(
+                _nested_multipart_email(POISON_NESTING_LEVELS), offline=True
+            )
+        self.assertIn("recursion", str(ctx.exception))
+
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+            parsedmarc.parse_report_email(
+                _nested_multipart_email(SHALLOW_NESTING_LEVELS), offline=True
+            )
+        self.assertIn("is not a valid report", str(ctx.exception))
+
+    @staticmethod
+    def _email_with_attachment(payload: bytes, subtype: str) -> str:
+        from email.mime.application import MIMEApplication
+
+        msg = MIMEMultipart()
+        msg["From"] = "reports@example.com"
+        msg["Subject"] = "Report"
+        msg["Date"] = "Mon, 01 Jan 2024 00:00:00 +0000"
+        # MIMEApplication base64-encodes the payload.
+        msg.attach(MIMEApplication(payload, subtype))
+        return msg.as_string()
+
+    def testBase64SmtpTlsJsonPart(self):
+        """An ``application/tlsrpt+json`` part sent base64-encoded is decoded
+        and parsed as an SMTP TLS report"""
+        with open("samples/smtp_tls/rfc8460.json", "rb") as f:
+            payload = f.read()
+        result = parsedmarc.parse_report_email(
+            self._email_with_attachment(payload, "tlsrpt+json"), offline=True
+        )
+        self.assertEqual(result["report_type"], "smtp_tls")
+
+    def testSmtpTlsJsonInGenericAttachment(self):
+        """A JSON report in an attachment of any other type is recognized by
+        its leading ``{`` and parsed as an SMTP TLS report"""
+        with open("samples/smtp_tls/rfc8460.json", "rb") as f:
+            payload = f.read()
+        result = parsedmarc.parse_report_email(
+            self._email_with_attachment(payload, "octet-stream"), offline=True
+        )
+        self.assertEqual(result["report_type"], "smtp_tls")
+
+    def testNonBase64AttachmentIsSkipped(self):
+        """An attachment whose body is not base64 is not a report attachment:
+        it is skipped rather than treated as a parse failure, so a message
+        with nothing else in it is simply not a valid report"""
+        eml = (
+            "From: reports@example.com\n"
+            "Subject: Report\n"
+            "Date: Mon, 01 Jan 2024 00:00:00 +0000\n"
+            "Content-Type: application/octet-stream\n\n"
+            # Three base64 characters: b64decode() raises "Incorrect padding".
+            "abc\n"
+        )
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+            parsedmarc.parse_report_email(eml, offline=True)
+        self.assertEqual(
+            str(ctx.exception), 'Message with subject "Report" is not a valid report'
+        )
+
+    def testInvalidAggregateAttachmentRaisesParserError(self):
+        """An XML attachment that is not a valid aggregate report raises a
+        ParserError naming the message"""
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_email(
+                self._email_with_attachment(b"<feedback></feedback>", "xml"),
+                offline=True,
+            )
+        self.assertIn(
+            'Message with subject "Report" is not a valid DMARC report',
+            str(ctx.exception),
         )
 
 
@@ -3532,6 +3922,57 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
         finally:
             os.remove(path)
 
+    def testPoisonMessageRaisesParserError(self):
+        """A message that cannot be re-serialized reaches the parser and
+        surfaces as a ``ParserError``, sequentially and with n_procs=2.
+
+        Regression test for GHSA-qxwv-2vwj-v828: mbox.get_string()
+        re-serializes each message (it is
+        ``email.message_from_bytes(get_bytes(key)).as_string()``), so the
+        raw email.errors.HeaderWriteError or RecursionError escaped before
+        the message reached the parser. get_bytes() returns the stored
+        message as-is, and parse_report_email() turns the content error into
+        a ``ParserError``. The mbox loop's policy is unchanged: it skips only
+        ``InvalidDMARCReport`` and re-raises any other ``ParserError``."""
+        # The error text, not __cause__, identifies the content error: an
+        # exception returned from a worker process loses its __cause__.
+        exercised = 0
+        for poison_name, poison, cause in (
+            ("header", POISON_HEADER_EMAIL, "folded header contains newline"),
+            (
+                "nested",
+                _nested_multipart_email(POISON_NESTING_LEVELS),
+                "maximum recursion depth",
+            ),
+        ):
+            if _reserializes(poison):
+                # Not a poison message on this Python (see _reserializes).
+                continue
+            exercised += 1
+            with NamedTemporaryFile(suffix=".mbox", delete=False) as f:
+                path = f.name
+            self.addCleanup(os.remove, path)
+            box = mailbox.mbox(path)
+            box.lock()
+            try:
+                box.add(poison)
+                with open("samples/aggregate/twilight.eml", "rb") as source:
+                    box.add(source.read())
+                box.flush()
+            finally:
+                box.unlock()
+            box.close()
+            for n_procs in (1, 2):
+                with self.subTest(poison=poison_name, n_procs=n_procs):
+                    with self.assertRaises(parsedmarc.ParserError) as ctx:
+                        parsedmarc.get_dmarc_reports_from_mbox(
+                            path, offline=True, n_procs=n_procs
+                        )
+                    self.assertIn("Unable to parse message", str(ctx.exception))
+                    self.assertIn(cause, str(ctx.exception))
+        # The nested message is a poison on every Python.
+        self.assertGreater(exercised, 0)
+
 
 class TestGetDmarcReportsFromMboxParallel(unittest.TestCase):
     """n_procs=1 vs n_procs=2 parity for get_dmarc_reports_from_mbox, driven
@@ -3666,9 +4107,7 @@ class TestCentralizedConfig(unittest.TestCase):
         self.assertEqual(len(first["aggregate_reports"]), 1)
         self.assertEqual(len(second["aggregate_reports"]), 0)
 
-        report_metadata = first["aggregate_reports"][0]["report_metadata"]
-        report_key = f"{report_metadata['org_name']}_{report_metadata['report_id']}"
-        self.assertIn(report_key, parsedmarc.SEEN_AGGREGATE_REPORT_IDS)
+        self.assertEqual(len(parsedmarc.SEEN_AGGREGATE_REPORT_IDS), 1)
 
     def test_kwargs_and_config_equivalence(self):
         """parse_report_file must produce identical results whether called
@@ -4034,6 +4473,161 @@ class _FailingDisposalMaildirConnection(MaildirConnection):
         super().move_message(message_id, folder_name)
 
 
+class _InMemoryMailboxConnection(parsedmarc.MailboxConnection):
+    """A mailbox backend held in memory. Like IMAP or Microsoft Graph, it
+    returns each message's stored text as-is and moves a message without
+    rewriting it, unlike the Maildir backend, which re-serializes both
+    ways. ``fetch_errors`` maps a message id to the exception its fetch
+    raises."""
+
+    def __init__(self, messages, fetch_errors=None):
+        self.folders = {"INBOX": dict(messages)}
+        self.fetch_errors = fetch_errors or {}
+
+    def create_folder(self, folder_name):
+        self.folders.setdefault(folder_name, {})
+
+    def folder_exists(self, folder_name):
+        return folder_name in self.folders
+
+    def fetch_messages(self, reports_folder, **kwargs):
+        return list(self.folders[reports_folder])
+
+    def fetch_message(self, message_id, **kwargs):
+        if message_id in self.fetch_errors:
+            raise self.fetch_errors[message_id]
+        return self.folders["INBOX"][message_id]
+
+    def delete_message(self, message_id):
+        del self.folders["INBOX"][message_id]
+
+    def move_message(self, message_id, folder_name):
+        self.folders[folder_name][message_id] = self.folders["INBOX"].pop(message_id)
+
+    def keepalive(self):
+        return None
+
+    def watch(self, check_callback, check_timeout, config_reloading=None):
+        return None
+
+
+class _InMemoryIMAPConnection(_InMemoryMailboxConnection, IMAPConnection):
+    """The in-memory backend, typed as an IMAP connection so parsedmarc
+    takes its IMAP code paths. Its message ids are ints, as IMAP UIDs are,
+    so a lookup with any other type fails."""
+
+
+class TestGetDmarcReportsFromMailboxContentErrors(unittest.TestCase):
+    """GHSA-qxwv-2vwj-v828 on backends that neither fetch nor move a message
+    by re-serializing it: a message whose content raises a non-ParserError
+    exception is moved to the invalid folder (or deleted), and the rest of
+    the batch is processed, sequentially and with n_procs=2."""
+
+    def setUp(self):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        with open("samples/aggregate/twilight.eml", encoding="utf-8") as f:
+            self.aggregate = f.read()
+
+    def _run(self, conn, n_procs, **kwargs):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            result = parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=conn, offline=True, n_procs=n_procs, **kwargs
+            )
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(result["failure_reports"], [])
+        return cm.output
+
+    def test_fetch_content_error_moves_message_to_invalid(self):
+        """A content error raised by the backend's fetch (as the Maildir
+        backend raises it) moves that message to the invalid folder, or
+        deletes it with delete_invalid; IMAP UIDs stay ints throughout."""
+        errors = (
+            email.errors.HeaderWriteError("folded header contains newline"),
+            RecursionError("maximum recursion depth exceeded"),
+        )
+        for conn_cls, poison_id, report_id in (
+            (_InMemoryMailboxConnection, "poison", "report"),
+            (_InMemoryIMAPConnection, 1, 2),
+        ):
+            for error in errors:
+                for n_procs in (1, 2):
+                    with self.subTest(
+                        backend=conn_cls.__name__,
+                        error=type(error).__name__,
+                        n_procs=n_procs,
+                    ):
+                        conn = conn_cls(
+                            {poison_id: "unused", report_id: self.aggregate},
+                            fetch_errors={poison_id: error},
+                        )
+                        output = self._run(conn, n_procs)
+                        self.assertEqual(conn.folders["INBOX"], {})
+                        self.assertEqual(
+                            list(conn.folders["Archive/Invalid"]), [poison_id]
+                        )
+                        self.assertEqual(
+                            list(conn.folders["Archive/Aggregate"]), [report_id]
+                        )
+                        self.assertTrue(
+                            any(
+                                f"Unable to fetch message UID {poison_id}: "
+                                f"{type(error).__name__}" in line
+                                for line in output
+                            ),
+                            output,
+                        )
+
+                        conn = conn_cls(
+                            {poison_id: "unused", report_id: self.aggregate},
+                            fetch_errors={poison_id: error},
+                        )
+                        self._run(conn, n_procs, delete_invalid=True)
+                        self.assertEqual(conn.folders["INBOX"], {})
+                        self.assertEqual(conn.folders["Archive/Invalid"], {})
+                        self.assertEqual(
+                            list(conn.folders["Archive/Aggregate"]), [report_id]
+                        )
+
+    def test_unparseable_content_moves_message_to_invalid(self):
+        """A backend that returns the raw message, as IMAP does, hands the
+        poison content to parse_report_email(), whose ParserError now moves
+        the message to the invalid folder instead of a HeaderWriteError or
+        RecursionError aborting the batch."""
+        exercised = 0
+        for poison_name, poison in (
+            ("header", POISON_HEADER_EMAIL),
+            ("nested", _nested_multipart_email(POISON_NESTING_LEVELS)),
+        ):
+            if _reserializes(poison):
+                # Not a poison message on this Python (see _reserializes).
+                continue
+            exercised += 1
+            for n_procs in (1, 2):
+                with self.subTest(poison=poison_name, n_procs=n_procs):
+                    conn = _InMemoryIMAPConnection(
+                        {1: poison.decode(), 2: self.aggregate}
+                    )
+                    output = self._run(conn, n_procs)
+                    self.assertEqual(conn.folders["INBOX"], {})
+                    self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
+                    self.assertEqual(list(conn.folders["Archive/Aggregate"]), [2])
+                    self.assertTrue(
+                        any("Unable to parse message" in line for line in output),
+                        output,
+                    )
+        # The nested message is a poison on every Python.
+        self.assertGreater(exercised, 0)
+
+
+class _FailingFetchMaildirConnection(MaildirConnection):
+    """A MaildirConnection whose every fetch fails like a dropped network
+    connection would."""
+
+    def fetch_message(self, message_id, **kwargs):
+        raise OSError("connection reset")
+
+
 class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
     """parsedmarc's real mailbox processing loop, end to end on an on-disk
     Maildir (mailsuite MaildirConnection, no mocks, offline parsing): fetch
@@ -4359,6 +4953,133 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
         self.assertEqual(len(conn.fetch_messages("INBOX")), 1)
         self.assertEqual(conn.fetch_messages("Archive/Aggregate"), [])
         self.assertEqual(len(conn.fetch_messages("Archive/SMTP-TLS")), 1)
+
+    def _poison_maildir(self, name, poison):
+        """A fresh Maildir holding ``poison`` (delivered byte-for-byte, so the
+        stdlib never has to re-serialize it) and the aggregate sample.
+
+        Returns ``(path, poison_key)``."""
+        path = os.path.join(self._tmp, name)
+        box = mailbox.Maildir(path, create=True)
+        poison_key = box.add(poison)
+        with open(self.AGGREGATE, "rb") as f:
+            box.add(f.read())
+        box.flush()
+        return path, poison_key
+
+    def _skip_unless_poison(self, poison):
+        if _reserializes(poison):
+            self.skipTest(
+                "this Python re-serializes the message without error, so it "
+                "is not a poison message here"
+            )
+
+    def test_poison_message_does_not_abort_the_batch(self):
+        """A message that cannot be re-serialized no longer aborts the
+        batch: the other report is still parsed and archived, sequentially
+        and with n_procs=2, and the poison message is moved to
+        ``Archive/Invalid``.
+
+        Regression test for GHSA-qxwv-2vwj-v828: parse_report_email()
+        serializes the message's parts, so the
+        email.errors.HeaderWriteError (a control character in a sub-message
+        header) or RecursionError (deeply nested multiparts) escaped from the
+        mailbox loop's per-message ``except ParserError`` and every run
+        aborted on the same message. parse_report_email() now raises a
+        ParserError, which logs "Unable to parse message with subject ..."
+        and disposes of the message as invalid.
+
+        mailsuite 2.3.3 (GHSA-9jx3-p8wm-g8vw) returns the stored bytes from
+        fetch_message() and renames the file in move_message(), so neither
+        step re-serializes the message: the fetch succeeds and the failure
+        surfaces in the parser, and the move always succeeds. (Before 2.3.3
+        the fetch raised, and the move re-added the message through
+        ``mailbox.Maildir.add()``, which left the nested message in the
+        inbox.) A Python whose ``Message.as_string()`` can write the
+        control-character message is skipped for that message, as it is not
+        a poison message there."""
+        for poison_name, poison in (
+            ("header", POISON_HEADER_EMAIL),
+            ("nested", _nested_multipart_email(POISON_NESTING_LEVELS)),
+        ):
+            if _reserializes(poison):
+                # Not a poison message on this Python (see _reserializes).
+                continue
+            for n_procs in (1, 2):
+                with self.subTest(poison=poison_name, n_procs=n_procs):
+                    parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+                    path, _ = self._poison_maildir(f"{poison_name}-{n_procs}", poison)
+                    conn = MaildirConnection(path, maildir_create=True)
+                    with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                        result = parsedmarc.get_dmarc_reports_from_mailbox(
+                            connection=conn,
+                            reports_folder="INBOX",
+                            archive_folder="Archive",
+                            offline=True,
+                            test=False,
+                            n_procs=n_procs,
+                        )
+
+                    # The batch completed and the real report was archived.
+                    self.assertEqual(len(result["aggregate_reports"]), 1)
+                    self.assertEqual(result["failure_reports"], [])
+                    self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+                    self.assertTrue(
+                        any(
+                            "Unable to parse message with subject" in line
+                            for line in cm.output
+                        ),
+                        cm.output,
+                    )
+                    # The poison message was moved, not left to fail again.
+                    self.assertEqual(conn.fetch_messages("INBOX"), [])
+                    self.assertEqual(len(conn.fetch_messages("Archive/Invalid")), 1)
+                    self.assertFalse(
+                        [line for line in cm.output if "Mailbox error" in line],
+                        cm.output,
+                    )
+
+    def test_poison_message_is_deleted_with_delete_invalid(self):
+        """With delete_invalid, a message that failed to fetch is deleted
+        like any other invalid message (deleting does not re-serialize it),
+        sequentially and with n_procs=2 (GHSA-qxwv-2vwj-v828)."""
+        self._skip_unless_poison(POISON_HEADER_EMAIL)
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+                path, _ = self._poison_maildir(f"delete-{n_procs}", POISON_HEADER_EMAIL)
+                conn = MaildirConnection(path, maildir_create=True)
+                with self.assertLogs("parsedmarc.log", level="WARNING"):
+                    result = parsedmarc.get_dmarc_reports_from_mailbox(
+                        connection=conn,
+                        offline=True,
+                        delete_invalid=True,
+                        n_procs=n_procs,
+                    )
+
+                self.assertEqual(len(result["aggregate_reports"]), 1)
+                self.assertEqual(conn.fetch_messages("INBOX"), [])
+                self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+                self.assertEqual(conn.fetch_messages("Archive/Invalid"), [])
+
+    def test_transport_error_on_fetch_still_propagates(self):
+        """Only content errors from the fetch mark a message invalid: a
+        transport error such as OSError still propagates, sequentially and
+        with n_procs=2, and the message is neither moved nor deleted, since
+        a transient failure says nothing about the message itself."""
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                path, _ = self._poison_maildir(f"oserror-{n_procs}", self.JUNK)
+                conn = _FailingFetchMaildirConnection(path, maildir_create=True)
+                with self.assertRaises(OSError):
+                    parsedmarc.get_dmarc_reports_from_mailbox(
+                        connection=conn,
+                        offline=True,
+                        delete_invalid=True,
+                        n_procs=n_procs,
+                    )
+                self.assertEqual(len(conn.fetch_messages("INBOX")), 2)
+                self.assertEqual(conn.fetch_messages("Archive/Invalid"), [])
 
 
 class _UncreatableFolderMaildirConnection(MaildirConnection):
@@ -5550,6 +6271,23 @@ class TestSaveOutput(unittest.TestCase):
             [os.path.join(samples, "report.eml")],
         )
 
+    def testMultiByteSubjectWithinFilesystemNameLimit(self):
+        """A subject of 84 CJK characters is truncated to fit the
+        filesystem's 255-byte name limit, and the sample is written.
+
+        Regression test for GHSA-j53g-34vj-g25q: the name was truncated to
+        100 characters, so 84 three-byte characters plus ``.eml`` made a
+        256-byte name and save_output() failed with ENAMETOOLONG after the
+        batch's JSON and CSV rows had already been appended."""
+        subject = "\u4e2d" * 84
+        self._save(self._failure_report(subject))
+
+        samples = os.path.join("parsedmarc", "output", "samples")
+        self.assertEqual(
+            [f for f in self._written_files() if f.endswith(".eml")],
+            [os.path.join(samples, "\u4e2d" * 33 + ".eml")],
+        )
+
     def testOrdinarySubjectNamesTheFileAndSampleIsWrittenVerbatim(self):
         """An ordinary subject is unchanged by sanitizing, and the file
         holds the message sample"""
@@ -5579,6 +6317,493 @@ class TestSaveOutput(unittest.TestCase):
             [f for f in self._written_files() if f.endswith(".eml")],
             [os.path.join(samples, "Subject line, could be UTF8 encoded.eml")],
         )
+
+
+DOMAIN_SCOPE_REPORTER = "reporter.example"
+DOMAIN_SCOPE_REPORT_ID = "1721054318-shared.example@reporter.example"
+
+
+def _domain_scope_aggregate_xml(
+    policy_domain: str | None,
+    record_count: int,
+    *,
+    reporter: str = DOMAIN_SCOPE_REPORTER,
+    report_id: str = DOMAIN_SCOPE_REPORT_ID,
+) -> bytes:
+    """Builds one well-formed aggregate report document.
+
+    ``policy_domain`` fills ``policy_published/domain`` -- the field RFC 9990
+    scopes Report-ID uniqueness to -- and ``record_count`` fills the single
+    ``record``'s ``count``, so a caller can tell which document a batch kept.
+    ``reporter`` and ``report_id`` default to one fixed reporter/ID so that a
+    caller varying only the domain is varying only the identity component
+    under test. ``None`` emits an empty policy-domain element, which the
+    existing parser accepts as ``None``; record domains remain populated.
+    All domain names use the reserved ``.example`` TLD.
+    """
+    record_domain = policy_domain or "a.example"
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        "<feedback>\n"
+        "  <report_metadata>\n"
+        f"    <org_name>{reporter}</org_name>\n"
+        "    <email>dmarc@reporter.example</email>\n"
+        f"    <report_id>{report_id}</report_id>\n"
+        "    <date_range>\n"
+        "      <begin>1680000000</begin>\n"
+        "      <end>1680086400</end>\n"
+        "    </date_range>\n"
+        "  </report_metadata>\n"
+        "  <policy_published>\n"
+        f"    <domain>{policy_domain or ''}</domain>\n"
+        "    <p>none</p>\n"
+        "  </policy_published>\n"
+        "  <record>\n"
+        "    <row>\n"
+        "      <source_ip>192.0.2.1</source_ip>\n"
+        f"      <count>{record_count}</count>\n"
+        "      <policy_evaluated>\n"
+        "        <disposition>none</disposition>\n"
+        "        <dkim>pass</dkim>\n"
+        "        <spf>pass</spf>\n"
+        "      </policy_evaluated>\n"
+        "    </row>\n"
+        f"    <identifiers><header_from>{record_domain}</header_from></identifiers>\n"
+        "    <auth_results>\n"
+        f"      <spf><domain>{record_domain}</domain><result>pass</result></spf>\n"
+        "    </auth_results>\n"
+        "  </record>\n"
+        "</feedback>"
+    ).encode()
+
+
+def _domain_scope_email(
+    policy_domain: str | None,
+    record_count: int,
+    *,
+    reporter: str = DOMAIN_SCOPE_REPORTER,
+    report_id: str = DOMAIN_SCOPE_REPORT_ID,
+) -> bytes:
+    """Wraps that report in a minimal, well-formed MIME aggregate-report email."""
+    message = MIMEMultipart()
+    message["From"] = "dmarc@reporter.example"
+    message["To"] = "postmaster@example.net"
+    message["Subject"] = f"Report domain: {policy_domain}"
+    message["Date"] = "Mon, 1 Jan 2024 00:00:00 +0000"
+    attachment = MIMEApplication(
+        gzip.compress(
+            _domain_scope_aggregate_xml(
+                policy_domain,
+                record_count,
+                reporter=reporter,
+                report_id=report_id,
+            )
+        ),
+        "gzip",
+    )
+    attachment.add_header("Content-Disposition", "attachment", filename="report.xml.gz")
+    message.attach(attachment)
+    return message.as_bytes()
+
+
+class TestAggregateReportIdentityIsDomainScoped(unittest.TestCase):
+    """Aggregate-report dedup must follow RFC 9990 §3.5.1's identity scope.
+
+    RFC 9990 §3.5.1 ("Definition of Report-ID") says: "This identifier MUST
+    be unique among reports to the same domain to aid receivers in
+    identifying duplicate reports should they happen." Uniqueness is
+    therefore per (reporting domain), not global: one reporter legitimately
+    reusing the same Report-ID for ``a.example`` and ``b.example`` is
+    sending two distinct, non-duplicate reports.
+
+    These tests drive the public consumer -- ``get_dmarc_reports_from_mbox``
+    (real temporary mbox, ``n_procs=1`` and ``n_procs=2``) and the companion
+    class's ``get_dmarc_reports_from_mailbox`` (real on-disk Maildir) -- and assert on
+    the returned reports' own ``policy_published.domain`` and record
+    ``count`` values, never on internal helpers or mock call counts. Configs
+    are isolated except where a test explicitly shares one across calls.
+    """
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+
+    def _mbox(self, messages: list[bytes]) -> str:
+        with NamedTemporaryFile(dir=self._tmp, suffix=".mbox", delete=False) as tmp:
+            path = tmp.name
+        box = mailbox.mbox(path)
+        try:
+            box.lock()
+            try:
+                for message in messages:
+                    box.add(mailbox.mboxMessage(message))
+                box.flush()
+            finally:
+                box.unlock()
+        finally:
+            box.close()
+        return path
+
+    def _parse_mbox(self, path: str, *, n_procs: int = 1):
+        return parsedmarc.get_dmarc_reports_from_mbox(
+            path,
+            n_procs=n_procs,
+            config=parsedmarc.ParserConfig(offline=True, always_use_local_files=True),
+        )
+
+    @staticmethod
+    def _domains(result) -> list[str | None]:
+        return [
+            report["policy_published"]["domain"]
+            for report in result["aggregate_reports"]
+        ]
+
+    @staticmethod
+    def _counts(result) -> list[int]:
+        return [
+            sum(record["count"] for record in report["records"])
+            for report in result["aggregate_reports"]
+        ]
+
+    def test_same_report_id_for_different_domains_keeps_both_reports(self):
+        """One reporter, one Report-ID, two policy domains in one batch:
+        both reports survive, with their own content intact.
+
+        Fails on a dedup key that is only ``org_name + report_id``: the
+        second report is then classified as a duplicate of the first and
+        silently dropped, even though RFC 9990 §3.5.1 only forbids reusing
+        an ID *within* one domain.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 3),
+                _domain_scope_email("b.example", 5),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["a.example", "b.example"])
+        self.assertEqual(self._counts(result), [3, 5])
+
+    def test_different_domains_are_kept_in_either_delivery_order(self):
+        """Delivery order must not decide which of the two domains survives:
+        with the same batch reversed, the roles swap and both are still
+        returned, in message order."""
+        path = self._mbox(
+            [
+                _domain_scope_email("b.example", 5),
+                _domain_scope_email("a.example", 3),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["b.example", "a.example"])
+        self.assertEqual(self._counts(result), [5, 3])
+
+    def test_same_domain_duplicate_report_is_still_suppressed(self):
+        """The negative half of the contract: the same reporter re-sending
+        the same Report-ID for the *same* domain is a genuine duplicate and
+        is still dropped, leaving one report."""
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 3),
+                _domain_scope_email("a.example", 3),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["a.example"])
+        self.assertEqual(self._counts(result), [3])
+
+    def test_dedup_is_per_domain_within_one_batch(self):
+        """Three messages, one Report-ID: a.example, a.example, b.example.
+
+        Exactly one report per domain is kept (the first of each, so the
+        content assertion pins *which* document survived rather than just
+        how many), which is what per-domain identity means: duplicates are
+        suppressed inside a domain and never across domains.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 1),
+                _domain_scope_email("a.example", 2),
+                _domain_scope_email("b.example", 3),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["a.example", "b.example"])
+        self.assertEqual(self._counts(result), [1, 3])
+
+    def test_domain_ascii_case_does_not_disable_duplicate_suppression(self):
+        """RFC 4343 §3: ASCII domain letters compare without case.
+
+        Keep the original spelling in the returned report while suppressing
+        a repeated report for the same domain with a different spelling.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email("A.Example", 3),
+                _domain_scope_email("a.example", 5),
+                _domain_scope_email("b.example", 7),
+            ]
+        )
+        result = self._parse_mbox(path)
+        self.assertEqual(self._domains(result), ["A.Example", "b.example"])
+        self.assertEqual(self._counts(result), [3, 7])
+
+    def test_empty_policy_domain_keeps_existing_parser_behavior(self):
+        """The XML parser accepts an empty policy domain as None.
+
+        Adding the domain to report identity must not make classification
+        crash on this previously accepted input, or merge it with a named
+        domain. Repeated empty-domain reports still count as duplicates.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email(None, 3),
+                _domain_scope_email(None, 5),
+                _domain_scope_email("b.example", 7),
+            ]
+        )
+        result = self._parse_mbox(path)
+        self.assertEqual(self._domains(result), [None, "b.example"])
+        self.assertEqual(self._counts(result), [3, 7])
+
+    def test_parallel_mbox_keeps_both_domains_and_suppresses_duplicates(self):
+        """Parallel parsing leaves domain-scoped dedup in the parent process."""
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 3),
+                _domain_scope_email("a.example", 5),
+                _domain_scope_email("b.example", 7),
+            ]
+        )
+        result = self._parse_mbox(path, n_procs=2)
+        self.assertEqual(self._domains(result), ["a.example", "b.example"])
+        self.assertEqual(self._counts(result), [3, 7])
+
+    def test_one_config_keeps_each_domain_and_still_suppresses_repeats(self):
+        """Across two calls sharing one ``ParserConfig`` -- i.e. one live dedup
+        cache, the way a long-running watch loop uses it -- the domain is
+        still part of the identity.
+
+        Run one parses ``a.example``; run two carries a *different domain*
+        with the same reporter and Report-ID and must be retained, then a
+        repeat of that same domain must be suppressed. A key without the
+        domain fails the middle assertion: run two's report is dropped as a
+        duplicate of run one's.
+        """
+        config = parsedmarc.ParserConfig(offline=True, always_use_local_files=True)
+
+        def parse(messages):
+            return parsedmarc.get_dmarc_reports_from_mbox(
+                self._mbox(messages), n_procs=1, config=config
+            )
+
+        first = parse([_domain_scope_email("a.example", 3)])
+        second = parse([_domain_scope_email("b.example", 5)])
+        third = parse([_domain_scope_email("b.example", 5)])
+
+        self.assertEqual(self._domains(first), ["a.example"])
+        self.assertEqual(self._domains(second), ["b.example"])
+        self.assertEqual(self._counts(second), [5])
+        self.assertEqual(self._domains(third), [])
+
+    def test_key_encoding_does_not_collide_on_field_boundaries(self):
+        """Two different reports must not share one dedup key just because a
+        reporter's name and a Report-ID contain the same characters.
+
+        ``("a_b", "c")`` and ``("a", "b_c")`` both flatten to ``a_b_c`` under
+        a key built by joining the fields with underscores; a JSON
+        array of the fields cannot be ambiguous. Both messages below report
+        the same policy domain, so the only thing telling them apart is the
+        reporter/ID split: a colliding key drops the second one.
+        """
+        messages = [
+            _domain_scope_email("a.example", 1, reporter="a_b", report_id="c"),
+            _domain_scope_email("a.example", 2, reporter="a", report_id="b_c"),
+        ]
+
+        result = self._parse_mbox(self._mbox(messages))
+
+        self.assertEqual(len(result["aggregate_reports"]), 2)
+        self.assertEqual(self._counts(result), [1, 2])
+        self.assertEqual(
+            [
+                report["report_metadata"]["org_name"]
+                for report in result["aggregate_reports"]
+            ],
+            ["a_b", "a"],
+        )
+
+
+class TestAggregateReportIdentityDomainScopePendingSave(unittest.TestCase):
+    """The same domain-scoped identity contract on the mailbox path that
+    defers its dedup-cache writes until the batch is known to be saved.
+
+    ``get_dmarc_reports_from_mailbox`` stages new aggregate keys in a
+    per-batch pending set and folds them into the config's cache only after
+    the caller's ``save_callback`` reports success (see
+    ``_classify_parsed_email``'s ``pending_aggregate_keys`` and
+    ``get_dmarc_reports_from_mailbox``). The pending set has to make exactly
+    the same domain-scoped decision as the immediate-write path; otherwise a
+    fix to one path leaves the other silently dropping reports.
+
+    Real on-disk Maildir through mailsuite's ``MaildirConnection``, using
+    the public ``save_callback`` and dry-run ``test=True`` options. These
+    tests cover classification and cache commit/retry decisions, not
+    message marking, archive/delete, or failed-save retry counters.
+    """
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        self._inbox = mailbox.Maildir(self._maildir, create=True)
+        self.addCleanup(self._inbox.close)
+        self._config = parsedmarc.ParserConfig(
+            offline=True, always_use_local_files=True
+        )
+
+    def _deliver(self, policy_domain: str, record_count: int) -> None:
+        self._inbox.add(
+            mailbox.MaildirMessage(_domain_scope_email(policy_domain, record_count))
+        )
+        self._inbox.flush()
+
+    def _run(self, save_callback=None):
+        connection = MaildirConnection(self._maildir, maildir_create=True)
+        # Dry-run leaves messages in place for the next call, while still
+        # classifying reports, invoking save_callback, and folding pending
+        # keys into the cache only after a successful save.
+        return parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=connection,
+            config=self._config,
+            save_callback=save_callback,
+            test=True,
+        )
+
+    @staticmethod
+    def _domains(result) -> list[str]:
+        return [
+            report["policy_published"]["domain"]
+            for report in result["aggregate_reports"]
+        ]
+
+    def _count_by_domain(self, result) -> dict[str, int]:
+        """Maps each returned report's policy domain to its total record count.
+
+        Order-free on purpose: a Maildir's message iteration order is not
+        part of any contract, so these tests pin *which* domains came back
+        and what they contain, not the sequence they arrived in.
+        """
+        reports = result["aggregate_reports"]
+        counts = {
+            report["policy_published"]["domain"]: sum(
+                record["count"] for record in report["records"]
+            )
+            for report in reports
+        }
+        self.assertEqual(len(reports), len(counts), "duplicate domain report retained")
+        return counts
+
+    @staticmethod
+    def _saved(batch) -> bool:
+        del batch
+        return True
+
+    @staticmethod
+    def _not_saved(batch) -> bool:
+        del batch
+        return False
+
+    def test_committed_batch_keeps_reports_for_both_domains(self):
+        """Two domains, one Report-ID, batch saved: both reports are returned."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        result = self._run(save_callback=self._saved)
+
+        self.assertEqual(
+            self._count_by_domain(result), {"a.example": 3, "b.example": 5}
+        )
+
+    def test_committed_batch_still_suppresses_same_domain_duplicate(self):
+        """Same domain twice, batch saved: still a duplicate, so one report
+        is returned -- the pending path must not weaken same-domain dedup
+        either."""
+        self._deliver("a.example", 3)
+        self._deliver("a.example", 3)
+
+        result = self._run(save_callback=self._saved)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(self._count_by_domain(result), {"a.example": 3})
+
+    def test_failed_save_drops_pending_keys_so_the_retry_reparses(self):
+        """A failed save must not commit the pending keys: the retry has to
+        reparse the same message rather than skip it as a duplicate."""
+        self._deliver("a.example", 3)
+
+        first = self._run(save_callback=self._not_saved)
+        retry = self._run(save_callback=self._saved)
+
+        self.assertEqual(self._count_by_domain(first), {"a.example": 3})
+        self.assertEqual(self._count_by_domain(retry), {"a.example": 3})
+
+    def test_successful_save_then_rerun_returns_nothing(self):
+        """After a batch is saved, the same two messages are deduplicated on
+        the next run: the pending keys were folded into the cache, so the
+        committed batch is not reprocessed. Both domains are recorded, so
+        neither one is left out of the commit."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        committed = self._run(save_callback=self._saved)
+        rerun = self._run(save_callback=self._saved)
+
+        self.assertEqual(
+            self._count_by_domain(committed), {"a.example": 3, "b.example": 5}
+        )
+        self.assertEqual(self._domains(rerun), [])
+
+    def test_false_callback_retry_still_returns_both_domains(self):
+        """A callback returning ``False`` must not leave the two domains
+        poisoned against each other: the retry reparses both messages and
+        returns both reports, rather than suppressing one as a duplicate of
+        the other."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        unsaved = self._run(save_callback=self._not_saved)
+        retry = self._run(save_callback=self._saved)
+
+        expected = {"a.example": 3, "b.example": 5}
+        self.assertEqual(self._count_by_domain(unsaved), expected)
+        self.assertEqual(self._count_by_domain(retry), expected)
+
+    def test_raising_callback_retry_still_returns_both_domains(self):
+        """A callback that *raises* fails the save the same way: the
+        exception propagates to the caller, and the retry must still return
+        both domains."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        def boom(batch):
+            del batch
+            raise RuntimeError("output destination down")
+
+        with self.assertRaises(RuntimeError):
+            self._run(save_callback=boom)
+
+        retry = self._run(save_callback=self._saved)
+
+        self.assertEqual(self._count_by_domain(retry), {"a.example": 3, "b.example": 5})
 
 
 if __name__ == "__main__":

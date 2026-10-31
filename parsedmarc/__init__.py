@@ -77,6 +77,7 @@ from parsedmarc.utils import (
     human_timestamp_to_datetime,
     is_outlook_msg,
     parse_email,
+    sanitize_for_log,
     timestamp_to_human,
 )
 
@@ -197,6 +198,42 @@ class InvalidFailureReport(InvalidDMARCReport):
 
 # Backward-compatible alias
 InvalidForensicReport = InvalidFailureReport
+
+
+_DOCTYPE_ERROR = "Aggregate reports must not contain a DOCTYPE declaration"
+
+
+class _XMLDoctypeFound(Exception):
+    """Raised by :class:`_NoDoctypeExpat` parsers as soon as expat reports
+    the start of a ``<!DOCTYPE`` declaration."""
+
+
+def _raise_doctype_found(*args: Any) -> None:
+    raise _XMLDoctypeFound(_DOCTYPE_ERROR)
+
+
+class _NoDoctypeExpat:
+    """A minimal stand-in for the ``xml.parsers.expat`` module, passed to
+    ``xmltodict.parse(expat=...)``, whose parsers abort on any DOCTYPE.
+
+    An internal DTD subset can declare default attributes
+    (``<!ATTLIST z a0 CDATA "v" ... aK ...>``) that expat then reports on
+    every matching element, so K declared defaults on N empty elements make
+    xmltodict build K x N dict entries from a few kilobytes of input
+    (GHSA-m47j-wp78-fqjg). Entity expansion is already off
+    (xmltodict's ``disable_entities=True``) but does not cover this.
+    DMARC aggregate reports never carry a DOCTYPE, so the declaration is
+    rejected outright, before expat reads any of the subset.
+
+    ``xmltodict.parse()`` only ever calls ``ParserCreate()`` on the module it
+    is given.
+    """
+
+    @staticmethod
+    def ParserCreate(*args: Any, **kwargs: Any) -> Any:
+        parser = expat.ParserCreate(*args, **kwargs)
+        parser.StartDoctypeDeclHandler = _raise_doctype_found
+        return parser
 
 
 def _resolve_config(
@@ -732,7 +769,9 @@ def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
         policy_type = policy["policy"]["policy-type"]
         failure_details = []
         if policy_type not in policy_types:
-            raise InvalidSMTPTLSReport(f"Invalid policy type {policy_type}")
+            raise InvalidSMTPTLSReport(
+                f"Invalid policy type {sanitize_for_log(str(policy_type))}"
+            )
         new_policy: dict[str, Any] = {
             "policy_domain": policy_domain,
             "policy_type": policy_type,
@@ -807,17 +846,35 @@ def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
         raise InvalidSMTPTLSReport(str(e) + _exc_origin(e)) from e
 
 
-def _csv_safe(value: Any) -> Any:
-    """Strips NUL characters from a string CSV field.
+# Characters that make a spreadsheet application read a cell as a formula.
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
-    Python 3.10's ``csv`` writer raises ``_csv.Error: need to escape, but
-    no escapechar set`` on any field containing NUL (CPython issue 97503,
-    fixed in 3.11). Report text fields come from untrusted mail, so the
-    character is dropped here, matching ``get_filename_safe_string``.
-    Non-string values are returned unchanged.
+
+def _csv_safe(value: Any) -> Any:
+    """Makes a string CSV field safe to write and to open in a spreadsheet.
+
+    Two things happen to a string, in this order:
+
+    1. NUL characters are stripped. Python 3.10's ``csv`` writer raises
+       ``_csv.Error: need to escape, but no escapechar set`` on any field
+       containing NUL (CPython issue 97503, fixed in 3.11), and the
+       character is dropped to match ``get_filename_safe_string``.
+    2. A string starting with ``=``, ``+``, ``-``, ``@``, tab, or carriage
+       return gets a leading ``'``. Spreadsheet applications evaluate such
+       a cell as a formula, and report text fields come from untrusted
+       mail, so a reporter could otherwise plant a formula like
+       ``=HYPERLINK(...)`` in the output (CWE-1236). The apostrophe is the
+       OWASP CSV Injection recommendation, and makes the application
+       treat the cell as text:
+       https://owasp.org/www-community/attacks/CSV_Injection
+
+    Non-string values (ASN integers, counts) are returned unchanged.
     """
     if isinstance(value, str):
-        return value.replace("\x00", "")
+        value = value.replace("\x00", "")
+        if value.startswith(_CSV_FORMULA_PREFIXES):
+            return "'" + value
+        return value
     return value
 
 
@@ -981,18 +1038,41 @@ def parse_aggregate_report_xml(
         xml_namespace = namespace_match.group(1)
 
     try:
-        xmltodict.parse(xml)["feedback"]
+        xmltodict.parse(xml, expat=_NoDoctypeExpat)["feedback"]
+    except _XMLDoctypeFound as e:
+        raise InvalidAggregateReport(_DOCTYPE_ERROR) from e
     except Exception as e:
         errors.append(f"Invalid XML: {e.__str__()}")
+        has_doctype = False
         try:
             tree = etree.parse(
                 BytesIO(xml.encode("utf-8")),
                 etree.XMLParser(recover=True, resolve_entities=False),
             )
-            s = etree.tostring(tree)
-            xml = "" if s is None else s.decode("utf-8")
+            root = tree.getroot()
+            if root is None:
+                # Nothing recoverable; the second parse reports it as
+                # invalid XML.
+                xml = ""
+            else:
+                # The first parse can fail before expat reaches a DOCTYPE
+                # (e.g. on a malformed XML declaration, which is only
+                # rewritten below), so the recovered tree gets the same
+                # DOCTYPE check, made before serializing. The rejection is
+                # raised after this try, which would otherwise swallow it.
+                has_doctype = bool(tree.docinfo.doctype) or (
+                    tree.docinfo.internalDTD is not None
+                )
+                if not has_doctype:
+                    # Serializing the root element rather than the tree
+                    # leaves any internal DTD subset out of the XML handed to
+                    # the second parse. str() is a no-op at runtime; lxml ships
+                    # no type stubs, so pyright would widen xml to str | bytes.
+                    xml = str(etree.tostring(root, encoding="unicode"))
         except Exception:
             xml = "<a/>"
+        if has_doctype:
+            raise InvalidAggregateReport(_DOCTYPE_ERROR) from e
 
     try:
         # Replace XML header (sometimes they are invalid)
@@ -1001,7 +1081,7 @@ def parse_aggregate_report_xml(
         # Remove invalid schema tags
         xml = xml_schema_regex.sub("", xml)
 
-        report = xmltodict.parse(xml)["feedback"]
+        report = xmltodict.parse(xml, expat=_NoDoctypeExpat)["feedback"]
         report_metadata = report["report_metadata"]
         # <email> is xs:string in both RFC 7489 and RFC 9990, but defensive
         # parsing in the wild: some reporters emit it with an xml:lang or
@@ -1135,14 +1215,16 @@ def parse_aggregate_report_xml(
             if policy_published["np"] is not None:
                 np_ = policy_published["np"]
                 if np_ not in ("none", "quarantine", "reject"):
-                    logger.warning(f"Invalid np value: {np_}")
+                    logger.warning(f"Invalid np value: {sanitize_for_log(str(np_))}")
         new_policy_published["np"] = np_
         testing = None
         if "testing" in policy_published:
             if policy_published["testing"] is not None:
                 testing = policy_published["testing"]
                 if testing not in ("n", "y"):
-                    logger.warning(f"Invalid testing value: {testing}")
+                    logger.warning(
+                        f"Invalid testing value: {sanitize_for_log(str(testing))}"
+                    )
         new_policy_published["testing"] = testing
         discovery_method = None
         if "discovery_method" in policy_published:
@@ -1150,7 +1232,8 @@ def parse_aggregate_report_xml(
                 discovery_method = policy_published["discovery_method"]
                 if discovery_method not in ("psl", "treewalk"):
                     logger.warning(
-                        f"Invalid discovery_method value: {discovery_method}"
+                        f"Invalid discovery_method value: "
+                        f"{sanitize_for_log(str(discovery_method))}"
                     )
         new_policy_published["discovery_method"] = discovery_method
         new_report["policy_published"] = new_policy_published
@@ -1175,7 +1258,9 @@ def parse_aggregate_report_xml(
                         normalize=normalize_timespan,
                     )
                 except Exception as e:
-                    logger.warning(f"Could not parse record: {e}")
+                    logger.warning(
+                        f"Could not parse record: {sanitize_for_log(str(e))}"
+                    )
 
         else:
             report_record = _parse_report_record(
@@ -2099,6 +2184,10 @@ def parse_report_email(
         dict:
         * ``report_type``: ``aggregate``, ``failure``, or ``smtp_tls``
         * ``report``: The parsed report
+
+    Raises:
+        ParserError: If the message is not a valid report. Whatever the
+            input, only ``ParserError`` subclasses are raised.
     """
     cfg = _resolve_config(
         config,
@@ -2142,108 +2231,128 @@ def parse_report_email(
 
     except Exception as e:
         raise ParserError(e.__str__() + _exc_origin(e)) from e
-    subject = None
+    subject_text = "None"
     feedback_report = None
     smtp_tls_report = None
     sample = None
     is_feedback_report: bool = False
     if "From" in msg_headers:
-        logger.info("Parsing mail from {} on {}".format(msg_headers["From"], date))
+        logger.info(
+            "Parsing mail from {} on {}".format(
+                sanitize_for_log(str(msg_headers["From"])), date
+            )
+        )
     if "Subject" in msg_headers:
-        subject = msg_headers["Subject"]
-    for part in msg.walk():
-        content_type = part.get_content_type().lower()
-        payload_obj = part.get_payload()
-        if not isinstance(payload_obj, list):
-            payload_obj = [payload_obj]
-        payload = str(payload_obj[0])
-        if content_type.startswith("multipart/"):
-            continue
-        if content_type == "text/html":
-            continue
-        elif content_type == "message/feedback-report":
-            is_feedback_report = True
-            decoded_payload = _decode_mime_payload(part, payload)
-            try:
-                if "Feedback-Type" in decoded_payload:
-                    feedback_report = decoded_payload
-                else:
-                    feedback_report = b64decode(decoded_payload).__str__()
-                feedback_report = feedback_report.lstrip("b'").rstrip("'")
-                feedback_report = feedback_report.replace("\\r", "")
-                feedback_report = feedback_report.replace("\\n", "\n")
-            except (ValueError, TypeError, binascii.Error):
-                feedback_report = decoded_payload
-        elif is_feedback_report and content_type in EMAIL_SAMPLE_CONTENT_TYPES:
-            sample = _decode_mime_payload(part, payload)
-        elif content_type == "application/tlsrpt+json":
-            if not payload.strip().startswith("{"):
-                payload = b64decode(payload).decode("utf-8", errors="replace")
-            smtp_tls_report = parse_smtp_tls_report_json(payload)
-            return {"report_type": "smtp_tls", "report": smtp_tls_report}
-        elif content_type == "application/tlsrpt+gzip":
-            payload = extract_report(payload)
-            smtp_tls_report = parse_smtp_tls_report_json(payload)
-            return {"report_type": "smtp_tls", "report": smtp_tls_report}
-        elif content_type == "text/plain":
-            if "A message claiming to be from you has failed" in payload:
+        # RFC 2047 decoding can yield raw CR/LF, so escape control
+        # characters before the subject reaches an error message or log.
+        subject_text = sanitize_for_log(str(msg_headers["Subject"]))
+    # Serializing a part (``str(payload_obj[0])``) re-renders any
+    # ``message/rfc822`` sub-message, which can raise e.g.
+    # ``email.errors.HeaderWriteError`` on a control character in a header or
+    # ``RecursionError`` on deeply nested multiparts. Callers rely on this
+    # function raising only ``ParserError`` subclasses so that one bad message
+    # is skipped (and moved to ``Invalid``) rather than aborting a whole
+    # mailbox batch (GHSA-qxwv-2vwj-v828).
+    try:
+        for part in msg.walk():
+            content_type = part.get_content_type().lower()
+            payload_obj = part.get_payload()
+            if not isinstance(payload_obj, list):
+                payload_obj = [payload_obj]
+            payload = str(payload_obj[0])
+            if content_type.startswith("multipart/"):
+                continue
+            if content_type == "text/html":
+                continue
+            elif content_type == "message/feedback-report":
+                is_feedback_report = True
+                decoded_payload = _decode_mime_payload(part, payload)
                 try:
-                    parts = payload.split("detected.", 1)
-                    field_matches = text_report_regex.findall(parts[0])
-                    fields = dict()
-                    for match in field_matches:
-                        field_name = match[0].lower().replace(" ", "-")
-                        fields[field_name] = match[1].strip()
+                    if "Feedback-Type" in decoded_payload:
+                        feedback_report = decoded_payload
+                    else:
+                        feedback_report = b64decode(decoded_payload).__str__()
+                    feedback_report = feedback_report.lstrip("b'").rstrip("'")
+                    feedback_report = feedback_report.replace("\\r", "")
+                    feedback_report = feedback_report.replace("\\n", "\n")
+                except (ValueError, TypeError, binascii.Error):
+                    feedback_report = decoded_payload
+            elif is_feedback_report and content_type in EMAIL_SAMPLE_CONTENT_TYPES:
+                sample = _decode_mime_payload(part, payload)
+            elif content_type == "application/tlsrpt+json":
+                if not payload.strip().startswith("{"):
+                    payload = b64decode(payload).decode("utf-8", errors="replace")
+                smtp_tls_report = parse_smtp_tls_report_json(payload)
+                return {"report_type": "smtp_tls", "report": smtp_tls_report}
+            elif content_type == "application/tlsrpt+gzip":
+                payload = extract_report(payload)
+                smtp_tls_report = parse_smtp_tls_report_json(payload)
+                return {"report_type": "smtp_tls", "report": smtp_tls_report}
+            elif content_type == "text/plain":
+                if "A message claiming to be from you has failed" in payload:
+                    try:
+                        parts = payload.split("detected.", 1)
+                        field_matches = text_report_regex.findall(parts[0])
+                        fields = dict()
+                        for match in field_matches:
+                            field_name = match[0].lower().replace(" ", "-")
+                            fields[field_name] = match[1].strip()
 
-                    feedback_report = "Arrival-Date: {}\nSource-IP: {}".format(
-                        fields["received-date"], fields["sender-ip-address"]
-                    )
+                        feedback_report = "Arrival-Date: {}\nSource-IP: {}".format(
+                            fields["received-date"], fields["sender-ip-address"]
+                        )
+                    except Exception as e:
+                        error = f'Unable to parse message with subject "{subject_text}": {e}{_exc_origin(e)}'
+                        raise InvalidDMARCReport(error) from e
+
+                    sample = parts[1].lstrip()
+                    logger.debug(sample)
+            else:
+                try:
+                    payload_bytes = b64decode(payload)
+                    if payload_bytes.startswith(MAGIC_ZIP) or payload_bytes.startswith(
+                        MAGIC_GZIP
+                    ):
+                        payload_text = extract_report(payload_bytes)
+                    else:
+                        payload_text = payload_bytes.decode("utf-8", errors="replace")
+
+                    if payload_text.strip().startswith("{"):
+                        smtp_tls_report = parse_smtp_tls_report_json(payload_text)
+                        result = {"report_type": "smtp_tls", "report": smtp_tls_report}
+                        return result
+                    elif payload_text.strip().startswith("<"):
+                        aggregate_report = parse_aggregate_report_xml(
+                            payload_text,
+                            config=cfg,
+                            keep_alive=keep_alive,
+                        )
+                        result = {
+                            "report_type": "aggregate",
+                            "report": aggregate_report,
+                        }
+
+                        return result
+
+                except (TypeError, ValueError, binascii.Error):
+                    # b64decode() rejected this MIME part's payload as not
+                    # base64-decodable, so it isn't a report attachment; fall
+                    # through and keep walking the message for a part (or the
+                    # feedback-report/sample pair below) that is.
+                    pass
+
+                except InvalidDMARCReport as e:
+                    error = f'Message with subject "{subject_text}" is not a valid DMARC report: {e}'
+                    raise ParserError(error) from e
+
                 except Exception as e:
-                    error = f'Unable to parse message with subject "{subject}": {e}{_exc_origin(e)}'
-                    raise InvalidDMARCReport(error) from e
-
-                sample = parts[1].lstrip()
-                logger.debug(sample)
-        else:
-            try:
-                payload_bytes = b64decode(payload)
-                if payload_bytes.startswith(MAGIC_ZIP) or payload_bytes.startswith(
-                    MAGIC_GZIP
-                ):
-                    payload_text = extract_report(payload_bytes)
-                else:
-                    payload_text = payload_bytes.decode("utf-8", errors="replace")
-
-                if payload_text.strip().startswith("{"):
-                    smtp_tls_report = parse_smtp_tls_report_json(payload_text)
-                    result = {"report_type": "smtp_tls", "report": smtp_tls_report}
-                    return result
-                elif payload_text.strip().startswith("<"):
-                    aggregate_report = parse_aggregate_report_xml(
-                        payload_text,
-                        config=cfg,
-                        keep_alive=keep_alive,
-                    )
-                    result = {"report_type": "aggregate", "report": aggregate_report}
-
-                    return result
-
-            except (TypeError, ValueError, binascii.Error):
-                # b64decode() rejected this MIME part's payload as not
-                # base64-decodable, so it isn't a report attachment; fall
-                # through and keep walking the message for a part (or the
-                # feedback-report/sample pair below) that is.
-                pass
-
-            except InvalidDMARCReport as e:
-                error = (
-                    f'Message with subject "{subject}" is not a valid DMARC report: {e}'
-                )
-                raise ParserError(error) from e
-
-            except Exception as e:
-                error = f'Unable to parse message with subject "{subject}": {e}{_exc_origin(e)}'
-                raise ParserError(error) from e
+                    error = f'Unable to parse message with subject "{subject_text}": {e}{_exc_origin(e)}'
+                    raise ParserError(error) from e
+    except ParserError:
+        raise
+    except Exception as e:
+        error = f'Unable to parse message with subject "{subject_text}": {e}{_exc_origin(e)}'
+        raise ParserError(error) from e
 
     if feedback_report and sample:
         try:
@@ -2255,7 +2364,7 @@ def parse_report_email(
             )
         except InvalidFailureReport as e:
             error = (
-                f'Message with subject "{subject}" '
+                f'Message with subject "{subject_text}" '
                 "is not a valid "
                 f"failure DMARC report: {e}"
             )
@@ -2264,11 +2373,10 @@ def parse_report_email(
         result = {"report_type": "failure", "report": failure_report}
         return result
 
-    if result is None:
-        error = f'Message with subject "{subject}" is not a valid report'
-        raise InvalidDMARCReport(error)
-
-    return result
+    # Every branch that sets ``result`` returns immediately, so reaching this
+    # point always means no report was found.
+    error = f'Message with subject "{subject_text}" is not a valid report'
+    raise InvalidDMARCReport(error)
 
 
 # An RFC 5322 header field name (printable ASCII excluding the colon) followed
@@ -2443,6 +2551,35 @@ def parse_report_file(
     return results
 
 
+_ASCII_UPPER_TO_LOWER = str.maketrans(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"
+)
+
+
+def _aggregate_report_dedup_key(report: AggregateReport) -> str:
+    """Return the ``seen_aggregate_report_ids`` cache key for ``report``.
+
+    RFC 9990 §3.5.1 defines a Report-ID as unique only "among reports to the
+    same domain", so the key is the reporter, the Report-ID, and the policy
+    domain. ASCII domain letters are compared without case per RFC 4343 §3,
+    without changing the domain in the report itself. A JSON array encodes
+    the three fields without the ambiguity of a delimiter that a field could
+    contain.
+
+    Every writer of the shared cache must build its key here -- the mbox and
+    mailbox classifier and the CLI's direct-file path -- or a report read
+    through one path is not recognized as a duplicate of the same report
+    read through another.
+    """
+    report_org = report["report_metadata"]["org_name"]
+    report_id = report["report_metadata"]["report_id"]
+    report_domain = report["policy_published"]["domain"]
+    # The existing XML parser returns None for an empty <domain/>.
+    if isinstance(report_domain, str):
+        report_domain = report_domain.translate(_ASCII_UPPER_TO_LOWER)
+    return json.dumps((report_org, report_id, report_domain))
+
+
 def _classify_parsed_email(
     parsed_email: ParsedReport,
     aggregate_reports: list[AggregateReport],
@@ -2456,12 +2593,15 @@ def _classify_parsed_email(
 
     Owns the seen-aggregate-report-ID dedup check against
     ``seen_aggregate_report_ids``: an aggregate report already seen (keyed
-    on ``{org_name}_{report_id}``) is logged and dropped instead of
-    appended. Shared, unmodified, by the sequential and parallel branches
-    of ``get_dmarc_reports_from_mbox`` and ``get_dmarc_reports_from_mailbox``
-    so both dedup identically -- callers pass the config's
-    ``seen_aggregate_report_ids`` cache so dedup state stays scoped to
-    whichever ``ParserConfig`` (explicit or module-default) is in effect.
+    on the reporter, the Report-ID, and the reported policy domain) is
+    logged and dropped instead of appended. Shared, unmodified, by the
+    sequential and parallel branches of ``get_dmarc_reports_from_mbox`` and
+    ``get_dmarc_reports_from_mailbox`` so both dedup identically -- callers
+    pass the config's ``seen_aggregate_report_ids`` cache so dedup state
+    stays scoped to whichever ``ParserConfig`` (explicit or module-default)
+    is in effect. The key comes from :func:`_aggregate_report_dedup_key`,
+    which the CLI's direct-file path also uses, so a report seen in a file
+    and again in an mbox in the same run is recognized as a duplicate.
 
     ``pending_aggregate_keys`` lets a caller *defer* the dedup-cache write:
     when a set is supplied, a newly seen key is staged in that set instead
@@ -2482,7 +2622,7 @@ def _classify_parsed_email(
     if parsed_email["report_type"] == "aggregate":
         report_org = parsed_email["report"]["report_metadata"]["org_name"]
         report_id = parsed_email["report"]["report_metadata"]["report_id"]
-        report_key = f"{report_org}_{report_id}"
+        report_key = _aggregate_report_dedup_key(parsed_email["report"])
         already_seen = report_key in seen_aggregate_report_ids or (
             pending_aggregate_keys is not None and report_key in pending_aggregate_keys
         )
@@ -2494,8 +2634,9 @@ def _classify_parsed_email(
             aggregate_reports.append(parsed_email["report"])
         else:
             logger.debug(
-                f"Skipping duplicate aggregate report from {report_org} "
-                f"with ID: {report_id}"
+                "Skipping duplicate aggregate report from "
+                f"{sanitize_for_log(str(report_org))} "
+                f"with ID: {sanitize_for_log(str(report_id))}"
             )
     elif parsed_email["report_type"] == "failure":
         failure_reports.append(parsed_email["report"])
@@ -2506,7 +2647,7 @@ def _classify_parsed_email(
 
 def _fetch_mailbox_message(
     connection: MailboxConnection, msg_uid: Any, test: bool
-) -> tuple[int | str, str]:
+) -> tuple[int | str, str | ParserError]:
     """Fetch one message from ``connection`` by UID, casting the UID to the
     type each backend's ``fetch_message`` expects.
 
@@ -2515,20 +2656,38 @@ def _fetch_mailbox_message(
 
     Returns ``(message_id, msg_content)``; ``message_id`` is the
     backend-appropriate id to use for later move/delete calls.
+
+    A backend that re-serializes the stored message while fetching it (the
+    Maildir backend of mailsuite before 2.3.3 called ``Message.as_string()``;
+    2.3.3 returns the stored bytes) can fail on the message's own content:
+    ``email.errors.HeaderWriteError`` on a
+    control character in a header, ``RecursionError`` on deeply nested
+    multiparts. Those content errors are returned, not raised, as
+    ``msg_content`` -- a ``ParserError`` the caller treats like a parse
+    failure, disposing of the message as invalid instead of aborting the
+    batch on every run (GHSA-qxwv-2vwj-v828).
+
+    The catch is deliberately narrow (``email.errors.MessageError`` and
+    ``RecursionError``, not ``Exception``): transport and service errors
+    (``OSError``, IMAP and Microsoft Graph errors, ``httpx`` errors) say
+    nothing about the message and still propagate, because classifying a
+    transient network failure as invalid content would move a legitimate
+    report to the invalid folder.
     """
     message_id: int | str
     if isinstance(connection, IMAPConnection):
         message_id = int(msg_uid)
-        msg_content = connection.fetch_message(message_id)
-    elif isinstance(connection, MSGraphConnection):
-        message_id = str(msg_uid)
-        msg_content = connection.fetch_message(message_id, mark_read=not test)
-    elif isinstance(connection, MaildirConnection):
-        message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
-        msg_content = connection.fetch_message(message_id, mark_read=not test)
     else:
         message_id = str(msg_uid) if not isinstance(msg_uid, str) else msg_uid
-        msg_content = connection.fetch_message(message_id)
+    try:
+        if isinstance(connection, (MSGraphConnection, MaildirConnection)):
+            msg_content = connection.fetch_message(message_id, mark_read=not test)
+        else:
+            msg_content = connection.fetch_message(message_id)
+    except (email.errors.MessageError, RecursionError) as e:
+        return message_id, ParserError(
+            f"Unable to fetch message UID {message_id}: {type(e).__name__}: {e}"
+        )
     return message_id, msg_content
 
 
@@ -2545,19 +2704,38 @@ def _dispose_invalid_message(
     Shared, unmodified, by the sequential and parallel branches of
     ``get_dmarc_reports_from_mailbox`` so both dispose of invalid messages
     identically.
+
+    A delete or move the backend rejects is logged and the message is left
+    in place, as the archival disposal of parsed reports does, rather than
+    aborting the rest of the batch. Besides transient backend errors, this
+    covers messages the backend cannot rewrite: the Maildir backend of
+    mailsuite before 2.3.3 moved a message by storing it again with
+    ``mailbox.Maildir.add()``, which re-serializes it and raises
+    ``RecursionError`` for deeply nested multiparts (and
+    ``email.errors.HeaderWriteError`` for a control character in a header
+    where ``BytesGenerator`` verifies headers), so such a message stayed in
+    the inbox. mailsuite 2.3.3 renames the file instead
+    (GHSA-qxwv-2vwj-v828, GHSA-9jx3-p8wm-g8vw).
     """
-    if delete:
-        logger.debug(f"Deleting message UID {message_id}")
-        if isinstance(connection, IMAPConnection):
-            connection.delete_message(int(message_id))
+    try:
+        if delete:
+            logger.debug(f"Deleting message UID {message_id}")
+            if isinstance(connection, IMAPConnection):
+                connection.delete_message(int(message_id))
+            else:
+                connection.delete_message(str(message_id))
         else:
-            connection.delete_message(str(message_id))
-    else:
-        logger.debug(f"Moving message UID {message_id} to {invalid_reports_folder}")
-        if isinstance(connection, IMAPConnection):
-            connection.move_message(int(message_id), invalid_reports_folder)
-        else:
-            connection.move_message(str(message_id), invalid_reports_folder)
+            logger.debug(f"Moving message UID {message_id} to {invalid_reports_folder}")
+            if isinstance(connection, IMAPConnection):
+                connection.move_message(int(message_id), invalid_reports_folder)
+            else:
+                connection.move_message(str(message_id), invalid_reports_folder)
+    except Exception as e:
+        action = "deleting" if delete else "moving"
+        logger.error(
+            f"Mailbox error: Error {action} invalid message UID {message_id}: "
+            f"{type(e).__name__}: {e}"
+        )
 
 
 def get_dmarc_reports_from_mbox(
@@ -2638,7 +2816,7 @@ def get_dmarc_reports_from_mbox(
                 for i in range(total_messages):
                     message_key = message_keys[i]
                     logger.info(f"Processing message {i + 1} of {total_messages}")
-                    yield mbox.get_string(message_key)
+                    yield mbox.get_bytes(message_key)
 
             for result in tqdm(
                 parallel_map(func, _jobs(), n_procs),
@@ -2661,7 +2839,7 @@ def get_dmarc_reports_from_mbox(
             for i in tqdm(range(total_messages), disable=None):
                 message_key = message_keys[i]
                 logger.info(f"Processing message {i + 1} of {total_messages}")
-                msg_content = mbox.get_string(message_key)
+                msg_content = mbox.get_bytes(message_key)
                 try:
                     parsed_email = parse_report_email(msg_content, config=cfg)
                     _classify_parsed_email(
@@ -3044,6 +3222,12 @@ def get_dmarc_reports_from_mailbox(
                 message_id, msg_content = _fetch_mailbox_message(
                     connection, msg_uid, test
                 )
+                if isinstance(msg_content, ParserError):
+                    # Never submitted, so never yielded and never queued in
+                    # fetched_ids; the post-loop disposal handles it.
+                    logger.warning(str(msg_content))
+                    invalid_msg_ids.append(message_id)
+                    continue
                 fetched_ids.append(message_id)
                 yield msg_content
 
@@ -3086,6 +3270,8 @@ def get_dmarc_reports_from_mailbox(
             )
             message_id, msg_content = _fetch_mailbox_message(connection, msg_uid, test)
             try:
+                if isinstance(msg_content, ParserError):
+                    raise msg_content
                 parsed_email = parse_report_email(
                     msg_content,
                     config=cfg,

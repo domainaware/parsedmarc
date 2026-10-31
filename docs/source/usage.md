@@ -140,6 +140,10 @@ The full set of configuration options is:
       results to STDOUT (Default: `True`)
   - `output` - str: Directory to place JSON and CSV files in. The JSON
       and CSV filename options below only take effect when this is set.
+      CSV cells that begin with `=`, `+`, `-`, `@`, a tab, or a
+      carriage return are written with a leading apostrophe (`'`), so
+      spreadsheet applications treat them as text rather than formulas
+      ([CSV injection](https://owasp.org/www-community/attacks/CSV_Injection)).
   - `archive_directory` - str: Optional. When set, successfully
       processed report files given as local file/directory path
       arguments are moved into
@@ -742,6 +746,51 @@ The full set of configuration options is:
   - `endpoint_url` - str: The endpoint URL (Optional)
   - `access_key_id` - str: The access key id (Optional)
   - `secret_access_key` - str: The secret access key (Optional)
+
+  Each report is saved as one JSON object, with this key:
+  `<path>/<report type>/year=YYYY/month=MM/day=DD/<report ID>_<hash>.json`.
+  The date is the report's begin date. Failure reports have no report ID
+  or begin date, so they use the reported domain and the arrival date
+  instead. Aggregate report dates are in the host's local time (SMTP TLS
+  dates are as the report gives them, and failure arrival dates are in
+  UTC), so for aggregate reports the key's day and the hash depend on the
+  host's time zone.
+
+  The report ID comes from the sender, so it is percent-encoded before it
+  is used in the key. `/`, the characters AWS lists as "characters to
+  avoid" (`` \ { } ^ [ ] " < > ~ # | ` `` and `%`), control characters,
+  and non-ASCII characters are encoded (for example, `/` becomes `%2F`),
+  so the ID is always a single key segment, and `%` appears in it only as
+  the escape character. If the key would be longer than the 1,024-byte S3
+  limit, the report ID is shortened.
+
+  The hash is the first 16 hex characters of a SHA-256 hash of the report
+  type and the fields that identify the report:
+
+  - Aggregate: the organization name, report ID, policy domain, begin
+    date, and end date
+  - SMTP TLS: the organization name, report ID, begin date, end date, and
+    the domain of each policy
+  - Failure: the arrival date, reported domain, original mail from,
+    original recipient, original envelope ID, source IP address, and the
+    message sample
+
+  Only fields from the report itself are hashed, not the IP enrichment
+  (reverse DNS, country, and so on), so a report that is saved again
+  overwrites its own object. Two reports get the same key only when all of
+  these fields match, so a report that reuses another report's ID, but
+  differs in any of these fields, does not replace it. These fields are
+  not secret, though: a forged report whose reporter name, report ID,
+  policy domain, and dates all match a real one still replaces it. Turn
+  on S3 Versioning on the bucket to keep both.
+
+  Each object also gets metadata from the report: `org_name`, `org_email`,
+  `report_id`, `begin_date`, and `end_date` for aggregate reports;
+  `org_name`, `report_id`, `begin_date`, and `end_date` for SMTP TLS
+  reports; and `reported_domain` and `arrival_date` for failure reports.
+  AWS recommends US-ASCII metadata, and botocore rejects anything else, so
+  in each value `%`, control characters, and non-ASCII characters are
+  percent-encoded, and the value is cut to at most 256 characters.
 - `syslog`
   - `server` - str: The Syslog server name or IP address
   - `port` - int: The port to use (Default: `514`)
@@ -1065,8 +1114,9 @@ move unsavable messages to `Unsaved` immediately instead.
 Retrying a batch means re-sending it. Output destinations that
 deduplicate — Elasticsearch, OpenSearch, and PostgreSQL, which recognize
 an already-saved report — are unaffected, and S3 is idempotent because
-each report is written to an object key built from its type, date, and
-report ID, so a retry overwrites the same object. Kafka,
+each report is written to an object key built from its type, date, report
+ID, and a hash of the fields that identify the report, so a retry
+overwrites the same object. Kafka,
 Splunk HEC, syslog, GELF, webhooks, Loki, Azure Log Analytics, and the
 `--output` JSON/CSV files all append unconditionally, so each retry adds
 another copy of every report in the batch. That is why the default retry

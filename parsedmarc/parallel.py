@@ -17,16 +17,50 @@ _J = TypeVar("_J")
 _R = TypeVar("_R")
 
 
-def _init_worker_logging(log_level: int, log_files: list[str]) -> None:
-    """Pool initializer that reconstructs the parent's logging handlers.
+def _init_worker(
+    log_level: int,
+    log_files: list[str],
+    ip_worker_state: tuple[str | None, str | None],
+    psl_overrides: list[str],
+) -> None:
+    """Pool initializer that reconstructs the parent's lookup context.
 
     A spawned or forkserver worker process does not inherit the parent
     process's already-configured logging handlers, so without this the
     child's log records (including any that would surface a parsing bug)
-    are silently dropped. Called once per worker process by
-    ``ProcessPoolExecutor``'s ``initializer``/``initargs``.
+    are silently dropped. It also does not inherit the parent's IP-lookup
+    globals (``parsedmarc.utils._IPINFO_API_TOKEN`` and
+    ``parsedmarc.utils._IP_DB_PATH`` — under these start methods the child
+    "will only inherit those resources necessary to run the process
+    object's ``run()`` method",
+    https://docs.python.org/3/library/multiprocessing.html), so its IP
+    enrichment would silently fall back to the bundled MMDB and skip the
+    IPinfo API; the snapshot captured by the parent is restored here.
+
+    The module-level ``parsedmarc.utils.psl_overrides`` list is restored
+    too. A fresh worker loads the bundled ``psl_overrides.txt`` when it
+    imports ``parsedmarc.utils``. Its reverse DNS map starts empty
+    (``ParserConfig.__setstate__`` rebinds it to the module default), and
+    its first map load calls ``load_psl_overrides()`` with the config's
+    ``psl_overrides_path``/``psl_overrides_url``, so the operator's
+    overrides do take effect, but only after that load: ``get_base_domain()``
+    calls made before that load (the first aggregate report's ``org_name``
+    and the first source IP's reverse DNS name) would use the bundled list.
+    It is restored in place (``[:] =``), never rebound, because
+    ``load_psl_overrides()``, ``get_base_domain()``, and
+    ``cli._restore_utils_globals()`` all share that one list object.
+
+    These are the same three globals ``cli._utils_globals_snapshot()``
+    enumerates for SIGHUP reload; keep the lists in sync.
+
+    Called once per worker process by ``ProcessPoolExecutor``'s
+    ``initializer``/``initargs``.
     """
+    from parsedmarc import utils
     from parsedmarc.log import configure_logging
+
+    utils._set_ip_worker_state(*ip_worker_state)
+    utils.psl_overrides[:] = psl_overrides
 
     if not log_files:
         configure_logging(log_level, None)
@@ -54,8 +88,9 @@ def _parse_report_email_job(
     Returns the parsed report on success. A ``ParserError`` raised by
     ``parse_report_email`` is caught and returned as a value (never
     re-raised) so that a single invalid message doesn't need special
-    handling on the submission side; any other exception propagates and
-    surfaces as the future's exception.
+    handling on the submission side. ``parse_report_email`` raises only
+    ``ParserError`` subclasses, whatever the input, so no other exception
+    is expected to propagate from here.
     """
     from parsedmarc import ParserError, parse_report_email
 
@@ -128,6 +163,13 @@ def parallel_map(
     yielded before returning - no completed work is discarded, but the
     stop may block briefly until in-flight jobs finish.
 
+    Because ``spawn``/``forkserver`` workers do not inherit the parent's
+    process-global lookup state, the parent's
+    ``parsedmarc.utils._IPINFO_API_TOKEN``, ``_IP_DB_PATH``, and
+    ``psl_overrides`` are snapshotted here, once per pool, and restored in
+    every worker by the pool initializer, so IP enrichment and base-domain
+    lookups match what the parent configured under every start method.
+
     Raises:
         ValueError: If ``n_procs`` is less than 1. Raised eagerly at the
             call itself (not on first iteration of the returned iterator).
@@ -142,6 +184,7 @@ def parallel_map(
         except StopIteration:
             return
 
+        from parsedmarc import utils
         from parsedmarc.log import logger
 
         log_level = logger.getEffectiveLevel()
@@ -150,13 +193,15 @@ def parallel_map(
             for h in logger.handlers
             if isinstance(h, logging.FileHandler)
         ]
+        ip_worker_state = utils._get_ip_worker_state()
+        psl_overrides = list(utils.psl_overrides)
 
         window_size = max(window_factor * n_procs, 1)
 
         with ProcessPoolExecutor(
             max_workers=n_procs,
-            initializer=_init_worker_logging,
-            initargs=(log_level, log_files),
+            initializer=_init_worker,
+            initargs=(log_level, log_files, ip_worker_state, psl_overrides),
         ) as executor:
             window: deque[Future[_R]] = deque()
             window.append(executor.submit(func, first_job))

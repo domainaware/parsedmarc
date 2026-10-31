@@ -31,6 +31,7 @@ from parsedmarc import (
     ParserConfig,
     ParserError,
     __version__,
+    _aggregate_report_dedup_key,
     email_results,
     email_results_via_msgraph,
     get_dmarc_reports_from_mailbox,
@@ -134,6 +135,7 @@ from parsedmarc.utils import (
     load_ip_db,
     load_psl_overrides,
     load_reverse_dns_map,
+    sanitize_for_log,
 )
 
 # Increase the max header limit for very large emails. `_MAXHEADERS` is a
@@ -1889,6 +1891,10 @@ def _utils_globals_snapshot() -> dict[str, Any]:
     calls reach, and it only decides whether the selected database path is
     logged again.
 
+    ``parallel._init_worker()`` copies these same three globals into each
+    process-pool worker, since a ``spawn`` or ``forkserver`` worker starts
+    without them; keep the lists in sync.
+
     Returns:
         dict: The values, to be handed to :func:`_restore_utils_globals`.
     """
@@ -3340,14 +3346,16 @@ def _main():
             if result["report_type"] == "aggregate":
                 report_org = result["report"]["report_metadata"]["org_name"]
                 report_id = result["report"]["report_metadata"]["report_id"]
-                report_key = f"{report_org}_{report_id}"
-                if report_key not in SEEN_AGGREGATE_REPORT_IDS:
-                    SEEN_AGGREGATE_REPORT_IDS[report_key] = True
+                report_key = _aggregate_report_dedup_key(result["report"])
+                seen_ids = parser_config.seen_aggregate_report_ids
+                if report_key not in seen_ids:
+                    seen_ids[report_key] = True
                     aggregate_reports.append(result["report"])
                 else:
                     logger.debug(
                         "Skipping duplicate aggregate report "
-                        f"from {report_org} with ID: {report_id}"
+                        f"from {sanitize_for_log(str(report_org))} "
+                        f"with ID: {sanitize_for_log(str(report_id))}"
                     )
             elif result["report_type"] == "failure":
                 failure_reports.append(result["report"])
