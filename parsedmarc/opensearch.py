@@ -1056,10 +1056,6 @@ def save_aggregate_report_to_opensearch(
         )
         normalized_timespan = record["normalized_timespan"]
 
-        if monthly_indexes:
-            index_date = begin_date.strftime("%Y-%m")
-        else:
-            index_date = begin_date.strftime("%Y-%m-%d")
         aggregate_report["begin_date"] = begin_date
         aggregate_report["end_date"] = end_date
         date_range = [aggregate_report["begin_date"], aggregate_report["end_date"]]
@@ -1136,6 +1132,10 @@ def save_aggregate_report_to_opensearch(
         if use_data_streams:
             create_data_streams([index], index_settings)
         else:
+            if monthly_indexes:
+                index_date = begin_date.strftime("%Y-%m")
+            else:
+                index_date = begin_date.strftime("%Y-%m-%d")
             index = f"{index}-{index_date}"
             create_indexes([index], index_settings)
         agg_doc.meta.index = index
@@ -1382,10 +1382,6 @@ def save_smtp_tls_report_to_opensearch(
     end_date = human_timestamp_to_datetime(report["end_date"], to_utc=True)
     begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
-    if monthly_indexes:
-        index_date = begin_date.strftime("%Y-%m")
-    else:
-        index_date = begin_date.strftime("%Y-%m-%d")
     report = report.copy()
     report["begin_date"] = begin_date
     report["end_date"] = end_date
@@ -1430,6 +1426,10 @@ def save_smtp_tls_report_to_opensearch(
     if index_prefix:
         index = f"{index_prefix}{index}"
     if not use_data_streams:
+        if monthly_indexes:
+            index_date = begin_date.strftime("%Y-%m")
+        else:
+            index_date = begin_date.strftime("%Y-%m-%d")
         index = f"{index}-{index_date}"
     index_settings = dict(
         number_of_shards=number_of_shards, number_of_replicas=number_of_replicas

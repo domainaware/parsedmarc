@@ -7910,10 +7910,11 @@ class TestParseConfigUseDataStreams(unittest.TestCase):
 
 
 class TestUseDataStreamsPassthrough(unittest.TestCase):
-    """The parsed option reaches every save call, for all three report
-    types and both backends, and is False when the option is absent."""
+    """Each backend's parsed option reaches that backend's three save
+    calls, and only those: enabling it in one section leaves the other
+    backend's saves False, and it is False when absent from both."""
 
-    def _run(self, extra: str) -> dict[str, MagicMock]:
+    def _run(self, es_extra: str = "", os_extra: str = "") -> dict[str, MagicMock]:
         names = (
             "elastic.save_aggregate_report_to_elasticsearch",
             "elastic.save_failure_report_to_elasticsearch",
@@ -7935,11 +7936,11 @@ password = test-password
 
 [elasticsearch]
 hosts = localhost
-{extra}
+{es_extra}
 
 [opensearch]
 hosts = localhost
-{extra}
+{os_extra}
 """
         with tempfile.NamedTemporaryFile(
             "w", suffix=".ini", delete=False
@@ -7978,19 +7979,31 @@ hosts = localhost
         parsedmarc.cli._main()
         return saves
 
-    def test_enabled_reaches_every_save_call(self):
-        saves = self._run("use_data_streams = true")
+    def _assert_flags(
+        self, saves: dict[str, MagicMock], elastic: bool, opensearch: bool
+    ) -> None:
         for name, save in saves.items():
+            expected = elastic if name.startswith("elastic.") else opensearch
             with self.subTest(save=name):
                 save.assert_called_once()
-                self.assertIs(save.call_args.kwargs["use_data_streams"], True)
+                self.assertIs(save.call_args.kwargs["use_data_streams"], expected)
+
+    def test_enabled_in_both_sections_reaches_every_save_call(self):
+        enabled = "use_data_streams = true"
+        saves = self._run(es_extra=enabled, os_extra=enabled)
+        self._assert_flags(saves, elastic=True, opensearch=True)
+
+    def test_elasticsearch_section_only_reaches_elasticsearch_saves(self):
+        saves = self._run(es_extra="use_data_streams = true")
+        self._assert_flags(saves, elastic=True, opensearch=False)
+
+    def test_opensearch_section_only_reaches_opensearch_saves(self):
+        saves = self._run(os_extra="use_data_streams = true")
+        self._assert_flags(saves, elastic=False, opensearch=True)
 
     def test_absent_defaults_to_false(self):
-        saves = self._run("")
-        for name, save in saves.items():
-            with self.subTest(save=name):
-                save.assert_called_once()
-                self.assertIs(save.call_args.kwargs["use_data_streams"], False)
+        saves = self._run()
+        self._assert_flags(saves, elastic=False, opensearch=False)
 
 
 class TestParseConfigSplunkHec(unittest.TestCase):

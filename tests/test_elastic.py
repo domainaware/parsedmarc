@@ -1811,7 +1811,9 @@ class TestSaveToDataStreams(_DataStreamTestCase):
             "cust_dmarc_aggregate_tenant_a*",
         )
 
-    def test_aggregate_report_dated_mode_unchanged_apart_from_timestamp(self):
+    def test_aggregate_report_dated_mode_unchanged_apart_from_timestamp_and_op_type(
+        self,
+    ):
         client, _, mock_index_cls = self._save(
             save_aggregate_report_to_elasticsearch, _aggregate_report()
         )
@@ -1847,7 +1849,7 @@ class TestSaveToDataStreams(_DataStreamTestCase):
             "dmarc_failure*,dmarc_forensic*",
         )
 
-    def test_failure_report_dated_mode_unchanged_apart_from_timestamp(self):
+    def test_failure_report_dated_mode_unchanged_apart_from_timestamp_and_op_type(self):
         client, _, _ = self._save(
             save_failure_report_to_elasticsearch, _failure_report()
         )
@@ -1878,7 +1880,9 @@ class TestSaveToDataStreams(_DataStreamTestCase):
         mock_index_cls.return_value.create.assert_not_called()
         self.assertEqual(mock_search_cls.call_args.kwargs["index"], "cust_smtp_tls*")
 
-    def test_smtp_tls_report_dated_mode_unchanged_apart_from_timestamp(self):
+    def test_smtp_tls_report_dated_mode_unchanged_apart_from_timestamp_and_op_type(
+        self,
+    ):
         client, _, _ = self._save(
             save_smtp_tls_report_to_elasticsearch, _smtp_tls_report()
         )
