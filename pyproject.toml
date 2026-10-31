@@ -43,9 +43,12 @@ requires-python = ">=3.10"
 # the Elasticsearch, OpenSearch, Kafka, AWS, Azure, Gmail, and Microsoft
 # Graph SDKs (see issue #883).
 dependencies = [
-    # The [doh] extra supplies the httpx/h2 floors DNS over HTTPS needs;
-    # 2.7.0 is the floor verified against the dns.nameserver and
-    # dns.query.https(session=...) APIs utils.py builds on.
+    # The [doh] extra supplies the HTTP client DNS over HTTPS needs (httpx,
+    # httpcore and h2 on dnspython 2.7 and 2.8; httpx2, httpcore2 and h2 on
+    # 2.9+; utils.py builds its session from whichever client library
+    # dnspython imported). 2.7.0 is the floor verified against the
+    # dns.nameserver and dns.query.https(session=...) APIs utils.py builds
+    # on.
     "dnspython[doh]>=2.7.0",
     "expiringdict>=1.1.4",
     # The runtime HTTP library (utils.py fetches, webhook and Splunk HEC
