@@ -2551,6 +2551,35 @@ def parse_report_file(
     return results
 
 
+_ASCII_UPPER_TO_LOWER = str.maketrans(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"
+)
+
+
+def _aggregate_report_dedup_key(report: AggregateReport) -> str:
+    """Return the ``seen_aggregate_report_ids`` cache key for ``report``.
+
+    RFC 9990 §3.5.1 defines a Report-ID as unique only "among reports to the
+    same domain", so the key is the reporter, the Report-ID, and the policy
+    domain. ASCII domain letters are compared without case per RFC 4343 §3,
+    without changing the domain in the report itself. A JSON array encodes
+    the three fields without the ambiguity of a delimiter that a field could
+    contain.
+
+    Every writer of the shared cache must build its key here -- the mbox and
+    mailbox classifier and the CLI's direct-file path -- or a report read
+    through one path is not recognized as a duplicate of the same report
+    read through another.
+    """
+    report_org = report["report_metadata"]["org_name"]
+    report_id = report["report_metadata"]["report_id"]
+    report_domain = report["policy_published"]["domain"]
+    # The existing XML parser returns None for an empty <domain/>.
+    if isinstance(report_domain, str):
+        report_domain = report_domain.translate(_ASCII_UPPER_TO_LOWER)
+    return json.dumps((report_org, report_id, report_domain))
+
+
 def _classify_parsed_email(
     parsed_email: ParsedReport,
     aggregate_reports: list[AggregateReport],
@@ -2564,12 +2593,15 @@ def _classify_parsed_email(
 
     Owns the seen-aggregate-report-ID dedup check against
     ``seen_aggregate_report_ids``: an aggregate report already seen (keyed
-    on ``{org_name}_{report_id}``) is logged and dropped instead of
-    appended. Shared, unmodified, by the sequential and parallel branches
-    of ``get_dmarc_reports_from_mbox`` and ``get_dmarc_reports_from_mailbox``
-    so both dedup identically -- callers pass the config's
-    ``seen_aggregate_report_ids`` cache so dedup state stays scoped to
-    whichever ``ParserConfig`` (explicit or module-default) is in effect.
+    on the reporter, the Report-ID, and the reported policy domain) is
+    logged and dropped instead of appended. Shared, unmodified, by the
+    sequential and parallel branches of ``get_dmarc_reports_from_mbox`` and
+    ``get_dmarc_reports_from_mailbox`` so both dedup identically -- callers
+    pass the config's ``seen_aggregate_report_ids`` cache so dedup state
+    stays scoped to whichever ``ParserConfig`` (explicit or module-default)
+    is in effect. The key comes from :func:`_aggregate_report_dedup_key`,
+    which the CLI's direct-file path also uses, so a report seen in a file
+    and again in an mbox in the same run is recognized as a duplicate.
 
     ``pending_aggregate_keys`` lets a caller *defer* the dedup-cache write:
     when a set is supplied, a newly seen key is staged in that set instead
@@ -2590,7 +2622,7 @@ def _classify_parsed_email(
     if parsed_email["report_type"] == "aggregate":
         report_org = parsed_email["report"]["report_metadata"]["org_name"]
         report_id = parsed_email["report"]["report_metadata"]["report_id"]
-        report_key = f"{report_org}_{report_id}"
+        report_key = _aggregate_report_dedup_key(parsed_email["report"])
         already_seen = report_key in seen_aggregate_report_ids or (
             pending_aggregate_keys is not None and report_key in pending_aggregate_keys
         )

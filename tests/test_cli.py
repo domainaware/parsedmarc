@@ -4,9 +4,11 @@ env-var overrides, mailbox watch wiring, and SIGHUP reload."""
 import importlib
 import importlib.abc
 import importlib.machinery
+import gzip
 import io
 import json
 import logging
+import mailbox
 import os
 import shutil
 import signal
@@ -18,6 +20,8 @@ import zipfile
 from collections.abc import Iterator, Sequence
 from configparser import ConfigParser
 from contextlib import contextmanager
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
 from tempfile import NamedTemporaryFile
 from types import ModuleType, SimpleNamespace
 from typing import cast
@@ -1199,6 +1203,134 @@ class TestDirectoryFilePaths(unittest.TestCase):
         self.assertIn(top_level_id, report_ids)
         self.assertIn(nested_id, report_ids)
         self.assertEqual(report_ids, {top_level_id, nested_id})
+
+
+class TestMixedInputAggregateDedup(unittest.TestCase):
+    """The direct-file and mbox paths of one ``_main()`` run share the
+    ``SEEN_AGGREGATE_REPORT_IDS`` cache, so they must key it identically.
+
+    If the direct-file path in ``_main()`` wrote ``{org_name}_{report_id}``
+    while ``get_dmarc_reports_from_mbox`` looked up a JSON
+    ``[org_name, report_id, policy_domain]`` key, a report passed both as a
+    file and inside an mbox in the same run would be saved twice. RFC 9990
+    §3.5.1 scopes Report-ID uniqueness to "reports to the same domain", so
+    the shared key also keeps same-ID reports for different domains apart in
+    the direct-file path. Runs the real ``_main()`` with real parsing and
+    asserts on the written ``aggregate.json``.
+    """
+
+    REPORT_ID = "1721054318-shared.example@reporter.example"
+
+    def setUp(self):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        env_patcher = patch.dict(os.environ, {"GITHUB_ACTIONS": "true"}, clear=False)
+        env_patcher.start()
+        self.addCleanup(env_patcher.stop)
+        self._tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self._tmp, ignore_errors=True)
+
+    def _xml(self, policy_domain: str, record_count: int) -> bytes:
+        return (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            "<feedback><report_metadata>"
+            "<org_name>reporter.example</org_name>"
+            "<email>dmarc@reporter.example</email>"
+            f"<report_id>{self.REPORT_ID}</report_id>"
+            "<date_range><begin>1680000000</begin><end>1680086400</end>"
+            "</date_range></report_metadata>"
+            f"<policy_published><domain>{policy_domain}</domain><p>none</p>"
+            "</policy_published>"
+            "<record><row><source_ip>192.0.2.1</source_ip>"
+            f"<count>{record_count}</count>"
+            "<policy_evaluated><disposition>none</disposition><dkim>pass</dkim>"
+            "<spf>pass</spf></policy_evaluated></row>"
+            f"<identifiers><header_from>{policy_domain}</header_from></identifiers>"
+            f"<auth_results><spf><domain>{policy_domain}</domain>"
+            "<result>pass</result></spf></auth_results></record></feedback>"
+        ).encode()
+
+    def _xml_file(self, name: str, policy_domain: str, record_count: int) -> str:
+        path = os.path.join(self._tmp, name)
+        with open(path, "wb") as f:
+            f.write(self._xml(policy_domain, record_count))
+        return path
+
+    def _mbox_file(self, name: str, policy_domain: str, record_count: int) -> str:
+        message = MIMEMultipart()
+        message["From"] = "dmarc@reporter.example"
+        message["To"] = "postmaster@example.net"
+        message["Subject"] = f"Report domain: {policy_domain}"
+        message["Date"] = "Mon, 1 Jan 2024 00:00:00 +0000"
+        attachment = MIMEApplication(
+            gzip.compress(self._xml(policy_domain, record_count)), "gzip"
+        )
+        attachment.add_header(
+            "Content-Disposition", "attachment", filename="report.xml.gz"
+        )
+        message.attach(attachment)
+        path = os.path.join(self._tmp, name)
+        box = mailbox.mbox(path)
+        try:
+            box.add(mailbox.mboxMessage(message.as_bytes()))
+            box.flush()
+        finally:
+            box.close()
+        return path
+
+    def _run(self, *paths: str) -> list[tuple[str, int]]:
+        output_dir = os.path.join(self._tmp, "output")
+        cfg_path = os.path.join(self._tmp, "parsedmarc.ini")
+        with open(cfg_path, "w") as f:
+            f.write(
+                f"[general]\noffline = True\nsilent = True\noutput = {output_dir}\n"
+            )
+        with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path, *paths]):
+            parsedmarc.cli._main()
+        with open(os.path.join(output_dir, "aggregate.json")) as f:
+            reports = json.load(f)
+        return sorted(
+            (report["policy_published"]["domain"], report["records"][0]["count"])
+            for report in reports
+        )
+
+    def test_same_report_in_file_and_mbox_is_saved_once(self):
+        """A report given as a file and again inside an mbox is one report."""
+        xml_path = self._xml_file("report.xml", "a.example", 5)
+        mbox_path = self._mbox_file("reports.mbox", "a.example", 7)
+
+        kept = self._run(xml_path, mbox_path)
+
+        # Direct files are parsed before mbox files, so the file's copy wins.
+        self.assertEqual(kept, [("a.example", 5)])
+
+    def test_same_id_for_other_domain_in_file_and_mbox_is_kept(self):
+        """The shared key keeps the domain, so a same-ID report for another
+        domain in the mbox is not mistaken for the file's report."""
+        xml_path = self._xml_file("report.xml", "a.example", 5)
+        mbox_path = self._mbox_file("reports.mbox", "b.example", 7)
+
+        kept = self._run(xml_path, mbox_path)
+
+        self.assertEqual(kept, [("a.example", 5), ("b.example", 7)])
+
+    def test_direct_files_with_same_id_for_different_domains_are_kept(self):
+        """Direct-file dedup is domain-scoped too: two files from one
+        reporter sharing a Report-ID for different domains are both kept,
+        while an ASCII-case variant of the same domain is still a duplicate.
+        """
+        a_path = self._xml_file("a.xml", "a.example", 5)
+        b_path = self._xml_file("b.xml", "b.example", 7)
+        a_upper_path = self._xml_file("a-upper.xml", "A.EXAMPLE", 9)
+
+        kept = self._run(a_path, b_path, a_upper_path)
+
+        # file_paths is deduplicated through a set, so which case variant of
+        # a.example survives is unordered; compare domains case-folded.
+        # tests/test_init.py covers that the kept report's case is unchanged.
+        domains = sorted(domain.lower() for domain, _ in kept)
+        self.assertEqual(domains, ["a.example", "b.example"])
+        self.assertIn(("b.example", 7), kept)
 
 
 class TestArchiveDirectory(unittest.TestCase):

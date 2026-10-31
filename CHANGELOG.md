@@ -14,6 +14,8 @@
 
 - **Failure reports are now saved to S3.** `save_report_to_s3()` read `report["report_metadata"]` for every report type except SMTP TLS, but failure reports have no `report_metadata` (see `FailureReport` in `parsedmarc/types.py`), so every failure report raised `KeyError` since S3 output was added in 7.0.0. The error was counted as an S3 output error, so the batch holding the report was held back. A failure report is now saved under `<path>/failure/year=YYYY/month=MM/day=DD/<reported domain>_<hash>.json`, dated by its UTC arrival date, with `reported_domain` and `arrival_date` metadata. Its hash covers the report type, the arrival date, reported domain, original mail from, original recipient, original envelope ID, source IP address, and the message sample.
 
+- **Keep distinct aggregate reports when one reporter reuses a Report-ID for different policy domains.** RFC 9990 §3.5.1 scopes Report-ID uniqueness to the same domain. Direct report files, mbox files, and mailbox ingestion now all include the policy domain in one shared dedup key, using a JSON array to avoid ambiguous field separators. ASCII domain case differences still count as the same domain (RFC 4343 §3), without changing the returned report. Same-domain repeats remain suppressed — including a report passed both as a file and inside an mbox in one CLI run — and mailbox keys are still committed only after a successful save callback.
+
 ## 11.1.0
 
 ### Security

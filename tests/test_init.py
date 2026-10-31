@@ -21,6 +21,7 @@ import time
 import unittest
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
@@ -4106,9 +4107,7 @@ class TestCentralizedConfig(unittest.TestCase):
         self.assertEqual(len(first["aggregate_reports"]), 1)
         self.assertEqual(len(second["aggregate_reports"]), 0)
 
-        report_metadata = first["aggregate_reports"][0]["report_metadata"]
-        report_key = f"{report_metadata['org_name']}_{report_metadata['report_id']}"
-        self.assertIn(report_key, parsedmarc.SEEN_AGGREGATE_REPORT_IDS)
+        self.assertEqual(len(parsedmarc.SEEN_AGGREGATE_REPORT_IDS), 1)
 
     def test_kwargs_and_config_equivalence(self):
         """parse_report_file must produce identical results whether called
@@ -6318,6 +6317,493 @@ class TestSaveOutput(unittest.TestCase):
             [f for f in self._written_files() if f.endswith(".eml")],
             [os.path.join(samples, "Subject line, could be UTF8 encoded.eml")],
         )
+
+
+DOMAIN_SCOPE_REPORTER = "reporter.example"
+DOMAIN_SCOPE_REPORT_ID = "1721054318-shared.example@reporter.example"
+
+
+def _domain_scope_aggregate_xml(
+    policy_domain: str | None,
+    record_count: int,
+    *,
+    reporter: str = DOMAIN_SCOPE_REPORTER,
+    report_id: str = DOMAIN_SCOPE_REPORT_ID,
+) -> bytes:
+    """Builds one well-formed aggregate report document.
+
+    ``policy_domain`` fills ``policy_published/domain`` -- the field RFC 9990
+    scopes Report-ID uniqueness to -- and ``record_count`` fills the single
+    ``record``'s ``count``, so a caller can tell which document a batch kept.
+    ``reporter`` and ``report_id`` default to one fixed reporter/ID so that a
+    caller varying only the domain is varying only the identity component
+    under test. ``None`` emits an empty policy-domain element, which the
+    existing parser accepts as ``None``; record domains remain populated.
+    All domain names use the reserved ``.example`` TLD.
+    """
+    record_domain = policy_domain or "a.example"
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        "<feedback>\n"
+        "  <report_metadata>\n"
+        f"    <org_name>{reporter}</org_name>\n"
+        "    <email>dmarc@reporter.example</email>\n"
+        f"    <report_id>{report_id}</report_id>\n"
+        "    <date_range>\n"
+        "      <begin>1680000000</begin>\n"
+        "      <end>1680086400</end>\n"
+        "    </date_range>\n"
+        "  </report_metadata>\n"
+        "  <policy_published>\n"
+        f"    <domain>{policy_domain or ''}</domain>\n"
+        "    <p>none</p>\n"
+        "  </policy_published>\n"
+        "  <record>\n"
+        "    <row>\n"
+        "      <source_ip>192.0.2.1</source_ip>\n"
+        f"      <count>{record_count}</count>\n"
+        "      <policy_evaluated>\n"
+        "        <disposition>none</disposition>\n"
+        "        <dkim>pass</dkim>\n"
+        "        <spf>pass</spf>\n"
+        "      </policy_evaluated>\n"
+        "    </row>\n"
+        f"    <identifiers><header_from>{record_domain}</header_from></identifiers>\n"
+        "    <auth_results>\n"
+        f"      <spf><domain>{record_domain}</domain><result>pass</result></spf>\n"
+        "    </auth_results>\n"
+        "  </record>\n"
+        "</feedback>"
+    ).encode()
+
+
+def _domain_scope_email(
+    policy_domain: str | None,
+    record_count: int,
+    *,
+    reporter: str = DOMAIN_SCOPE_REPORTER,
+    report_id: str = DOMAIN_SCOPE_REPORT_ID,
+) -> bytes:
+    """Wraps that report in a minimal, well-formed MIME aggregate-report email."""
+    message = MIMEMultipart()
+    message["From"] = "dmarc@reporter.example"
+    message["To"] = "postmaster@example.net"
+    message["Subject"] = f"Report domain: {policy_domain}"
+    message["Date"] = "Mon, 1 Jan 2024 00:00:00 +0000"
+    attachment = MIMEApplication(
+        gzip.compress(
+            _domain_scope_aggregate_xml(
+                policy_domain,
+                record_count,
+                reporter=reporter,
+                report_id=report_id,
+            )
+        ),
+        "gzip",
+    )
+    attachment.add_header("Content-Disposition", "attachment", filename="report.xml.gz")
+    message.attach(attachment)
+    return message.as_bytes()
+
+
+class TestAggregateReportIdentityIsDomainScoped(unittest.TestCase):
+    """Aggregate-report dedup must follow RFC 9990 §3.5.1's identity scope.
+
+    RFC 9990 §3.5.1 ("Definition of Report-ID") says: "This identifier MUST
+    be unique among reports to the same domain to aid receivers in
+    identifying duplicate reports should they happen." Uniqueness is
+    therefore per (reporting domain), not global: one reporter legitimately
+    reusing the same Report-ID for ``a.example`` and ``b.example`` is
+    sending two distinct, non-duplicate reports.
+
+    These tests drive the public consumer -- ``get_dmarc_reports_from_mbox``
+    (real temporary mbox, ``n_procs=1`` and ``n_procs=2``) and the companion
+    class's ``get_dmarc_reports_from_mailbox`` (real on-disk Maildir) -- and assert on
+    the returned reports' own ``policy_published.domain`` and record
+    ``count`` values, never on internal helpers or mock call counts. Configs
+    are isolated except where a test explicitly shares one across calls.
+    """
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+
+    def _mbox(self, messages: list[bytes]) -> str:
+        with NamedTemporaryFile(dir=self._tmp, suffix=".mbox", delete=False) as tmp:
+            path = tmp.name
+        box = mailbox.mbox(path)
+        try:
+            box.lock()
+            try:
+                for message in messages:
+                    box.add(mailbox.mboxMessage(message))
+                box.flush()
+            finally:
+                box.unlock()
+        finally:
+            box.close()
+        return path
+
+    def _parse_mbox(self, path: str, *, n_procs: int = 1):
+        return parsedmarc.get_dmarc_reports_from_mbox(
+            path,
+            n_procs=n_procs,
+            config=parsedmarc.ParserConfig(offline=True, always_use_local_files=True),
+        )
+
+    @staticmethod
+    def _domains(result) -> list[str | None]:
+        return [
+            report["policy_published"]["domain"]
+            for report in result["aggregate_reports"]
+        ]
+
+    @staticmethod
+    def _counts(result) -> list[int]:
+        return [
+            sum(record["count"] for record in report["records"])
+            for report in result["aggregate_reports"]
+        ]
+
+    def test_same_report_id_for_different_domains_keeps_both_reports(self):
+        """One reporter, one Report-ID, two policy domains in one batch:
+        both reports survive, with their own content intact.
+
+        Fails on a dedup key that is only ``org_name + report_id``: the
+        second report is then classified as a duplicate of the first and
+        silently dropped, even though RFC 9990 §3.5.1 only forbids reusing
+        an ID *within* one domain.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 3),
+                _domain_scope_email("b.example", 5),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["a.example", "b.example"])
+        self.assertEqual(self._counts(result), [3, 5])
+
+    def test_different_domains_are_kept_in_either_delivery_order(self):
+        """Delivery order must not decide which of the two domains survives:
+        with the same batch reversed, the roles swap and both are still
+        returned, in message order."""
+        path = self._mbox(
+            [
+                _domain_scope_email("b.example", 5),
+                _domain_scope_email("a.example", 3),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["b.example", "a.example"])
+        self.assertEqual(self._counts(result), [5, 3])
+
+    def test_same_domain_duplicate_report_is_still_suppressed(self):
+        """The negative half of the contract: the same reporter re-sending
+        the same Report-ID for the *same* domain is a genuine duplicate and
+        is still dropped, leaving one report."""
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 3),
+                _domain_scope_email("a.example", 3),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["a.example"])
+        self.assertEqual(self._counts(result), [3])
+
+    def test_dedup_is_per_domain_within_one_batch(self):
+        """Three messages, one Report-ID: a.example, a.example, b.example.
+
+        Exactly one report per domain is kept (the first of each, so the
+        content assertion pins *which* document survived rather than just
+        how many), which is what per-domain identity means: duplicates are
+        suppressed inside a domain and never across domains.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 1),
+                _domain_scope_email("a.example", 2),
+                _domain_scope_email("b.example", 3),
+            ]
+        )
+
+        result = self._parse_mbox(path)
+
+        self.assertEqual(self._domains(result), ["a.example", "b.example"])
+        self.assertEqual(self._counts(result), [1, 3])
+
+    def test_domain_ascii_case_does_not_disable_duplicate_suppression(self):
+        """RFC 4343 §3: ASCII domain letters compare without case.
+
+        Keep the original spelling in the returned report while suppressing
+        a repeated report for the same domain with a different spelling.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email("A.Example", 3),
+                _domain_scope_email("a.example", 5),
+                _domain_scope_email("b.example", 7),
+            ]
+        )
+        result = self._parse_mbox(path)
+        self.assertEqual(self._domains(result), ["A.Example", "b.example"])
+        self.assertEqual(self._counts(result), [3, 7])
+
+    def test_empty_policy_domain_keeps_existing_parser_behavior(self):
+        """The XML parser accepts an empty policy domain as None.
+
+        Adding the domain to report identity must not make classification
+        crash on this previously accepted input, or merge it with a named
+        domain. Repeated empty-domain reports still count as duplicates.
+        """
+        path = self._mbox(
+            [
+                _domain_scope_email(None, 3),
+                _domain_scope_email(None, 5),
+                _domain_scope_email("b.example", 7),
+            ]
+        )
+        result = self._parse_mbox(path)
+        self.assertEqual(self._domains(result), [None, "b.example"])
+        self.assertEqual(self._counts(result), [3, 7])
+
+    def test_parallel_mbox_keeps_both_domains_and_suppresses_duplicates(self):
+        """Parallel parsing leaves domain-scoped dedup in the parent process."""
+        path = self._mbox(
+            [
+                _domain_scope_email("a.example", 3),
+                _domain_scope_email("a.example", 5),
+                _domain_scope_email("b.example", 7),
+            ]
+        )
+        result = self._parse_mbox(path, n_procs=2)
+        self.assertEqual(self._domains(result), ["a.example", "b.example"])
+        self.assertEqual(self._counts(result), [3, 7])
+
+    def test_one_config_keeps_each_domain_and_still_suppresses_repeats(self):
+        """Across two calls sharing one ``ParserConfig`` -- i.e. one live dedup
+        cache, the way a long-running watch loop uses it -- the domain is
+        still part of the identity.
+
+        Run one parses ``a.example``; run two carries a *different domain*
+        with the same reporter and Report-ID and must be retained, then a
+        repeat of that same domain must be suppressed. A key without the
+        domain fails the middle assertion: run two's report is dropped as a
+        duplicate of run one's.
+        """
+        config = parsedmarc.ParserConfig(offline=True, always_use_local_files=True)
+
+        def parse(messages):
+            return parsedmarc.get_dmarc_reports_from_mbox(
+                self._mbox(messages), n_procs=1, config=config
+            )
+
+        first = parse([_domain_scope_email("a.example", 3)])
+        second = parse([_domain_scope_email("b.example", 5)])
+        third = parse([_domain_scope_email("b.example", 5)])
+
+        self.assertEqual(self._domains(first), ["a.example"])
+        self.assertEqual(self._domains(second), ["b.example"])
+        self.assertEqual(self._counts(second), [5])
+        self.assertEqual(self._domains(third), [])
+
+    def test_key_encoding_does_not_collide_on_field_boundaries(self):
+        """Two different reports must not share one dedup key just because a
+        reporter's name and a Report-ID contain the same characters.
+
+        ``("a_b", "c")`` and ``("a", "b_c")`` both flatten to ``a_b_c`` under
+        a key built by joining the fields with underscores; a JSON
+        array of the fields cannot be ambiguous. Both messages below report
+        the same policy domain, so the only thing telling them apart is the
+        reporter/ID split: a colliding key drops the second one.
+        """
+        messages = [
+            _domain_scope_email("a.example", 1, reporter="a_b", report_id="c"),
+            _domain_scope_email("a.example", 2, reporter="a", report_id="b_c"),
+        ]
+
+        result = self._parse_mbox(self._mbox(messages))
+
+        self.assertEqual(len(result["aggregate_reports"]), 2)
+        self.assertEqual(self._counts(result), [1, 2])
+        self.assertEqual(
+            [
+                report["report_metadata"]["org_name"]
+                for report in result["aggregate_reports"]
+            ],
+            ["a_b", "a"],
+        )
+
+
+class TestAggregateReportIdentityDomainScopePendingSave(unittest.TestCase):
+    """The same domain-scoped identity contract on the mailbox path that
+    defers its dedup-cache writes until the batch is known to be saved.
+
+    ``get_dmarc_reports_from_mailbox`` stages new aggregate keys in a
+    per-batch pending set and folds them into the config's cache only after
+    the caller's ``save_callback`` reports success (see
+    ``_classify_parsed_email``'s ``pending_aggregate_keys`` and
+    ``get_dmarc_reports_from_mailbox``). The pending set has to make exactly
+    the same domain-scoped decision as the immediate-write path; otherwise a
+    fix to one path leaves the other silently dropping reports.
+
+    Real on-disk Maildir through mailsuite's ``MaildirConnection``, using
+    the public ``save_callback`` and dry-run ``test=True`` options. These
+    tests cover classification and cache commit/retry decisions, not
+    message marking, archive/delete, or failed-save retry counters.
+    """
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        self._maildir = os.path.join(self._tmp, "Maildir")
+        self._inbox = mailbox.Maildir(self._maildir, create=True)
+        self.addCleanup(self._inbox.close)
+        self._config = parsedmarc.ParserConfig(
+            offline=True, always_use_local_files=True
+        )
+
+    def _deliver(self, policy_domain: str, record_count: int) -> None:
+        self._inbox.add(
+            mailbox.MaildirMessage(_domain_scope_email(policy_domain, record_count))
+        )
+        self._inbox.flush()
+
+    def _run(self, save_callback=None):
+        connection = MaildirConnection(self._maildir, maildir_create=True)
+        # Dry-run leaves messages in place for the next call, while still
+        # classifying reports, invoking save_callback, and folding pending
+        # keys into the cache only after a successful save.
+        return parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=connection,
+            config=self._config,
+            save_callback=save_callback,
+            test=True,
+        )
+
+    @staticmethod
+    def _domains(result) -> list[str]:
+        return [
+            report["policy_published"]["domain"]
+            for report in result["aggregate_reports"]
+        ]
+
+    def _count_by_domain(self, result) -> dict[str, int]:
+        """Maps each returned report's policy domain to its total record count.
+
+        Order-free on purpose: a Maildir's message iteration order is not
+        part of any contract, so these tests pin *which* domains came back
+        and what they contain, not the sequence they arrived in.
+        """
+        reports = result["aggregate_reports"]
+        counts = {
+            report["policy_published"]["domain"]: sum(
+                record["count"] for record in report["records"]
+            )
+            for report in reports
+        }
+        self.assertEqual(len(reports), len(counts), "duplicate domain report retained")
+        return counts
+
+    @staticmethod
+    def _saved(batch) -> bool:
+        del batch
+        return True
+
+    @staticmethod
+    def _not_saved(batch) -> bool:
+        del batch
+        return False
+
+    def test_committed_batch_keeps_reports_for_both_domains(self):
+        """Two domains, one Report-ID, batch saved: both reports are returned."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        result = self._run(save_callback=self._saved)
+
+        self.assertEqual(
+            self._count_by_domain(result), {"a.example": 3, "b.example": 5}
+        )
+
+    def test_committed_batch_still_suppresses_same_domain_duplicate(self):
+        """Same domain twice, batch saved: still a duplicate, so one report
+        is returned -- the pending path must not weaken same-domain dedup
+        either."""
+        self._deliver("a.example", 3)
+        self._deliver("a.example", 3)
+
+        result = self._run(save_callback=self._saved)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(self._count_by_domain(result), {"a.example": 3})
+
+    def test_failed_save_drops_pending_keys_so_the_retry_reparses(self):
+        """A failed save must not commit the pending keys: the retry has to
+        reparse the same message rather than skip it as a duplicate."""
+        self._deliver("a.example", 3)
+
+        first = self._run(save_callback=self._not_saved)
+        retry = self._run(save_callback=self._saved)
+
+        self.assertEqual(self._count_by_domain(first), {"a.example": 3})
+        self.assertEqual(self._count_by_domain(retry), {"a.example": 3})
+
+    def test_successful_save_then_rerun_returns_nothing(self):
+        """After a batch is saved, the same two messages are deduplicated on
+        the next run: the pending keys were folded into the cache, so the
+        committed batch is not reprocessed. Both domains are recorded, so
+        neither one is left out of the commit."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        committed = self._run(save_callback=self._saved)
+        rerun = self._run(save_callback=self._saved)
+
+        self.assertEqual(
+            self._count_by_domain(committed), {"a.example": 3, "b.example": 5}
+        )
+        self.assertEqual(self._domains(rerun), [])
+
+    def test_false_callback_retry_still_returns_both_domains(self):
+        """A callback returning ``False`` must not leave the two domains
+        poisoned against each other: the retry reparses both messages and
+        returns both reports, rather than suppressing one as a duplicate of
+        the other."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        unsaved = self._run(save_callback=self._not_saved)
+        retry = self._run(save_callback=self._saved)
+
+        expected = {"a.example": 3, "b.example": 5}
+        self.assertEqual(self._count_by_domain(unsaved), expected)
+        self.assertEqual(self._count_by_domain(retry), expected)
+
+    def test_raising_callback_retry_still_returns_both_domains(self):
+        """A callback that *raises* fails the save the same way: the
+        exception propagates to the caller, and the retry must still return
+        both domains."""
+        self._deliver("a.example", 3)
+        self._deliver("b.example", 5)
+
+        def boom(batch):
+            del batch
+            raise RuntimeError("output destination down")
+
+        with self.assertRaises(RuntimeError):
+            self._run(save_callback=boom)
+
+        retry = self._run(save_callback=self._saved)
+
+        self.assertEqual(self._count_by_domain(retry), {"a.example": 3, "b.example": 5})
 
 
 if __name__ == "__main__":
