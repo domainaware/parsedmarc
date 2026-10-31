@@ -29,9 +29,10 @@ _LABEL_NAME = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
 
 # Per report type: the row field holding the domain the report is about,
 # and the row field with its begin time (and whether that value is UTC
-# without an offset; aggregate begin dates are naive local time).
+# without an offset; aggregate rows carry the record's interval_begin,
+# which parsedmarc builds as naive UTC wall-clock time).
 _REPORT_TYPES: dict[str, tuple[str, str, bool]] = {
-    "aggregate": ("domain", "begin_date", False),
+    "aggregate": ("domain", "begin_date", True),
     "failure": ("reported_domain", "arrival_date_utc", True),
     "smtp_tls": ("policy_domain", "begin_date", False),
 }
@@ -184,7 +185,11 @@ class LokiClient(object):
             )
         except httpx.HTTPError as error_:
             raise LokiError(f"Loki push to {self.url} failed: {error_}") from error_
-        if response.status_code >= 300:
+        # Loki answers 204 when it stored the push; 200 is also accepted.
+        # Other 2xx codes are not success: with block_ingestion_until set it
+        # returns a custom 260 and discards the logs
+        # (block_ingestion_status_code).
+        if response.status_code not in (200, 204):
             raise LokiError(
                 f"Loki push to {self.url} failed with HTTP "
                 f"{response.status_code}: {response.text[:500]}"

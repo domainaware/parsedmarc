@@ -147,7 +147,9 @@ class TestGrafanaLokiDashboard(unittest.TestCase):
             for t in panel.get("transformations", []):
                 if t["id"] != "extractFields":
                     continue
-                report_type = SELECTOR.search(panel["targets"][0]["expr"]).group(2)
+                match = SELECTOR.search(panel["targets"][0]["expr"])
+                assert match is not None
+                report_type = match.group(2)
                 paths = {p["path"] for p in t["options"]["jsonPaths"]}
                 with self.subTest(panel=panel["title"]):
                     self.assertEqual(paths - fields[report_type], set())
@@ -159,6 +161,32 @@ class TestGrafanaLokiDashboard(unittest.TestCase):
                 with self.subTest(panel=panel["title"], ref=target["refId"]):
                     self.assertNotIn("step", target)
                     self.assertNotIn("$interval", target["expr"])
+
+    def test_report_dedup_groups_by_reporter_too(self):
+        """report_id is only unique per reporter, so every `by (...)` that
+        groups on it must group on org_name as well."""
+        for panel, target in _targets(self.dashboard):
+            for clause in re.findall(r"\bby \(([^)]*)\)", target["expr"]):
+                names = [n.strip() for n in clause.split(",")]
+                if "report_id" in names:
+                    with self.subTest(panel=panel["title"], ref=target["refId"]):
+                        self.assertIn("org_name", names)
+
+    def test_fixed_lookback_series_have_no_additive_legend_calcs(self):
+        """A fixed range such as [1d] with the automatic step yields
+        overlapping rolling totals, so summing them counts each value many times."""
+        for panel in _panels(self.dashboard):
+            fixed = False
+            for target in panel.get("targets", []):
+                if target.get("queryType") != "range":
+                    continue
+                for dur in re.findall(r"\[([^\]]+)\]", target["expr"]):
+                    if dur not in ("$__interval", "$__auto"):
+                        fixed = True
+            if fixed and panel.get("type") == "timeseries":
+                calcs = panel["options"]["legend"].get("calcs", [])
+                with self.subTest(panel=panel["title"]):
+                    self.assertFalse({"sum", "count"} & set(calcs))
 
     def test_pies_use_one_slice_per_row(self):
         for panel in _panels(self.dashboard):

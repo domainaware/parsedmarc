@@ -2350,7 +2350,7 @@
             "uid": "${DS_LOKI}"
           },
           "editorMode": "code",
-          "expr": "count by (domain, p, sp, adkim, aspf, pct, fo) (sum by (domain, p, sp, adkim, aspf, pct, fo, report_id) (count_over_time({job=\"parsedmarc\", report_type=\"aggregate\", domain=~\"$domain\"} | json domain, p, sp, adkim, aspf, pct, fo, report_id [$__range])))",
+          "expr": "count by (domain, p, sp, adkim, aspf, pct, fo) (sum by (domain, p, sp, adkim, aspf, pct, fo, org_name, report_id) (count_over_time({job=\"parsedmarc\", report_type=\"aggregate\", domain=~\"$domain\"} | json domain, p, sp, adkim, aspf, pct, fo, org_name, report_id [$__range])))",
           "legendFormat": "",
           "queryType": "instant",
           "refId": "A"
@@ -3339,9 +3339,7 @@
       "id": 21,
       "options": {
         "legend": {
-          "calcs": [
-            "sum"
-          ],
+          "calcs": [],
           "displayMode": "list",
           "placement": "right",
           "showLegend": true

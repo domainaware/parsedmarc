@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 import unittest
 from typing import cast
 from unittest.mock import MagicMock, patch
@@ -215,7 +216,10 @@ class TestLokiAggregate(unittest.TestCase):
     def test_report_begin_timestamps(self, _rows):
         client = _client(timestamp="report_begin")
         client.save_aggregate_report_to_loki(AGGREGATE)
-        begin = human_timestamp_to_unix_timestamp("2026-10-20 00:00:00") * 10**9
+        begin = (
+            human_timestamp_to_unix_timestamp("2026-10-20 00:00:00", assume_utc=True)
+            * 10**9
+        )
         stamps = sorted(ts for _, ts, _ in _entries(client))
         self.assertEqual(stamps, [begin, begin + 1])
 
@@ -339,6 +343,17 @@ class TestLokiErrors(unittest.TestCase):
             client.save_aggregate_report_to_loki(AGGREGATE)
         self.assertIn("refused", str(ctx.exception))
 
+    def test_blocked_ingestion_status_raises(self, _rows):
+        """Loki returns 260 (block_ingestion_status_code default) and drops
+        the logs when ingestion is blocked; that must not read as success."""
+        client = _client()
+        response = _ok_response(260)
+        response.text = "ingestion blocked"
+        _session(client).post.return_value = response
+        with self.assertRaises(LokiError) as ctx:
+            client.save_aggregate_report_to_loki(AGGREGATE)
+        self.assertIn("260", str(ctx.exception))
+
     def test_success_statuses(self, _rows):
         for status in (200, 204):
             client = _client()
@@ -348,6 +363,34 @@ class TestLokiErrors(unittest.TestCase):
 
 class TestLokiRealReports(unittest.TestCase):
     """End to end through parsedmarc's own row conversion."""
+
+    @unittest.skipUnless(hasattr(time, "tzset"), "needs time.tzset")
+    def test_report_begin_is_utc_in_a_non_utc_timezone(self):
+        """The aggregate row's interval_begin is naive UTC, so the pushed
+        timestamp must equal the XML <begin> epoch whatever the local zone
+        (it was 4h late under America/New_York when read as local time)."""
+        old_tz = os.environ.get("TZ")
+
+        def restore():
+            if old_tz is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = old_tz
+            time.tzset()
+
+        self.addCleanup(restore)
+        os.environ["TZ"] = "America/New_York"
+        time.tzset()
+        path = os.path.join(
+            SAMPLES, "aggregate", "!example.com!1538204542!1538463818.xml"
+        )
+        report = parsedmarc.parse_report_file(path, offline=True)["report"]
+        client = _client(timestamp="report_begin")
+        client.save_aggregate_report_to_loki(cast(AggregateReport, report))
+        # <begin> of the sample is 1538413632; a one-day report is one record
+        # bucket, so every pushed entry starts at that epoch
+        stamps = {ts for _, ts, _ in _entries(client)}
+        self.assertEqual(stamps, {1538413632 * 10**9})
 
     def test_aggregate_sample(self):
         sample = os.path.join(
