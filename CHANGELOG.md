@@ -8,7 +8,7 @@
 
 ### Bug fixes
 
-- **Keep distinct aggregate reports when one reporter reuses a Report-ID for different policy domains.** RFC 9990 §3.5.1 scopes Report-ID uniqueness to the same domain. Both mbox and mailbox ingestion now include the policy domain in the dedup key, using a JSON array to avoid ambiguous field separators. ASCII domain case differences still count as the same domain (RFC 4343 §3), without changing the returned report. Same-domain repeats remain suppressed, and mailbox keys are still committed only after a successful save callback.
+- **Keep distinct aggregate reports when one reporter reuses a Report-ID for different policy domains.** RFC 9990 §3.5.1 scopes Report-ID uniqueness to the same domain. Direct report files, mbox files, and mailbox ingestion now all include the policy domain in one shared dedup key, using a JSON array to avoid ambiguous field separators. ASCII domain case differences still count as the same domain (RFC 4343 §3), without changing the returned report. Same-domain repeats remain suppressed — including a report passed both as a file and inside an mbox in one CLI run — and mailbox keys are still committed only after a successful save callback.
 
 ## 11.1.0
 
