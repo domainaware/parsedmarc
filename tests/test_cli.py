@@ -6,6 +6,7 @@ import importlib.abc
 import importlib.machinery
 import gzip
 import io
+import importlib.util
 import json
 import logging
 import mailbox
@@ -15,6 +16,7 @@ import signal
 import stat
 import sys
 import tempfile
+import traceback
 import unittest
 import zipfile
 from collections.abc import Iterator, Sequence
@@ -5452,6 +5454,323 @@ def _es_request_without_network(client, method, path, **kwargs):
     return {"count": 0}
 
 
+def _os_request_without_network(transport, method, url, *args, **kwargs):
+    """Stand-in for ``opensearchpy.Transport.perform_request``: answers
+    "no such index" / zero documents like ``_es_request_without_network``."""
+    if method == "HEAD":
+        return {}
+    return {"count": 0}
+
+
+class TestInitOutputClientsDoesNotLogCredentials(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: with --debug, the "Initializing ... client"
+    lines must mask credentials embedded in configured URLs."""
+
+    SECRET = "s3cretPW"
+
+    def _init(self, opts):
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as logs:
+            clients = parsedmarc.cli._init_output_clients(opts)
+        self.addCleanup(parsedmarc.cli._close_output_clients, clients)
+        return "\n".join(logs.output)
+
+    def test_hec_url_password_is_masked(self):
+        opts = _output_client_opts(
+            hec=f"https://hecuser:{self.SECRET}@hec.example:8088",
+            hec_token="tok",
+            hec_index="email",
+        )
+        output = self._init(opts)
+        self.assertNotIn(self.SECRET, output)
+        self.assertIn("url=https://hecuser:***@hec.example:8088", output)
+
+    def test_hec_malformed_url_password_is_masked(self):
+        """A "/", "?" or "#" in the password ends the authority before the
+        "@", which left the --debug line unmasked; it is now masked through
+        the last "@"."""
+        for password in ("p4ssw0rd/extra", "p4ss?w0rd", "p4ss#w0rd"):
+            with self.subTest(password=password):
+                opts = _output_client_opts(
+                    hec=f"https://hecuser:{password}@hec.example:8088",
+                    hec_token="tok",
+                    hec_index="email",
+                )
+                output = self._init(opts)
+                self.assertNotIn("p4ss", output)
+                self.assertIn("url=https://***@hec.example:8088", output)
+
+    def test_loki_url_password_is_masked(self):
+        opts = _output_client_opts(
+            loki_url=f"https://lokiuser:{self.SECRET}@loki.example:3100",
+            loki_timestamp="ingest",
+            loki_timeout=1.0,
+            loki_batch_size=100,
+        )
+        output = self._init(opts)
+        self.assertNotIn(self.SECRET, output)
+        self.assertIn("url=https://lokiuser:***@loki.example:3100", output)
+
+    def test_loki_malformed_url_error_has_no_password(self):
+        """A password with an unencoded "/" ends the URL's authority early
+        (RFC 3986 section 3.2), so httpx raises ``InvalidURL("Invalid port:
+        'p4ssw0rd'")`` (httpx 0.28.1 _urlparse.py), whose text and chained
+        ValueError both repeat it. Neither the startup error nor the
+        ``--debug`` "Initializing Loki client" line may show any part of
+        the password."""
+        malformed = (
+            ("https://admin:p4ssw0rd/extra@loki.example:3100", "p4ssw0rd"),
+            ("https://admin:p4ss?w0rd@loki.example:3100", "p4ss"),
+            ("https://admin:p4ss#w0rd@loki.example:3100", "p4ss"),
+        )
+        for url, secret in malformed:
+            with self.subTest(url=url):
+                opts = _output_client_opts(
+                    loki_url=url,
+                    loki_timestamp="ingest",
+                    loki_timeout=1.0,
+                    loki_batch_size=100,
+                )
+                with (
+                    self.assertRaises(RuntimeError) as ctx,
+                    self.assertLogs("parsedmarc.log", level="DEBUG") as logs,
+                ):
+                    parsedmarc.cli._init_output_clients(opts)
+                self.assertEqual(
+                    str(ctx.exception),
+                    "Loki: Invalid Loki URL (details withheld because they may "
+                    "include credentials)",
+                )
+                trace = "".join(traceback.format_exception(ctx.exception))
+                self.assertNotIn(secret, trace)
+                output = "\n".join(logs.output)
+                self.assertNotIn(secret, output)
+                self.assertIn("url=https://***@loki.example:3100", output)
+
+    def test_elasticsearch_hosts_password_is_masked(self):
+        connections = parsedmarc.elastic.connections
+        _isolate_default_alias(self, connections)
+        opts = _output_client_opts(
+            save_aggregate=True,
+            elasticsearch_hosts=[f"https://u:{self.SECRET}@127.0.0.1:9299"],
+            elasticsearch_timeout=1.0,
+        )
+        with (
+            patch.object(Elasticsearch, "perform_request", _es_request_without_network),
+            patch(
+                "parsedmarc.elastic.connections.create_connection",
+                wraps=connections.create_connection,
+            ) as mock_conn,
+        ):
+            output = self._init(opts)
+        self.assertNotIn(self.SECRET, output)
+        self.assertIn("Initializing Elasticsearch client", output)
+        # Redaction is log-only: the client still gets the real credentials
+        self.assertEqual(
+            mock_conn.call_args.kwargs["hosts"],
+            [f"https://u:{self.SECRET}@127.0.0.1:9299"],
+        )
+        self.assertIn("https://u:***@127.0.0.1:9299", output)
+
+    def test_opensearch_hosts_password_is_masked_in_cli_and_set_hosts(self):
+        connections = opensearch_module.connections
+        _isolate_default_alias(self, connections)
+        opts = _output_client_opts(
+            save_aggregate=True,
+            opensearch_hosts=[f"https://u:{self.SECRET}@127.0.0.1:9299"],
+            opensearch_timeout=1.0,
+        )
+        with patch.object(
+            opensearchpy.Transport, "perform_request", _os_request_without_network
+        ):
+            output = self._init(opts)
+        self.assertNotIn(self.SECRET, output)
+        lines = output.splitlines()
+        for marker in ("Initializing OpenSearch client", "Connecting to OpenSearch"):
+            with self.subTest(marker=marker):
+                matching = [line for line in lines if marker in line]
+                self.assertEqual(len(matching), 1)
+                self.assertIn("https://u:***@127.0.0.1:9299", matching[0])
+
+
+class TestHttpxLogRedaction(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: httpx logs the full request URL at INFO."""
+
+    def setUp(self):
+        saved = {}
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            dep = logging.getLogger(name)
+            saved[name] = (
+                dep.level,
+                list(dep.handlers),
+                dep.propagate,
+                list(dep.filters),
+            )
+
+        def restore():
+            for name, (level, handlers, propagate, filters) in saved.items():
+                dep = logging.getLogger(name)
+                dep.setLevel(level)
+                dep.handlers = handlers
+                dep.propagate = propagate
+                dep.filters = filters
+
+        self.addCleanup(restore)
+        parsedmarc.cli._configure_dependency_logging(logging.INFO)
+
+    def _client(self, seen):
+        def handler(request):
+            seen.append(request)
+            return httpx.Response(200)
+
+        return httpx.Client(transport=httpx.MockTransport(handler))
+
+    def test_userinfo_password_masked_but_auth_still_sent(self):
+        seen = []
+        with self._client(seen) as client:
+            with self.assertLogs("httpx", level="INFO") as logs:
+                client.post("https://user:secret@hook.example/x", content=b"{}")
+        output = "\n".join(logs.output)
+        self.assertNotIn("secret", output)
+        self.assertIn("https://user:***@hook.example/x", output)
+        self.assertTrue(seen[0].headers["Authorization"].startswith("Basic "))
+
+    def test_ipinfo_token_query_parameter_masked(self):
+        seen = []
+        with self._client(seen) as client:
+            with self.assertLogs("httpx", level="INFO") as logs:
+                client.get(
+                    "https://api.ipinfo.io/lite/8.8.8.8", params={"token": "TOKSECRET"}
+                )
+        output = "\n".join(logs.output)
+        self.assertNotIn("TOKSECRET", output)
+        self.assertIn("api.ipinfo.io/lite/8.8.8.8", output)
+        self.assertIn("token=***", output)
+        self.assertEqual(seen[0].url.params["token"], "TOKSECRET")
+
+    def test_token_mask_leaves_literal_encoded_stars_in_path_alone(self):
+        """A path containing a literal ``%2A%2A%2A`` is not rewritten; only
+        the token value is masked, with and without other query params and
+        a fragment."""
+        for url, expected in (
+            (
+                "https://h.example/a%2A%2A%2Ab?token=TOKSECRET",
+                "https://h.example/a%2A%2A%2Ab?token=***",
+            ),
+            (
+                "https://h.example/a%2A%2A%2Ab?x=1&token=TOKSECRET",
+                "https://h.example/a%2A%2A%2Ab?x=1&token=***",
+            ),
+            (
+                "https://h.example/a%2A%2A%2Ab?x=1&token=TOKSECRET#f",
+                "https://h.example/a%2A%2A%2Ab?x=1&token=***#f",
+            ),
+        ):
+            with self.subTest(url=url):
+                result = parsedmarc.cli._RedactUrlCredentialsFilter._redact(
+                    httpx.URL(url)
+                )
+                self.assertNotIn("TOKSECRET", result)
+                self.assertEqual(result, expected)
+
+    def test_reconfiguring_does_not_stack_filters(self):
+        parsedmarc.cli._configure_dependency_logging(logging.INFO)
+        parsedmarc.cli._configure_dependency_logging(logging.DEBUG)
+        installed = [
+            f
+            for f in logging.getLogger("httpx").filters
+            if isinstance(f, parsedmarc.cli._RedactUrlCredentialsFilter)
+        ]
+        self.assertEqual(len(installed), 1)
+
+    def test_non_tuple_args_and_other_arg_types_pass_through(self):
+        record = logging.LogRecord("httpx", logging.INFO, "f", 1, "x %d", (5,), None)
+        self.assertTrue(parsedmarc.cli._RedactUrlCredentialsFilter().filter(record))
+        self.assertEqual(record.args, (5,))
+        record = logging.LogRecord("httpx", logging.INFO, "f", 1, "plain", None, None)
+        self.assertTrue(parsedmarc.cli._RedactUrlCredentialsFilter().filter(record))
+        self.assertIsNone(record.args)
+
+
+@unittest.skipUnless(
+    importlib.util.find_spec("httpx2") is not None,
+    "httpx2 (dnspython 2.9+ DNS over HTTPS) is not installed",
+)
+class TestHttpx2LogRedaction(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: dnspython 2.9+ does DNS over HTTPS through
+    httpx2, which logs the request URL under the ``httpx2`` logger with an
+    ``httpx2.URL``, a different class from ``httpx.URL``."""
+
+    def setUp(self):
+        import httpx2  # pyright: ignore[reportMissingImports]
+
+        self.httpx2 = httpx2
+        saved = {}
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            dep = logging.getLogger(name)
+            saved[name] = (
+                dep.level,
+                list(dep.handlers),
+                dep.propagate,
+                list(dep.filters),
+            )
+
+        def restore():
+            for name, (level, handlers, propagate, filters) in saved.items():
+                dep = logging.getLogger(name)
+                dep.setLevel(level)
+                dep.handlers = handlers
+                dep.propagate = propagate
+                dep.filters = filters
+
+        self.addCleanup(restore)
+        parsedmarc.cli._configure_dependency_logging(logging.INFO)
+
+    def test_httpx2_client_request_line_masks_userinfo(self):
+        """httpx2 itself emits the line; the credential still reaches the
+        transport."""
+        seen = []
+
+        def handler(request):
+            seen.append(request)
+            return self.httpx2.Response(200)
+
+        with self.httpx2.Client(transport=self.httpx2.MockTransport(handler)) as client:
+            with self.assertLogs("httpx2", level="INFO") as logs:
+                client.post("https://doh:S3CRET@doh.example/dns-query", content=b"{}")
+        output = "\n".join(logs.output)
+        self.assertNotIn("S3CRET", output)
+        self.assertIn("https://doh:***@doh.example/dns-query", output)
+        self.assertTrue(seen[0].headers["Authorization"].startswith("Basic "))
+
+    def test_httpx2_url_token_query_parameter_masked(self):
+        url = self.httpx2.URL("https://h.example/a?x=1&token=TOKSECRET#f")
+        result = parsedmarc.cli._RedactUrlCredentialsFilter._redact(url)
+        self.assertEqual(result, "https://h.example/a?x=1&token=***#f")
+
+    def test_httpx2_logger_record_args_masked_and_ints_untouched(self):
+        record = logging.LogRecord(
+            "httpx2",
+            logging.INFO,
+            "f",
+            1,
+            "%s %d",
+            (self.httpx2.URL("https://u:S3CRET@h.example/x"), 200),
+            None,
+        )
+        self.assertTrue(parsedmarc.cli._RedactUrlCredentialsFilter().filter(record))
+        self.assertEqual(record.args, ("https://u:***@h.example/x", 200))
+
+    def test_reconfiguring_attaches_one_filter_to_httpx2(self):
+        parsedmarc.cli._configure_dependency_logging(logging.DEBUG)
+        parsedmarc.cli._configure_dependency_logging(logging.INFO)
+        installed = [
+            f
+            for f in logging.getLogger("httpx2").filters
+            if isinstance(f, parsedmarc.cli._RedactUrlCredentialsFilter)
+        ]
+        self.assertEqual(len(installed), 1)
+
+
 class TestInitOutputClientsRollback(unittest.TestCase):
     """_init_output_clients() is all-or-nothing against the search backends'
     process-wide ``default`` connection alias.
@@ -7635,6 +7954,100 @@ class TestParseConfigGeneral(unittest.TestCase):
                     "from ['https://dns.example/dns-query']",
                     str(ctx.exception),
                 )
+
+    def test_general_nameservers_pre_flight_errors_mask_url_credentials(self):
+        """GHSA-hjr3-rx4c-24cv: the pre-flight error is logged at the default
+        level, so neither the "no PTR record ... from <nameservers>" list nor
+        a transport error that quotes the DoH request URL may carry the
+        nameserver URL's password, and the chained exception (printed on a
+        crash) must not repeat it."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        url = "https://doh:S3CRETPW@dns.example/dns-query"
+
+        def nxdomain(request, *args, **kwargs):
+            response = dns.message.make_response(request)
+            response.set_rcode(dns.rcode.NXDOMAIN)
+            return response
+
+        def transport_error(request, *args, **kwargs):
+            raise RuntimeError(f"Server error '502' for url '{url}'")
+
+        for name, responder, expected in (
+            ("NXDOMAIN", nxdomain, "https://doh:***@dns.example/dns-query"),
+            ("transport", transport_error, "https://doh:***@dns.example/dns-query"),
+        ):
+            with self.subTest(name):
+                cp = _config_with(
+                    "general",
+                    {
+                        "dns_test_address": "1.1.1.1",
+                        "dns_timeout": "2.0",
+                        "nameservers": url,
+                    },
+                )
+                with patch("dns.query.https", side_effect=responder):
+                    with self.assertRaises(ConfigurationError) as ctx:
+                        _parse_config(cp, _opts())
+                trace = "".join(traceback.format_exception(ctx.exception))
+                self.assertNotIn("S3CRETPW", str(ctx.exception))
+                self.assertNotIn("S3CRETPW", trace)
+                self.assertIn(expected, str(ctx.exception))
+
+    def test_general_nameservers_pre_flight_masks_malformed_url_passwords(self):
+        """GHSA-hjr3-rx4c-24cv: a password containing an unencoded ``/``,
+        ``?`` or ``#`` ends the URL authority early (RFC 3986 section 3.2),
+        so ``urlsplit()`` reports no password and reads its start as the
+        port. dnspython 2.9.1 then raised ``ValueError("Port could not be
+        cast to integer value as 'p4ss'")`` from
+        ``DoHNameserver.answer_port()`` (``dns/nameserver.py``), and
+        ``_parse_dot_nameserver()`` quoted the same urlsplit message for a
+        ``tls://`` entry, so the pre-flight error printed the start of the
+        password. Neither the password nor that prefix may reach the
+        message or the printed traceback. No query is sent: every entry is
+        rejected before dnspython contacts a server, which the patched
+        transports would turn into a different error."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        for url, expected in (
+            (
+                "https://doh:p4ss/w0rd@dns.example/dns-query",
+                "https://***@dns.example/dns-query",
+            ),
+            (
+                "https://doh:p4ss?w0rd@dns.example/dns-query",
+                "https://***@dns.example/dns-query",
+            ),
+            (
+                "https://doh:p4ss#w0rd@dns.example/dns-query",
+                "https://***@dns.example/dns-query",
+            ),
+            ("tls://dot:p4ss/w0rd@1.1.1.1", "tls://***@1.1.1.1"),
+        ):
+            with self.subTest(url=url):
+                cp = _config_with(
+                    "general",
+                    {
+                        "dns_test_address": "1.1.1.1",
+                        "dns_timeout": "0.2",
+                        "nameservers": url,
+                    },
+                )
+                unreachable = OSError("no query may be sent")
+                with (
+                    patch("dns.query.https", side_effect=unreachable),
+                    patch("dns.query.tls", side_effect=unreachable),
+                ):
+                    with self.assertRaises(ConfigurationError) as ctx:
+                        _parse_config(cp, _opts())
+                message = str(ctx.exception)
+                trace = "".join(traceback.format_exception(ctx.exception))
+                for secret in ("p4ss", "w0rd"):
+                    self.assertNotIn(secret, message)
+                    self.assertNotIn(secret, trace)
+                self.assertIn(expected, message)
+                self.assertIn("DNS pre-flight check failed: ValueError: ", message)
+                self.assertNotIn("no query may be sent", message)
 
     def test_general_nameservers_pre_flight_rejects_invalid_test_address(self):
         """An unparseable dns_test_address is reported by setting name and

@@ -3,6 +3,7 @@
 import json
 import os
 import time
+import traceback
 import unittest
 from typing import cast
 from unittest.mock import MagicMock, patch
@@ -162,6 +163,44 @@ class TestLokiClientInit(unittest.TestCase):
     def test_basic_auth(self):
         client = LokiClient("http://loki:3100", username="u", password="p")
         self.assertIsInstance(client.session.auth, httpx.BasicAuth)
+
+
+class TestLokiInvalidUrlDoesNotLeakPassword(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: a password with an unencoded "/", "?" or "#"
+    ends the URL's authority early (RFC 3986 section 3.2), so httpx reads the
+    text after the colon as the port and raises
+    ``InvalidURL("Invalid port: 'p4ssw0rd'")`` (httpx 0.28.1 _urlparse.py:
+    ``raise InvalidURL(f"Invalid port: {port!r}")``). Its implicit
+    ``__context__`` is a ValueError that repeats that part of the password
+    too."""
+
+    MALFORMED = (
+        ("https://admin:p4ssw0rd/extra@loki.example.org:3100", "p4ssw0rd"),
+        ("https://admin:p4ss?w0rd@loki.example.org:3100", "p4ss"),
+        ("https://admin:p4ss#w0rd@loki.example.org:3100", "p4ss"),
+    )
+
+    def test_invalid_url_raises_fixed_message_without_password(self):
+        for url, secret in self.MALFORMED:
+            with self.subTest(url=url):
+                with self.assertRaises(ValueError) as ctx:
+                    LokiClient(url)
+                self.assertEqual(
+                    str(ctx.exception),
+                    "Invalid Loki URL (details withheld because they may "
+                    "include credentials)",
+                )
+                self.assertIsNone(ctx.exception.__cause__)
+                self.assertTrue(ctx.exception.__suppress_context__)
+                trace = "".join(traceback.format_exception(ctx.exception))
+                self.assertNotIn(secret, trace)
+
+    def test_valid_url_keeps_userinfo_for_requests(self):
+        client = LokiClient("https://admin:p4ssw0rd@loki.example.org:3100")
+        self.assertEqual(
+            client.url,
+            "https://admin:p4ssw0rd@loki.example.org:3100/loki/api/v1/push",
+        )
 
 
 @patch(
@@ -369,6 +408,28 @@ class TestLokiErrors(unittest.TestCase):
         with self.assertRaises(LokiError) as ctx:
             client.save_aggregate_report_to_loki(AGGREGATE)
         self.assertIn("refused", str(ctx.exception))
+
+    def test_errors_mask_url_password(self, _rows):
+        """GHSA-hjr3-rx4c-24cv: the URL keeps its userinfo, and the CLI
+        logs LokiError text, so the password must be masked in it."""
+        secret = "s3cretPW"
+        client = LokiClient(f"http://u:{secret}@loki.example.org:3100")
+        client.session = MagicMock()
+        _session(client).post.return_value = _ok_response(500)
+        with self.assertRaises(LokiError) as status_ctx:
+            client.save_aggregate_report_to_loki(AGGREGATE)
+        _session(client).post.side_effect = httpx.ConnectError("refused")
+        with self.assertRaises(LokiError) as network_ctx:
+            client.save_aggregate_report_to_loki(AGGREGATE)
+        for ctx in (status_ctx, network_ctx):
+            with self.subTest(error=str(ctx.exception)):
+                self.assertNotIn(secret, str(ctx.exception))
+                self.assertIn("http://u:***@loki.example.org:3100", str(ctx.exception))
+        # Redaction is message-only: the request still goes to the real URL
+        self.assertEqual(
+            _session(client).post.call_args.args[0],
+            f"http://u:{secret}@loki.example.org:3100/loki/api/v1/push",
+        )
 
     def test_blocked_ingestion_status_raises(self, _rows):
         """Loki returns 260 (block_ingestion_status_code default) and drops

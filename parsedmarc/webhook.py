@@ -62,6 +62,12 @@ class WebhookClient(object):
                 self.session.post(webhook_url, data=payload, timeout=self.timeout)
             else:
                 self.session.post(webhook_url, content=payload, timeout=self.timeout)
+        except httpx.InvalidURL:
+            # httpx quotes part of the URL, which can be part of a password
+            logger.error(
+                "Webhook Error: invalid webhook URL (details withheld because "
+                "they may include credentials)"
+            )
         except Exception as error_:
             logger.error(f"Webhook Error: {error_.__str__()}")
 

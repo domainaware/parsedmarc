@@ -241,6 +241,30 @@ class TestSetHosts(unittest.TestCase):
         kwargs = mock_conn.call_args.kwargs
         self.assertEqual(kwargs["hosts"], ["es1:9200", "es2:9200"])
 
+    def test_debug_log_masks_credentials_but_connects_with_them(self):
+        """GHSA-hjr3-rx4c-24cv: the "Connecting to OpenSearch" debug line
+        must not carry the URL password, while the client still gets the
+        real URL."""
+        url = "https://admin:s3cretPW@es.example:9200"
+        with patch("parsedmarc.opensearch.connections.create_connection") as mock_conn:
+            with self.assertLogs("parsedmarc.log", level="DEBUG") as logs:
+                set_hosts(url)
+        output = "\n".join(logs.output)
+        self.assertNotIn("s3cretPW", output)
+        self.assertIn("https://admin:***@es.example:9200", output)
+        self.assertEqual(mock_conn.call_args.kwargs["hosts"], [url])
+
+    def test_debug_log_masks_schemeless_host_list(self):
+        hosts = ["admin:s3cretPW@es1:9200", "es2:9200"]
+        with patch("parsedmarc.opensearch.connections.create_connection") as mock_conn:
+            with self.assertLogs("parsedmarc.log", level="DEBUG") as logs:
+                set_hosts(hosts)
+        output = "\n".join(logs.output)
+        self.assertNotIn("s3cretPW", output)
+        self.assertIn("admin:***@es1:9200", output)
+        self.assertIn("es2:9200", output)
+        self.assertEqual(mock_conn.call_args.kwargs["hosts"], hosts)
+
     def test_timeout_default_60s(self):
         with patch("parsedmarc.opensearch.connections.create_connection") as mock_conn:
             set_hosts("es:9200")

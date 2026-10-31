@@ -29,7 +29,7 @@ from opensearchpy.helpers import reindex
 
 from parsedmarc import InvalidFailureReport
 from parsedmarc.log import logger
-from parsedmarc.utils import human_timestamp_to_datetime
+from parsedmarc.utils import human_timestamp_to_datetime, redact_url_credentials
 
 
 class OpenSearchError(Exception):
@@ -552,7 +552,11 @@ def set_hosts(
     _READY_DATA_STREAMS.clear()
     if not isinstance(hosts, list):
         hosts = [hosts]
-    logger.debug("Connecting to OpenSearch: hosts=%s, use_ssl=%s", hosts, use_ssl)
+    logger.debug(
+        "Connecting to OpenSearch: hosts=%s, use_ssl=%s",
+        redact_url_credentials(hosts),
+        use_ssl,
+    )
     conn_params = {"hosts": hosts, "timeout": timeout}
     if use_ssl:
         conn_params["use_ssl"] = True

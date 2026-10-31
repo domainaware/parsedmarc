@@ -311,10 +311,73 @@ class TestPostgreSQLConstruction(unittest.TestCase):
         """A driver-level connection error is wrapped in PostgreSQLError."""
         with patch("parsedmarc.postgres.psycopg") as mock_psycopg:
             mock_psycopg.Error = Exception
+            mock_psycopg.ProgrammingError = type("ProgrammingError", (Exception,), {})
             mock_psycopg.connect.side_effect = mock_psycopg.Error("refused")
             with self.assertRaises(PostgreSQLError) as ctx:
                 PostgreSQLClient(host="localhost")
         self.assertIn("refused", str(ctx.exception))
+
+    def test_connect_failure_detail_is_url_redacted(self):
+        """A non-parse driver error keeps its detail, with URL credentials
+        masked."""
+        programming_error = type("ProgrammingError", (Exception,), {})
+        with patch("parsedmarc.postgres.psycopg") as mock_psycopg:
+            mock_psycopg.Error = Exception
+            mock_psycopg.ProgrammingError = programming_error
+            mock_psycopg.connect.side_effect = mock_psycopg.Error(
+                'connection to "postgresql://u:PGSECRET@db.example/x" failed'
+            )
+            with self.assertRaises(PostgreSQLError) as ctx:
+                PostgreSQLClient(connection_string="postgresql://u:PGSECRET@h/db")
+        message = str(ctx.exception)
+        self.assertNotIn("PGSECRET", message)
+        self.assertIn("u:***@db.example/x", message)
+
+    def test_malformed_connection_string_detail_withheld(self):
+        """A ProgrammingError from parsing the connection string (which libpq
+        words with the whole string or a password fragment) is replaced with
+        a fixed message that still identifies the problem."""
+        programming_error = type("ProgrammingError", (Exception,), {})
+        for dsn, driver_message in (
+            (
+                "postgresql://u:PGSECRET@[::1/db",
+                'end of string reached when looking for matching "]" in IPv6 '
+                'host address in URI: "postgresql://u:PGSECRET@[::1/db"',
+            ),
+            (
+                "postgresql://u:PG%ZZSECRET@h/db",
+                'invalid percent-encoded token: "PG%ZZSECRET"',
+            ),
+        ):
+            with self.subTest(dsn=dsn):
+                with patch("parsedmarc.postgres.psycopg") as mock_psycopg:
+                    mock_psycopg.Error = Exception
+                    mock_psycopg.ProgrammingError = programming_error
+                    mock_psycopg.connect.side_effect = programming_error(driver_message)
+                    with self.assertRaises(PostgreSQLError) as ctx:
+                        PostgreSQLClient(connection_string=dsn)
+                message = str(ctx.exception)
+                self.assertNotIn("PGSECRET", message)
+                self.assertNotIn("SECRET", message)
+                self.assertIn("Invalid PostgreSQL connection_string", message)
+
+    @unittest.skipIf(
+        importlib.util.find_spec("psycopg") is None, "psycopg is not installed"
+    )
+    def test_real_psycopg_malformed_connection_string_withheld(self):
+        """With the real driver, both malformed strings fail in parsing (no
+        network I/O) and the raised message carries no part of the password."""
+        for dsn in (
+            "postgresql://u:PGSECRET@[::1/db",
+            "postgresql://u:PG%ZZSECRET@h/db",
+        ):
+            with self.subTest(dsn=dsn):
+                with self.assertRaises(PostgreSQLError) as ctx:
+                    PostgreSQLClient(connection_string=dsn)
+                self.assertNotIn("SECRET", str(ctx.exception))
+                self.assertIn(
+                    "Invalid PostgreSQL connection_string", str(ctx.exception)
+                )
 
     def test_create_tables_executes_all_ddl(self):
         """create_tables issues CREATE TABLE for every table and the indexes."""

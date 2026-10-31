@@ -13,6 +13,13 @@ from parsedmarc.constants import USER_AGENT
 from parsedmarc.log import logger
 from parsedmarc.utils import human_timestamp_to_unix_timestamp
 
+# httpx.InvalidURL quotes part of the URL, which can be part of a password
+# (one containing "/", "?" or "#" ends up as the "port"), so its text is
+# replaced by this fixed message.
+_INVALID_URL_MESSAGE = (
+    "Invalid Splunk HEC URL (details withheld because they may include credentials)"
+)
+
 
 class SplunkError(RuntimeError):
     """Raised when a Splunk API error occurs"""
@@ -136,6 +143,8 @@ class HECClient(object):
                 self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
+        except httpx.InvalidURL:
+            raise SplunkError(_INVALID_URL_MESSAGE) from None
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
@@ -179,6 +188,8 @@ class HECClient(object):
                 self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
+        except httpx.InvalidURL:
+            raise SplunkError(_INVALID_URL_MESSAGE) from None
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:
@@ -218,6 +229,8 @@ class HECClient(object):
                 self.url, content="".join(json_lines), timeout=self.timeout
             )
             response = response.json()
+        except httpx.InvalidURL:
+            raise SplunkError(_INVALID_URL_MESSAGE) from None
         except Exception as e:
             raise SplunkError(e.__str__())
         if response["code"] != 0:

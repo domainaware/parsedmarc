@@ -17,7 +17,7 @@ import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, TypedDict, cast
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 
 import mailparser
 from expiringdict import ExpiringDict
@@ -113,15 +113,17 @@ def load_psl_overrides(
 
     if not (offline or always_use_local_file):
         try:
-            logger.debug(f"Trying to fetch PSL overrides from {url}...")
+            logger.debug(
+                f"Trying to fetch PSL overrides from {redact_url_credentials(url)}..."
+            )
             headers = {"User-Agent": USER_AGENT}
             response = httpx.get(
                 url, headers=headers, timeout=60, follow_redirects=True
             )
             response.raise_for_status()
             _load_text(response.text)
-        except httpx.HTTPError as e:
-            logger.warning(f"Failed to fetch PSL overrides: {e}")
+        except (httpx.HTTPError, httpx.InvalidURL) as e:
+            logger.warning(f"Failed to fetch PSL overrides: {_describe_http_error(e)}")
 
     if len(psl_overrides) == 0:
         path = local_file_path or str(
@@ -309,6 +311,44 @@ class _SessionDoHNameserver(dns.nameserver.DoHNameserver):
         )
 
 
+def _nameserver_port(entry: str, parts: SplitResult, kind: str) -> int | None:
+    """
+    Returns the port of a parsed DNS over HTTPS or TLS nameserver URL.
+
+    ``urlsplit()`` only validates the port when it is read, and its
+    ``ValueError`` quotes the text it rejected. A password containing an
+    unencoded ``/``, ``?`` or ``#`` ends the authority early (RFC 3986
+    section 3.2), which makes the start of the password that text
+    (``https://doh:p4ss/w0rd@host`` gives ``Port could not be cast to
+    integer value as 'p4ss'``). dnspython 2.9.1 reads the same port in
+    ``DoHNameserver.answer_port()`` and lets that error escape
+    ``Resolver.resolve()``. So the port is read here, and a bad one is
+    reported with the entry's credentials masked and the original error
+    suppressed.
+
+    Args:
+        entry (str): The configured nameserver
+        parts (SplitResult): ``urlsplit(entry)``
+        kind (str): The transport name for the message, e.g.
+            ``"DNS over TLS"``
+
+    Returns:
+        int | None: The port, or ``None`` when the URL has none
+
+    Raises:
+        ValueError: The port is not an integer from 0 to 65535
+    """
+    try:
+        return parts.port
+    except ValueError:
+        pass
+    raise ValueError(
+        f"Invalid {kind} nameserver {_redact_one_url_credentials(entry)}: the "
+        "port is not an integer from 0 to 65535 (percent-encode any /, ? or # "
+        "in a password)"
+    )
+
+
 def _parse_dot_nameserver(entry: str) -> dns.nameserver.DoTNameserver:
     """
     Parses a ``tls://ip[:port][#hostname]`` nameserver entry.
@@ -327,26 +367,25 @@ def _parse_dot_nameserver(entry: str) -> dns.nameserver.DoTNameserver:
             is not a literal IP address, or extra URL components
     """
     parts = urlsplit(entry)
-    try:
-        port = parts.port
-    except ValueError as e:
-        # urlsplit only validates the port when it is accessed
-        raise ValueError(f"Invalid DNS over TLS nameserver {entry}: {e}") from e
+    port = _nameserver_port(entry, parts, "DNS over TLS")
+    # The entry may carry userinfo, which is rejected below, so the
+    # messages quote it with its credentials masked
+    shown = _redact_one_url_credentials(entry)
     if parts.username or parts.path or parts.query:
         # Catch tls://9.9.9.9/dns.quad9.net — a plausible slash-for-#
         # typo that would otherwise "work" with no certificate identity
         # and fail only at query time with an opaque TLS error
         raise ValueError(
-            f"Invalid DNS over TLS nameserver {entry}: only "
+            f"Invalid DNS over TLS nameserver {shown}: only "
             "tls://ip[:port][#hostname] is supported — the TLS certificate "
             "identity is given after #, not /"
         )
     address = parts.hostname
     if not address:
-        raise ValueError(f"Invalid DNS over TLS nameserver {entry}: missing IP address")
+        raise ValueError(f"Invalid DNS over TLS nameserver {shown}: missing IP address")
     if not dns.inet.is_address(address):
         raise ValueError(
-            f"Invalid DNS over TLS nameserver {entry}: {address} is not an IP "
+            f"Invalid DNS over TLS nameserver {shown}: {address} is not an IP "
             "address. Use tls://ip[:port][#hostname], where the optional "
             "#hostname is the TLS certificate identity of the server"
         )
@@ -378,20 +417,25 @@ def _nameservers_to_resolver_input(
         in the configured order
 
     Raises:
-        ValueError: A ``tls://`` entry is malformed
+        ValueError: A ``tls://`` entry is malformed, or an ``https://``
+            entry has an unusable port
     """
     resolver_input: list[str | dns.nameserver.Nameserver] = []
     for entry in nameservers:
         try:
             # urlsplit lowercases the scheme, so HTTPS:// and TLS:// work too
-            scheme = urlsplit(entry).scheme
+            parts = urlsplit(entry)
         except ValueError:
             # e.g. an unbalanced IPv6 bracket; let dnspython reject it with
             # its own message about what a nameserver may be
-            scheme = ""
-        if scheme == "https":
+            resolver_input.append(entry)
+            continue
+        if parts.scheme == "https":
+            # Validated now because dnspython reads the port only after a
+            # query fails, and its error then quotes the rejected text
+            _nameserver_port(entry, parts, "DNS over HTTPS")
             resolver_input.append(_SessionDoHNameserver(entry))
-        elif scheme == "tls":
+        elif parts.scheme == "tls":
             resolver_input.append(_parse_dot_nameserver(entry))
         else:
             resolver_input.append(entry)
@@ -439,6 +483,10 @@ def query_dns(
 
     Returns:
         list: A list of answers
+
+    Raises:
+        ValueError: A nameserver is malformed. The message masks the
+            nameserver's URL credentials.
     """
     domain = str(domain).lower()
     record_type = record_type.upper()
@@ -457,7 +505,17 @@ def query_dns(
             "2606:4700:4700::1111",
             "2606:4700:4700::1001",
         ]
-    resolver.nameservers = _nameservers_to_resolver_input(nameservers)
+    rejection = None
+    try:
+        resolver.nameservers = _nameservers_to_resolver_input(nameservers)
+    except ValueError as e:
+        # dnspython's own rejection quotes the entry as configured
+        # ("nameserver https://user:pw@[x is not ..."), credentials and all
+        rejection = _mask_nameserver_secrets(str(e), nameservers)
+    if rejection is not None:
+        # Raised outside the except block so that the unmasked error is not
+        # kept as __context__
+        raise ValueError(rejection)
     # Cap per-query UDP timeout at 1s so dnspython retries within the
     # lifetime window on transient packet loss — otherwise with a single
     # nameserver and timeout == lifetime, one dropped UDP datagram consumes
@@ -532,7 +590,9 @@ def get_reverse_dns(
         )[0]
 
     except dns.exception.DNSException as e:
-        logger.debug(f"get_reverse_dns({ip_address}) exception: {e}")
+        # LifetimeTimeout and NoNameservers quote each nameserver URL
+        message = _mask_nameserver_secrets(str(e), nameservers)
+        logger.debug(f"get_reverse_dns({ip_address}) exception: {message}")
 
     return hostname
 
@@ -684,7 +744,9 @@ def load_ip_db(
 
     if not (offline or always_use_local_file):
         try:
-            logger.debug(f"Trying to fetch IP database from {url}...")
+            logger.debug(
+                f"Trying to fetch IP database from {redact_url_credentials(url)}..."
+            )
             headers = {"User-Agent": USER_AGENT}
             response = httpx.get(
                 url, headers=headers, timeout=60, follow_redirects=True
@@ -698,8 +760,8 @@ def load_ip_db(
             _IP_DB_PATH = cached_path
             logger.info("IP database updated successfully")
             return
-        except httpx.HTTPError as e:
-            logger.warning(f"Failed to fetch IP database: {e}")
+        except (httpx.HTTPError, httpx.InvalidURL) as e:
+            logger.warning(f"Failed to fetch IP database: {_describe_http_error(e)}")
         except Exception as e:
             logger.warning(f"Failed to save IP database: {e}")
 
@@ -1080,7 +1142,9 @@ def load_reverse_dns_map(
 
     if not (offline or always_use_local_file):
         try:
-            logger.debug(f"Trying to fetch reverse DNS map from {url}...")
+            logger.debug(
+                f"Trying to fetch reverse DNS map from {redact_url_credentials(url)}..."
+            )
             headers = {"User-Agent": USER_AGENT}
             response = httpx.get(
                 url, headers=headers, timeout=60, follow_redirects=True
@@ -1089,8 +1153,10 @@ def load_reverse_dns_map(
             csv_file.write(response.text)
             csv_file.seek(0)
             load_csv(csv_file)
-        except httpx.HTTPError as e:
-            logger.warning(f"Failed to fetch reverse DNS map: {e}")
+        except (httpx.HTTPError, httpx.InvalidURL) as e:
+            logger.warning(
+                f"Failed to fetch reverse DNS map: {_describe_http_error(e)}"
+            )
         except Exception:
             logger.warning("Not a valid CSV file")
             csv_file.seek(0)
@@ -1355,6 +1421,209 @@ def sanitize_for_log(value: str) -> str:
         ch if ch.isprintable() else ch.encode("unicode_escape").decode("ascii")
         for ch in value
     )
+
+
+def redact_url_credentials(value: str | list[str]) -> str | list[str]:
+    """Masks the credentials in a URL or host string so it is safe to log.
+
+    A configured URL such as ``https://user:secret@host:9200`` carries a
+    password; writing it to the log (CWE-532) leaks it to the console and
+    to ``log_file``. When the userinfo contains a ``:``, only the part
+    after the first ``:`` is replaced (``https://user:***@host:9200``);
+    when it has no ``:`` the whole userinfo is replaced
+    (``https://***@host``), since a bare token is itself the secret.
+
+    The authority is located with string methods only, so scheme-less
+    values such as ``user:secret@localhost:9200`` (which ``urlsplit()``
+    would misparse as scheme ``user``) are handled too.
+
+    A password containing an unencoded ``/``, ``?``, or ``#`` is not
+    allowed by RFC 3986 (the authority ends at that character, so clients
+    misparse such a URL too), and it leaves the authority with no ``@``.
+    When the authority has no ``@`` but one appears later in the value,
+    everything from the start of the authority through the *last* ``@``
+    is replaced (``https://admin:p4ss/w0rd@host:3100`` becomes
+    ``https://***@host:3100``). The last ``@`` is used because the
+    password may itself contain ``@``. This over-masks a URL that has no
+    userinfo but has an ``@`` in its path or query:
+    ``https://host/path@file`` becomes ``https://***@file``, and
+    ``https://host/?redirect=https://u:p@evil`` becomes
+    ``https://***@evil``. That is acceptable because the result is only
+    for the log. When the authority does contain an ``@``, only its
+    userinfo is masked, so credentials in a later query-string value
+    (``https://a:b@host/?redirect=https://u:p@evil``) are not detected,
+    and neither is the rest of a password containing both ``@`` and one
+    of ``/?#`` (``https://user:p@ss/word@host`` keeps ``ss/word``).
+
+    The value must be a single URL (or host) per string: split a
+    comma-separated list first, or pass a ``list``. The authority is the
+    first one found, so later entries in a comma-joined string are not
+    masked.
+
+    Never raises; input that does not contain userinfo, and input that is
+    not a ``str`` or ``list``, is returned unchanged.
+
+    Args:
+        value (str | list[str]): A URL or host string, or a list of them
+
+    Returns:
+        str | list[str]: ``value`` with credentials masked. A ``list`` is
+        returned as a new list; the input list is not modified.
+    """
+    if isinstance(value, list):
+        return [
+            _redact_one_url_credentials(item) if isinstance(item, str) else item
+            for item in value
+        ]
+    if not isinstance(value, str):
+        return value
+    return _redact_one_url_credentials(value)
+
+
+def _find_url_userinfo(value: str) -> tuple[int, int, bool] | None:
+    """Locates the userinfo of one URL or host string.
+
+    This is the lookup :func:`redact_url_credentials` masks and
+    :func:`_url_secrets` extracts the secret from, shared so that the two
+    cannot disagree about where the credentials are. It uses string
+    methods only, so it is linear in the length of ``value`` and never
+    raises.
+
+    Args:
+        value (str): A URL or host string
+
+    Returns:
+        tuple[int, int, bool] | None: ``None`` when no ``@`` follows the
+        start of the authority. Otherwise ``(start, end, in_authority)``,
+        where ``value[start:end]`` is the userinfo and ``value[end]`` is the
+        ``@`` after it. ``in_authority`` is ``True`` when that ``@`` is the
+        last one inside the authority, and ``False`` when the authority has
+        no ``@`` (a ``/``, ``?`` or ``#`` in the password ends it early, as
+        in ``https://admin:p4ss/w0rd@host``) and the ``@`` is the last one
+        in the whole value; the password may itself contain ``@``.
+    """
+    # A "://" counts as the scheme separator only when nothing before it
+    # could end an authority: in "user:secret@host/x?r=http://y" the "://"
+    # is inside the query, and the authority starts at offset 0.
+    scheme_end = value.find("://")
+    if scheme_end != -1 and not any(c in value[:scheme_end] for c in "/?#@"):
+        start = scheme_end + 3
+    elif value.startswith("//"):
+        start = 2
+    else:
+        start = 0
+    end = len(value)
+    for delimiter in "/?#":
+        position = value.find(delimiter, start)
+        if position != -1:
+            end = min(end, position)
+    at = value.rfind("@", start, end)
+    if at != -1:
+        return start, at, True
+    at = value.rfind("@", start)
+    if at != -1:
+        return start, at, False
+    return None
+
+
+def _redact_one_url_credentials(value: str) -> str:
+    """Masks the userinfo of one URL or host string; see
+    :func:`redact_url_credentials`."""
+    found = _find_url_userinfo(value)
+    if found is None:
+        return value
+    start, at, in_authority = found
+    if not in_authority:
+        # Which "/", "?" or "#" ended the authority is unknown, so mask
+        # everything through the "@" rather than guess where the user
+        # name stops.
+        return f"{value[:start]}***{value[at:]}"
+    user, colon, _ = value[start:at].partition(":")
+    masked = f"{user}:***" if colon else "***"
+    return f"{value[:start]}{masked}{value[at:]}"
+
+
+def _url_secrets(value: str) -> list[str]:
+    """Returns the secret text in one URL or host string's userinfo.
+
+    The secret is the userinfo after its first ``:``, or the whole userinfo
+    when it has no ``:`` (a bare token is itself the secret), located by
+    :func:`_find_url_userinfo`. When the secret contains an unencoded
+    ``/``, ``?`` or ``#``, its text before the first of them is returned
+    too: ``urlsplit()`` (and so dnspython) and httpx read that part as the
+    port and quote it in their errors (``Port could not be cast to integer
+    value as 'p4ss'``). Empty strings are never returned, so the result is
+    safe to use as ``str.replace()`` targets. Never raises.
+
+    Args:
+        value (str): A URL or host string
+
+    Returns:
+        list[str]: The secret and, if it differs and is not empty, its
+        prefix before the first ``/``, ``?`` or ``#``, longest first; an
+        empty list when ``value`` has no userinfo or an empty secret.
+    """
+    found = _find_url_userinfo(value)
+    if found is None:
+        return []
+    start, at, _ = found
+    user, colon, password = value[start:at].partition(":")
+    secret = password if colon else user
+    prefix_end = len(secret)
+    for delimiter in "/?#":
+        position = secret.find(delimiter)
+        if position != -1:
+            prefix_end = min(prefix_end, position)
+    return [text for text in dict.fromkeys((secret, secret[:prefix_end])) if text]
+
+
+def _mask_nameserver_secrets(text: str, nameservers: list[str] | None) -> str:
+    """Masks the credentials of the configured nameserver URLs in free text.
+
+    A DNS query error (dnspython's ``LifetimeTimeout``, a DNS over HTTPS
+    status error) quotes each failing nameserver URL, sometimes several
+    times in different forms, and ``redact_url_credentials()`` masks only
+    one URL per string. So each configured entry is replaced by its masked
+    form, and each secret :func:`_url_secrets` finds in it (the password,
+    and its start when a ``/``, ``?`` or ``#`` in it gets read as the port)
+    is replaced by ``***`` wherever it still appears. A short secret masks
+    every occurrence of that text, including ones that are not the
+    password; the result is only for error messages and logs. Never
+    raises.
+
+    Args:
+        text (str): The text to mask, typically ``str()`` of an exception
+        nameservers (list[str] | None): The configured nameservers
+
+    Returns:
+        str: ``text`` with the nameservers' credentials masked
+    """
+    for entry in nameservers or []:
+        text = text.replace(entry, _redact_one_url_credentials(entry))
+        for secret in _url_secrets(entry):
+            text = text.replace(secret, "***")
+    return text
+
+
+def _describe_http_error(e: httpx.HTTPError | httpx.InvalidURL) -> str:
+    """Describes an httpx error for the log without leaking URL credentials.
+
+    ``str(HTTPStatusError)`` embeds the server's reason phrase before the
+    URL, so a phrase containing ``/``, ``?``, ``#`` or ``@`` defeats
+    string-based redaction of the message. A status error is therefore
+    rebuilt from its structured parts. Transport errors (httpx 0.28) do not
+    embed the request URL, so their message is used as is. ``InvalidURL``
+    (not an ``HTTPError``) is raised while httpx parses the URL, and its
+    message quotes the component it rejected -- part of a password
+    containing ``/``, ``?`` or ``#`` ends up as the "port" -- so it is
+    replaced by a fixed message.
+    """
+    if isinstance(e, httpx.InvalidURL):
+        return "invalid URL (details withheld because they may include credentials)"
+    if isinstance(e, httpx.HTTPStatusError):
+        url = redact_url_credentials(str(e.request.url))
+        return f"HTTP {e.response.status_code} for url '{url}'"
+    return f"{type(e).__name__}: {e}"
 
 
 def get_filename_safe_string(string: str | None) -> str:

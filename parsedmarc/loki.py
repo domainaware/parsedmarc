@@ -19,7 +19,7 @@ from parsedmarc import (
 from parsedmarc.constants import USER_AGENT
 from parsedmarc.log import logger
 from parsedmarc.types import AggregateReport, FailureReport, SMTPTLSReport
-from parsedmarc.utils import human_timestamp_to_unix_timestamp
+from parsedmarc.utils import human_timestamp_to_unix_timestamp, redact_url_credentials
 
 PUSH_PATH = "/loki/api/v1/push"
 TIMESTAMP_MODES = ("ingest", "report_begin")
@@ -102,11 +102,22 @@ class LokiClient(object):
             if not _LABEL_NAME.match(name):
                 raise ValueError(f"Invalid Loki label name '{name}'")
 
-        parsed = httpx.URL(url)
-        # copy_with(path=...) keeps any query string, userinfo and port intact
-        self.url = (
-            str(parsed.copy_with(path=PUSH_PATH)) if parsed.path in ("", "/") else url
-        )
+        try:
+            parsed = httpx.URL(url)
+            # copy_with(path=...) keeps any query string, userinfo and port intact
+            self.url = (
+                str(parsed.copy_with(path=PUSH_PATH))
+                if parsed.path in ("", "/")
+                else url
+            )
+        except httpx.InvalidURL:
+            # httpx quotes part of the URL (part of a password containing
+            # "/", "?" or "#" ends up as the "port"), and chains a ValueError
+            # that repeats it, so neither is kept.
+            raise ValueError(
+                "Invalid Loki URL (details withheld because they may include "
+                "credentials)"
+            ) from None
         self.timestamp = timestamp
         self.timeout = timeout
         self.batch_size = max(1, int(batch_size))
@@ -196,14 +207,16 @@ class LokiClient(object):
                 self.url, content=json.dumps(body), timeout=self.timeout
             )
         except httpx.HTTPError as error_:
-            raise LokiError(f"Loki push to {self.url} failed: {error_}") from error_
+            raise LokiError(
+                f"Loki push to {redact_url_credentials(self.url)} failed: {error_}"
+            ) from error_
         # Loki answers 204 when it stored the push; 200 is also accepted.
         # Other 2xx codes are not success: with block_ingestion_until set it
         # returns a custom 260 and discards the logs
         # (block_ingestion_status_code).
         if response.status_code not in (200, 204):
             raise LokiError(
-                f"Loki push to {self.url} failed with HTTP "
+                f"Loki push to {redact_url_credentials(self.url)} failed with HTTP "
                 f"{response.status_code}: {response.text[:500]}"
             )
 

@@ -114,6 +114,50 @@ class TestWebhookErrorHandling(unittest.TestCase):
             client.save_smtp_tls_report_to_webhook('{"t": 1}')
 
 
+class TestWebhookInvalidUrlDoesNotLeakPassword(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: a password with an unencoded "/", "?" or "#"
+    ends the URL's authority early (RFC 3986 section 3.2), so httpx reads the
+    text after the colon as the port and raises
+    ``InvalidURL("Invalid port: 'p4ssw0rd'")`` when posting (httpx 0.28.1
+    _urlparse.py: ``raise InvalidURL(f"Invalid port: {port!r}")``), before
+    any network I/O. The error is logged on every report."""
+
+    MALFORMED = (
+        ("https://admin:p4ssw0rd/extra@hooks.example.com/x", "p4ssw0rd"),
+        ("https://admin:p4ss?w0rd@hooks.example.com/x", "p4ss"),
+        ("https://admin:p4ss#w0rd@hooks.example.com/x", "p4ss"),
+    )
+
+    def test_invalid_url_is_logged_without_password(self):
+        saves = (
+            "save_aggregate_report_to_webhook",
+            "save_failure_report_to_webhook",
+            "save_smtp_tls_report_to_webhook",
+        )
+        for url, secret in self.MALFORMED:
+            client = WebhookClient(url, url, url)
+            for method in saves:
+                with self.subTest(url=url, method=method):
+                    with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+                        getattr(client, method)('{"a": 1}')  # must not raise
+                    self.assertEqual(
+                        cm.output,
+                        [
+                            "ERROR:parsedmarc.log:Webhook Error: invalid webhook "
+                            "URL (details withheld because they may include "
+                            "credentials)"
+                        ],
+                    )
+                    self.assertNotIn(secret, "\n".join(cm.output))
+
+    def test_valid_url_is_the_one_posted(self):
+        url = "https://admin:p4ssw0rd@hooks.example.com/x"
+        client = WebhookClient(url, url, url)
+        client.session = MagicMock()
+        client.save_aggregate_report_to_webhook('{"a": 1}')
+        client.session.post.assert_called_once_with(url, content='{"a": 1}', timeout=60)
+
+
 class TestWebhookClientClose(unittest.TestCase):
     def test_close_closes_session(self):
         client = _client()

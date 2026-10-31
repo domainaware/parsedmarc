@@ -91,7 +91,9 @@ hosts = 127.0.0.1:9200
 ssl = False
 
 [opensearch]
-hosts = https://admin:admin@127.0.0.1:9200
+hosts = https://127.0.0.1:9200
+user = admin
+password = PasswordGoesHere
 ssl = True
 
 [splunk_hec]
@@ -571,14 +573,10 @@ The full set of configuration options is:
 
   Requires the `elastic` extra: `pip install "parsedmarc[elastic]"`
 
-  - `hosts` - str: A comma separated list of hostnames and ports
-      or URLs (e.g. `127.0.0.1:9200` or
-      `https://user:secret@localhost`)
-
-    :::{note}
-    Special characters in the username or password must be
-    [URL encoded].
-    :::
+  - `hosts` - str: A comma-separated list of hostnames and ports
+    or URLs (e.g. `127.0.0.1:9200` or `https://localhost:9200`).
+    Do not put credentials in the URL; use `user` and `password`
+    (or `api_key`) instead.
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
   - `api_key` - str: API key
@@ -616,14 +614,10 @@ The full set of configuration options is:
 
   Requires the `opensearch` extra: `pip install "parsedmarc[opensearch]"`
 
-  - `hosts` - str: A comma separated list of hostnames and ports
-    or URLs (e.g. `127.0.0.1:9200` or
-    `https://user:secret@localhost`)
-
-    :::{note}
-    Special characters in the username or password must be
-    [URL encoded].
-    :::
+  - `hosts` - str: A comma-separated list of hostnames and ports
+    or URLs (e.g. `127.0.0.1:9200` or `https://localhost:9200`).
+    Do not put credentials in the URL; use `user` and `password`
+    (or `api_key`) instead.
   - `user` - str: Basic auth username
   - `password` - str: Basic auth password
   - `api_key` - str: API key
@@ -656,7 +650,8 @@ The full set of configuration options is:
     See [Data streams and records retention](opensearch.md#data-streams-and-records-retention)
     (Default: `False`)
 - `splunk_hec`
-  - `url` - str: The URL of the Splunk HTTP Events Collector (HEC)
+  - `url` - str: The URL of the Splunk HTTP Events Collector (HEC).
+    Do not put credentials in the URL; use `token` instead.
   - `token` - str: The HEC token
   - `index` - str: The Splunk index to use
   - `skip_certificate_verification` - bool: Skip certificate
@@ -715,8 +710,13 @@ The full set of configuration options is:
   - `password` - str: The database user password (Optional)
   - `database` - str: The database name (Optional)
   - `connection_string` - str: A full libpq connection string or URI
-    (e.g. `postgresql://user:pass@host/dbname`). When provided,
-    all individual parameters above are ignored.
+    (e.g. `postgresql://user@host/dbname`). When provided,
+    all individual parameters above are ignored. Prefer the separate
+    `host`, `port`, `user`, `password`, and `database` settings and do
+    not put the password in the connection string: a malformed
+    connection string can make the driver echo it back in an error
+    message. parsedmarc replaces such errors with a fixed message in
+    its log, but cannot stop the driver from producing them.
 
   The PostgreSQL backend is an optional extra. Install it with
   `pip install "parsedmarc[postgresql]"` (it pulls in `psycopg`); the
@@ -743,11 +743,13 @@ The full set of configuration options is:
   database = parsedmarc
   ```
 
-  Or using a DSN/URI:
+  Or using a DSN/URI, with the password supplied separately (for
+  example through the `PGPASSWORD` environment variable or a
+  `~/.pgpass` file, both of which libpq reads):
 
   ```ini
   [postgresql]
-  connection_string = postgresql://parsedmarc:secret@localhost/parsedmarc
+  connection_string = postgresql://parsedmarc@localhost/parsedmarc
   ```
 
   Saving parsed data to PostgreSQL is controlled by the `[general]`
@@ -954,6 +956,8 @@ The full set of configuration options is:
   It expects the default `job=parsedmarc` label and `label_fields`.
   - `url` - str: The Loki base URL; `/loki/api/v1/push` is appended when the
     URL has no path. A URL with a path is used as is.
+    Do not put credentials in the URL; use `username` and `password`
+    (or `token`) instead.
   - `labels` - str: Comma-separated `name=value` stream labels, merged over
     the defaults `job=parsedmarc` and `host=<FQDN of the parsedmarc host>`
     (in a container, the FQDN is the container's hostname)
@@ -1568,5 +1572,4 @@ journalctl -u parsedmarc.service -r
 :::
 
 [cloudflare's public resolvers]: https://1.1.1.1/
-[url encoded]: https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters
 [ipinfo lite rest api]: https://ipinfo.io/developers/lite-api

@@ -20,6 +20,7 @@ from ssl import CERT_NONE, create_default_context
 from typing import TYPE_CHECKING, Any
 
 import dns.exception
+import dns.query
 import dns.resolver
 import dns.reversename
 import httpx
@@ -130,6 +131,7 @@ import parsedmarc.utils
 from parsedmarc.utils import (
     InvalidIPinfoAPIKey,
     ReverseDNSMap,
+    _mask_nameserver_secrets,
     configure_ipinfo_api,
     get_base_domain,
     human_timestamp_to_datetime,
@@ -138,6 +140,7 @@ from parsedmarc.utils import (
     load_psl_overrides,
     load_reverse_dns_map,
     query_dns,
+    redact_url_credentials,
     sanitize_for_log,
 )
 
@@ -684,6 +687,59 @@ _DEPENDENCY_LOGGERS = (
 )
 
 
+# URL classes whose instances appear as log-record arguments. dnspython
+# 2.9+ does DNS over HTTPS through httpx2, whose URL is not an httpx.URL;
+# like _doh_client_class() in utils.py, take the module dnspython itself
+# imported (absent under dnspython 2.7/2.8, which use httpx).
+_HTTP_URL_CLASSES: tuple[type, ...] = (httpx.URL,) + tuple(
+    module.URL for module in (getattr(dns.query, "httpx2", None),) if module
+)
+
+
+class _RedactUrlCredentialsFilter(logging.Filter):
+    """Masks URL credentials and the IPinfo ``token`` query parameter in
+    the arguments of httpx and httpx2 log records.
+
+    httpx and httpx2 log ``HTTP Request: %s %s "%s %d %s"`` with
+    ``request.url``, whose string form includes the userinfo password and
+    the query string. httpx2 is what dnspython 2.9+ uses for DNS over HTTPS,
+    so a ``[general]`` ``nameservers`` URL with credentials reaches this
+    line on every lookup.
+    The filter never drops a record; the redaction itself is total (string
+    methods and URL parameter lookups only), so it cannot raise.
+
+    Logger-level filters apply only to records created on the logger the
+    filter is attached to, not to records from its child loggers. httpx
+    (0.28) logs only via ``logging.getLogger("httpx")`` itself and httpx2
+    only via ``logging.getLogger("httpx2")`` (``httpx2/_client.py``), so
+    attaching the filter to those two loggers covers them; a version that
+    logged on a child logger (``httpx.something``) would bypass it.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.args, tuple):
+            record.args = tuple(self._redact(arg) for arg in record.args)
+        return True
+
+    @staticmethod
+    def _redact(arg: Any) -> Any:
+        if isinstance(arg, _HTTP_URL_CLASSES):
+            if arg.params.get("token") is not None:
+                # Drop the token and append the mask as typed: setting it
+                # with copy_set_param() would percent-encode the "*"s, and
+                # rewriting the encoded form afterwards would also touch a
+                # literal "%2A%2A%2A" elsewhere in the URL.
+                text = str(arg.copy_remove_param("token"))
+                text, fragment_sep, fragment = text.partition("#")
+                separator = "&" if "?" in text else "?"
+                text = f"{text}{separator}token=***{fragment_sep}{fragment}"
+                return redact_url_credentials(text)
+            return redact_url_credentials(str(arg))
+        if isinstance(arg, str):
+            return redact_url_credentials(arg)
+        return arg
+
+
 def _configure_dependency_logging(level: int) -> None:
     """Apply parsedmarc's logging verbosity to dependency loggers.
 
@@ -697,6 +753,11 @@ def _configure_dependency_logging(level: int) -> None:
     duplicates output nor keeps writing to a closed handler. Propagation
     to the root logger is disabled so that a stray ``logging.basicConfig()``
     anywhere in the process cannot double-print every dependency record.
+    The ``httpx`` and ``httpx2`` loggers also get a
+    :class:`_RedactUrlCredentialsFilter`
+    (installed once, so reloads do not stack copies) that masks URL
+    credentials and the IPinfo ``token`` query parameter in its
+    ``HTTP Request:`` records.
     CLI-only: library consumers configure logging themselves.
     """
     dep_level = min(level, logging.WARNING)
@@ -710,6 +771,12 @@ def _configure_dependency_logging(level: int) -> None:
         for wanted in logger.handlers:
             if wanted not in dep_logger.handlers:
                 dep_logger.addHandler(wanted)
+    for name in ("httpx", "httpx2"):
+        http_logger = logging.getLogger(name)
+        if not any(
+            isinstance(f, _RedactUrlCredentialsFilter) for f in http_logger.filters
+        ):
+            http_logger.addFilter(_RedactUrlCredentialsFilter())
 
 
 def _load_config(config_file: str | None = None) -> ConfigParser:
@@ -847,12 +914,15 @@ def _parse_config(config: ConfigParser, opts):
                 )
             except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer) as ns_error:
                 raise ConfigurationError(
-                    f"DNS pre-flight check failed: no PTR record for {opts.dns_test_address} from {opts.nameservers}: {ns_error}"
+                    f"DNS pre-flight check failed: no PTR record for {opts.dns_test_address} from {redact_url_credentials(opts.nameservers or [])}: {ns_error}"
                 ) from ns_error
             except Exception as ns_error:
+                # A DNS over HTTPS error can quote the request URL, which
+                # carries the configured nameserver's credentials.
                 raise ConfigurationError(
-                    f"DNS pre-flight check failed: {ns_error}"
-                ) from ns_error
+                    f"DNS pre-flight check failed: {type(ns_error).__name__}: "
+                    f"{_mask_nameserver_secrets(str(ns_error), opts.nameservers)}"
+                ) from None
         if "save_aggregate" in general_config:
             opts.save_aggregate = bool(general_config.getboolean("save_aggregate"))
         if "save_failure" in general_config:
@@ -2070,7 +2140,10 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
                 "HEC token and HEC index are required when using HEC URL"
             )
         try:
-            logger.debug("Initializing Splunk HEC client: url=%s", opts.hec)
+            logger.debug(
+                "Initializing Splunk HEC client: url=%s",
+                redact_url_credentials(opts.hec),
+            )
             verify = True
             if opts.hec_skip_certificate_verification:
                 verify = False
@@ -2137,7 +2210,10 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
 
     try:
         if opts.loki_url:
-            logger.debug("Initializing Loki client: url=%s", opts.loki_url)
+            logger.debug(
+                "Initializing Loki client: url=%s",
+                redact_url_credentials(opts.loki_url),
+            )
             clients["loki_client"] = loki.LokiClient(
                 opts.loki_url,
                 labels=opts.loki_labels,
@@ -2182,7 +2258,7 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
             if opts.elasticsearch_hosts:
                 logger.debug(
                     "Initializing Elasticsearch client: hosts=%s, ssl=%s",
-                    opts.elasticsearch_hosts,
+                    redact_url_credentials(opts.elasticsearch_hosts),
                     opts.elasticsearch_ssl,
                 )
                 es_aggregate_indexes = _migration_index_names(
@@ -2253,7 +2329,7 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
             if opts.opensearch_hosts:
                 logger.debug(
                     "Initializing OpenSearch client: hosts=%s, ssl=%s",
-                    opts.opensearch_hosts,
+                    redact_url_credentials(opts.opensearch_hosts),
                     opts.opensearch_ssl,
                 )
                 os_aggregate_indexes = _migration_index_names(

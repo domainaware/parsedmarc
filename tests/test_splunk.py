@@ -2,6 +2,7 @@
 
 import json
 import time
+import traceback
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -466,6 +467,58 @@ class TestSaveSmtpTlsReportsToSplunk(unittest.TestCase):
             client.save_smtp_tls_reports_to_splunk(_smtp_tls_report())
         self.assertTrue(
             any("Skipping certificate verification" in m for m in cm.output)
+        )
+
+
+class TestInvalidUrlDoesNotLeakPassword(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: a password with an unencoded "/", "?" or "#"
+    ends the URL's authority early (RFC 3986 section 3.2), so httpx reads the
+    text after the colon as the port and raises
+    ``InvalidURL("Invalid port: 'p4ssw0rd'")`` when posting (httpx 0.28.1
+    _urlparse.py: ``raise InvalidURL(f"Invalid port: {port!r}")``), before
+    any network I/O. The error reaches the log on every batch."""
+
+    MALFORMED = (
+        ("https://admin:p4ssw0rd/extra@splunk.example.com:8088", "p4ssw0rd"),
+        ("https://admin:p4ss?w0rd@splunk.example.com:8088", "p4ss"),
+        ("https://admin:p4ss#w0rd@splunk.example.com:8088", "p4ss"),
+    )
+
+    def test_invalid_url_raises_fixed_message_without_password(self):
+        saves = (
+            ("aggregate", "save_aggregate_reports_to_splunk", _aggregate_report),
+            ("failure", "save_failure_reports_to_splunk", _failure_report),
+            ("smtp_tls", "save_smtp_tls_reports_to_splunk", _smtp_tls_report),
+        )
+        for url, secret in self.MALFORMED:
+            client = HECClient(url=url, access_token="tok", index="dmarc")
+            for name, method, make_report in saves:
+                with self.subTest(url=url, report=name):
+                    with self.assertRaises(SplunkError) as ctx:
+                        getattr(client, method)(make_report())
+                    self.assertEqual(
+                        str(ctx.exception),
+                        "Invalid Splunk HEC URL (details withheld because they "
+                        "may include credentials)",
+                    )
+                    self.assertIsNone(ctx.exception.__cause__)
+                    self.assertTrue(ctx.exception.__suppress_context__)
+                    trace = "".join(traceback.format_exception(ctx.exception))
+                    self.assertNotIn(secret, trace)
+
+    def test_valid_url_is_the_one_posted(self):
+        client = HECClient(
+            url="https://admin:p4ssw0rd@splunk.example.com:8088",
+            access_token="tok",
+            index="dmarc",
+        )
+        client.session = MagicMock()
+        client.session.post.return_value = _ok_response()
+        client.save_aggregate_reports_to_splunk(_aggregate_report())
+        self.assertEqual(
+            client.session.post.call_args.args[0],
+            "https://admin:p4ssw0rd@splunk.example.com:8088"
+            "/services/collector/event/1.0",
         )
 
 

@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import time
+import traceback
 import unittest
 from datetime import datetime, timezone
 from importlib.resources import files
@@ -516,6 +517,122 @@ class Test(unittest.TestCase):
         self.assertTrue(parsedmarc.utils.is_outlook_msg(magic))
 
 
+class TestRedactUrlCredentials(unittest.TestCase):
+    """Tests for parsedmarc.utils.redact_url_credentials()"""
+
+    def testMasksUserinfoAndKeepsHost(self):
+        cases = [
+            ("https://user:secret@host", "https://user:***@host"),
+            ("https://user:secret@host:9200/", "https://user:***@host:9200/"),
+            ("localhost:9200", "localhost:9200"),
+            ("127.0.0.1:9299", "127.0.0.1:9299"),
+            ("user:secret@localhost:9200", "user:***@localhost:9200"),
+            # A "://" in the path or query of a scheme-less value is not
+            # the scheme separator; the userinfo at offset 0 is still masked
+            (
+                "user:secret@host:9200/x?r=http://y",
+                "user:***@host:9200/x?r=http://y",
+            ),
+            ("user:secret@host?r=a://b", "user:***@host?r=a://b"),
+            ("https://user:p@ss@host/x", "https://user:***@host/x"),
+            ("https://user:p:w@[::1]:9200/", "https://user:***@[::1]:9200/"),
+            ("https://[::1]:9200", "https://[::1]:9200"),
+            ("//user:pw@host", "//user:***@host"),
+            # Documented over-masking: with no "@" in the authority, an "@"
+            # later in the value is masked through, since it may end a
+            # password that contains "/", "?" or "#"
+            ("http://host/path?e=a@b.com", "http://***@b.com"),
+            ("https://host/path@file", "https://***@file"),
+            ("https://host/?redirect=https://u:p@evil", "https://***@evil"),
+            # Documented non-goal: with userinfo in the authority, credentials
+            # inside a later query value are not masked
+            (
+                "https://a:b@host/?redirect=https://u:p@evil",
+                "https://a:***@host/?redirect=https://u:p@evil",
+            ),
+            ("https://tok@host", "https://***@host"),
+            ("user@host:9200", "***@host:9200"),
+            ("https://user:@host", "https://user:***@host"),
+            ("https://u%40x:p%3Aw@h", "https://u%40x:***@h"),
+            ("not a url @ all", "***@ all"),
+            ("", ""),
+            ("::::", "::::"),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(
+                    parsedmarc.utils.redact_url_credentials(value), expected
+                )
+
+    def testMasksPasswordContainingAuthorityDelimiter(self):
+        """A password with an unencoded "/", "?" or "#" ends the authority
+        before the "@" (RFC 3986 section 3.2), which used to leave the value
+        unmasked; everything through the last "@" is masked instead."""
+        cases = [
+            ("https://admin:p4ssw0rd/extra@host:3100", "https://***@host:3100"),
+            ("https://admin:p4ss?w0rd@host", "https://***@host"),
+            ("https://admin:p4ss#w0rd@host", "https://***@host"),
+            ("admin:p4ss/w0rd@host:9200", "***@host:9200"),
+            ("//admin:p4ss/w0rd@host", "//***@host"),
+            # The password may itself contain "@"; the last one is used
+            ("https://admin:p4ss/w@rd@host:3100/x", "https://***@host:3100/x"),
+            # A "://" after the "/" is not the scheme separator
+            (
+                "admin:p4ss/w0rd@host/x?r=http://y",
+                "***@host/x?r=http://y",
+            ),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                result = parsedmarc.utils.redact_url_credentials(value)
+                self.assertEqual(result, expected)
+                self.assertNotIn("p4ss", result)
+
+    def testListMasksPasswordContainingAuthorityDelimiter(self):
+        self.assertEqual(
+            parsedmarc.utils.redact_url_credentials(
+                ["https://admin:p4ss/w0rd@h1:9200", "https://h2:9200"]
+            ),
+            ["https://***@h1:9200", "https://h2:9200"],
+        )
+
+    def testListIsRedactedElementWiseIntoANewList(self):
+        original = ["a:b@h1", "https://h2"]
+        result = parsedmarc.utils.redact_url_credentials(original)
+        self.assertEqual(result, ["a:***@h1", "https://h2"])
+        self.assertIsNot(result, original)
+        self.assertEqual(original, ["a:b@h1", "https://h2"])
+
+    def testListKeepsNonStringItems(self):
+        mixed = cast(list[str], ["a:b@h1", None])
+        self.assertEqual(
+            parsedmarc.utils.redact_url_credentials(mixed), ["a:***@h1", None]
+        )
+
+    def testNonStringInputIsReturnedUnchanged(self):
+        for value in (None, 42):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    parsedmarc.utils.redact_url_credentials(cast(str, value)), value
+                )
+
+    def testLongInputsAreFast(self):
+        """No regex is used, so adversarial input is linear. A 1 MB string
+        of repeated openers and a 200,000-character run of '@' both finish
+        in milliseconds."""
+        for value in (
+            "://" * 350_000,
+            "@" * 200_000,
+            "a:b@" * 250_000,
+            "a:b/" * 250_000 + "@",
+            "/@" * 500_000,
+        ):
+            with self.subTest(prefix=value[:8]):
+                started = time.monotonic()
+                parsedmarc.utils.redact_url_credentials(value)
+                self.assertLess(time.monotonic() - started, 5)
+
+
 class TestSanitizeForLog(unittest.TestCase):
     """Tests for parsedmarc.utils.sanitize_for_log()"""
 
@@ -539,6 +656,197 @@ class TestSanitizeForLog(unittest.TestCase):
         result = parsedmarc.utils.sanitize_for_log("a\r\nb\nc\rd")
         self.assertNotIn("\r", result)
         self.assertNotIn("\n", result)
+
+
+class TestDownloadUrlCredentialsNotLogged(unittest.TestCase):
+    """A download URL with userinfo must not leak its password through the
+    "Trying to fetch" debug line or the warning that embeds the httpx
+    ``HTTPStatusError`` message (which quotes the full URL).
+
+    The loaders run for real; only the network is replaced, with an
+    ``httpx.MockTransport`` returning 401 so httpx itself builds the
+    exception text.
+    """
+
+    URL = "https://dluser:DLSECRET@downloads.example.test/map.dat"
+
+    @staticmethod
+    def _transport_returning(handler):
+        def get(url, **kwargs):
+            with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+                return client.get(url, **kwargs)
+
+        return get
+
+    @classmethod
+    def _status_getter(cls, reason_phrase=None):
+        extensions = {}
+        if reason_phrase is not None:
+            extensions["reason_phrase"] = reason_phrase
+        return cls._transport_returning(
+            lambda request: httpx.Response(401, extensions=extensions)
+        )
+
+    @staticmethod
+    def _connect_error_getter(url, **kwargs):
+        def handler(request):
+            raise httpx.ConnectError("connection refused", request=request)
+
+        with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+            return client.get(url, **kwargs)
+
+    # Reason phrases containing URL delimiters used to defeat redaction of
+    # the HTTPStatusError text, which puts the phrase before the URL.
+    REASON_PHRASES = (
+        None,
+        b"Unauthorized/Expired",
+        b"Unauthorized?",
+        b"Gone#",
+        b"Not @ home",
+    )
+
+    def _assert_redacted(self, logs):
+        output = "\n".join(logs.output)
+        self.assertNotIn("DLSECRET", output)
+        self.assertTrue(
+            any(
+                line.startswith("DEBUG") and "downloads.example.test" in line
+                for line in logs.output
+            ),
+            output,
+        )
+        warnings = [line for line in logs.output if line.startswith("WARNING")]
+        self.assertTrue(
+            any(
+                "HTTP 401" in line
+                and "'https://dluser:***@downloads.example.test/map.dat'" in line
+                for line in warnings
+            ),
+            output,
+        )
+
+    def _run_psl(self, url=None):
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as logs:
+            parsedmarc.utils.load_psl_overrides(url=url or self.URL)
+        return logs
+
+    def _run_ip_db(self, url=None):
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        old_path = parsedmarc.utils._IP_DB_PATH
+        self.addCleanup(setattr, parsedmarc.utils, "_IP_DB_PATH", old_path)
+        parsedmarc.utils._IP_DB_PATH = None
+        with (
+            patch("parsedmarc.utils.tempfile.gettempdir", return_value=tmp_dir),
+            self.assertLogs("parsedmarc.log", level="DEBUG") as logs,
+        ):
+            parsedmarc.utils.load_ip_db(url=url or self.URL)
+        return logs
+
+    def _run_reverse_dns_map(self, url=None):
+        with self.assertLogs("parsedmarc.log", level="DEBUG") as logs:
+            parsedmarc.utils.load_reverse_dns_map({}, url=url or self.URL)
+        return logs
+
+    def _check_loader(self, run):
+        for phrase in self.REASON_PHRASES:
+            with self.subTest(reason_phrase=phrase):
+                with patch("parsedmarc.utils.httpx.get", self._status_getter(phrase)):
+                    self._assert_redacted(run())
+
+    def _check_transport_error(self, run):
+        with patch("parsedmarc.utils.httpx.get", self._connect_error_getter):
+            logs = run()
+        output = "\n".join(logs.output)
+        self.assertNotIn("DLSECRET", output)
+        self.assertTrue(
+            any(
+                line.startswith("WARNING")
+                and "ConnectError: connection refused" in line
+                for line in logs.output
+            ),
+            output,
+        )
+
+    # The password holds an unencoded "/", "?" or "#", which RFC 3986 section
+    # 3.2 ends the authority at, so the text after the colon is read as the
+    # port. Real httpx raises InvalidURL("Invalid port: 'p4ssw0rd'") while
+    # parsing, before any network I/O (httpx 0.28.1 _urlparse.py:
+    # ``raise InvalidURL(f"Invalid port: {port!r}")``). InvalidURL is not an
+    # httpx.HTTPError, and its message quotes part of the password.
+    MALFORMED_URLS = (
+        ("https://admin:p4ssw0rd/extra@downloads.example.test/map.dat", "p4ssw0rd"),
+        ("https://admin:p4ss?w0rd@downloads.example.test/map.dat", "p4ss"),
+        ("https://admin:p4ss#w0rd@downloads.example.test/map.dat", "p4ss"),
+    )
+    INVALID_URL_MESSAGE = (
+        "invalid URL (details withheld because they may include credentials)"
+    )
+
+    def _check_invalid_url(self, run, source):
+        for url, secret in self.MALFORMED_URLS:
+            with self.subTest(url=url):
+                requested = []
+                real_get = httpx.get
+
+                def recording_get(requested_url, **kwargs):
+                    requested.append(requested_url)
+                    if requested_url != url:
+                        # e.g. the PSL overrides fetch that
+                        # load_reverse_dns_map triggers; stay offline
+                        raise httpx.ConnectError("offline")
+                    return real_get(requested_url, **kwargs)
+
+                with patch("parsedmarc.utils.httpx.get", recording_get):
+                    logs = run(url)  # must return, not crash on InvalidURL
+                # The loader still requested the real URL, not a redacted one
+                self.assertIn(url, requested)
+                output = "\n".join(logs.output)
+                # Neither the warning nor the "Trying to fetch" debug line
+                # may show any part of the password
+                self.assertNotIn(secret, output)
+                self.assertIn(
+                    f"DEBUG:parsedmarc.log:Trying to fetch {source} from "
+                    "https://***@downloads.example.test/map.dat...",
+                    logs.output,
+                )
+                self.assertIn(
+                    f"WARNING:parsedmarc.log:Failed to fetch {source}: "
+                    f"{self.INVALID_URL_MESSAGE}",
+                    logs.output,
+                )
+                self.assertNotIn("Not a valid CSV file", output)
+                self.assertNotIn("Failed to save IP database", output)
+
+    def test_psl_overrides_loader_invalid_url(self):
+        """A malformed ``psl_overrides_url`` used to crash startup with the
+        InvalidURL traceback; it now warns and falls back to the local file."""
+        self._check_invalid_url(self._run_psl, "PSL overrides")
+        self.assertIn(".linode.com", parsedmarc.utils.psl_overrides)
+
+    def test_ip_db_loader_invalid_url(self):
+        self._check_invalid_url(self._run_ip_db, "IP database")
+
+    def test_reverse_dns_map_loader_invalid_url(self):
+        self._check_invalid_url(self._run_reverse_dns_map, "reverse DNS map")
+
+    def test_psl_overrides_loader(self):
+        self._check_loader(self._run_psl)
+
+    def test_ip_db_loader(self):
+        self._check_loader(self._run_ip_db)
+
+    def test_reverse_dns_map_loader(self):
+        self._check_loader(self._run_reverse_dns_map)
+
+    def test_psl_overrides_loader_transport_error(self):
+        self._check_transport_error(self._run_psl)
+
+    def test_ip_db_loader_transport_error(self):
+        self._check_transport_error(self._run_ip_db)
+
+    def test_reverse_dns_map_loader_transport_error(self):
+        self._check_transport_error(self._run_reverse_dns_map)
 
 
 class TestLoadPSLOverrides(unittest.TestCase):
@@ -1559,16 +1867,20 @@ class TestEncryptedDnsNameservers(unittest.TestCase):
         must fail at configuration time naming the entry, not parse
         "successfully" with no TLS certificate identity and then fail at
         query time with an opaque certificate error. Userinfo and query
-        components are rejected the same way."""
-        for entry in (
-            "tls://9.9.9.9/dns.quad9.net",
-            "tls://user@9.9.9.9",
-            "tls://9.9.9.9?hostname=dns.quad9.net",
+        components are rejected the same way, with the userinfo masked in
+        the message (GHSA-hjr3-rx4c-24cv)."""
+        for entry, shown in (
+            ("tls://9.9.9.9/dns.quad9.net", "tls://9.9.9.9/dns.quad9.net"),
+            ("tls://user@9.9.9.9", "tls://***@9.9.9.9"),
+            (
+                "tls://9.9.9.9?hostname=dns.quad9.net",
+                "tls://9.9.9.9?hostname=dns.quad9.net",
+            ),
         ):
             with self.subTest(entry=entry):
                 with self.assertRaises(ValueError) as ctx:
                     parsedmarc.utils._nameservers_to_resolver_input([entry])
-                self.assertIn(entry, str(ctx.exception))
+                self.assertIn(shown, str(ctx.exception))
 
     def test_unsplittable_entry_is_left_for_dnspython_to_reject(self):
         """urlsplit itself raises on some malformed input (an unbalanced
@@ -1710,6 +2022,152 @@ class TestEncryptedDnsNameservers(unittest.TestCase):
         self.addCleanup(parent_session.close)
         self.assertIsNot(child_session, parent_session)
         self.assertEqual(parsedmarc.utils._DOH_SESSION_PID, os.getpid())
+
+
+class TestNameserverCredentialsNotLeaked(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: nameserver URL credentials must not reach an
+    exception message, its printed traceback, or the log."""
+
+    def test_url_secrets_finds_the_password_and_its_port_like_prefix(self):
+        """The secret is the userinfo after its first ":" (the whole
+        userinfo when there is none). A "/", "?" or "#" in it ends the URL
+        authority (RFC 3986 section 3.2), so urlsplit() reads the text
+        before it as the port and quotes it in its error; that prefix is a
+        secret too."""
+        cases = [
+            ("https://doh:p4ss@dns.example/q", ["p4ss"]),
+            ("https://doh:p4ss/w0rd@dns.example/q", ["p4ss/w0rd", "p4ss"]),
+            ("https://doh:p4ss?w0rd@dns.example/q", ["p4ss?w0rd", "p4ss"]),
+            ("https://doh:p4ss#w0rd@dns.example/q", ["p4ss#w0rd", "p4ss"]),
+            # The prefix ends at the first of the three delimiters
+            ("https://doh:ab#cd/ef@dns.example/q", ["ab#cd/ef", "ab"]),
+            ("https://doh:p:w@dns.example/q", ["p:w"]),
+            ("https://doh:p@ss@dns.example/q", ["p@ss"]),
+            ("https://S3CRETTOKEN@dns.example/q", ["S3CRETTOKEN"]),
+            ("tls://dot:p4ss/w0rd@1.1.1.1", ["p4ss/w0rd", "p4ss"]),
+            # Empty secrets are never returned: str.replace("", ...) would
+            # insert the mask between every character
+            ("https://doh:@dns.example/q", []),
+            ("https://doh:/x@dns.example/q", ["/x"]),
+            ("https://dns.example/dns-query", []),
+            ("8.8.8.8", []),
+            ("", []),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertEqual(parsedmarc.utils._url_secrets(value), expected)
+
+    def test_mask_nameserver_secrets_masks_entries_passwords_and_prefixes(self):
+        """Each configured entry is replaced by its redacted form, and each
+        secret in it wherever it still appears, including the bare port-like
+        prefix that urlsplit() and httpx quote."""
+        mask = parsedmarc.utils._mask_nameserver_secrets
+        url = "https://doh:p4ss/w0rd@dns.example/dns-query"
+        text = (
+            f"Server {url} answered x; "
+            "Port could not be cast to integer value as 'p4ss'; "
+            "Invalid port: 'p4ss/w0rd'"
+        )
+        self.assertEqual(
+            mask(text, [url, "8.8.8.8"]),
+            "Server https://***@dns.example/dns-query answered x; "
+            "Port could not be cast to integer value as '***'; "
+            "Invalid port: '***'",
+        )
+        self.assertEqual(
+            mask(
+                "Server https://u:PW123@h.example/q failed (PW123)",
+                ["https://u:PW123@h.example/q"],
+            ),
+            "Server https://u:***@h.example/q failed (***)",
+        )
+        self.assertEqual(mask("abc", None), "abc")
+        self.assertEqual(mask("abc", ["https://u:@h"]), "abc")
+
+    def test_mask_nameserver_secrets_handles_unsplittable_entries(self):
+        """urlsplit() raises ValueError for an entry such as ``https://[x``;
+        the masking uses string methods only, so it still returns text."""
+        text = "Server https://[x failed; Server https://u:PW@[x failed"
+        self.assertEqual(
+            parsedmarc.utils._mask_nameserver_secrets(
+                text, ["https://[x", "https://u:PW@[x"]
+            ),
+            "Server https://[x failed; Server https://u:***@[x failed",
+        )
+
+    def test_malformed_https_and_tls_ports_are_reported_without_secrets(self):
+        """A password containing "/", "?" or "#" makes urlsplit() read its
+        start as the port, and its ValueError quotes that text; dnspython
+        2.9.1 raised it from ``DoHNameserver.answer_port()`` only after a
+        failed query (``dns/nameserver.py``). Both schemes are now rejected
+        before any query, naming the entry with its credentials masked and
+        with no chained exception repeating the urlsplit message."""
+        for entry, shown in (
+            (
+                "https://doh:p4ss/w0rd@dns.example/dns-query",
+                "Invalid DNS over HTTPS nameserver https://***@dns.example/dns-query",
+            ),
+            (
+                "https://doh:p4ss?w0rd@dns.example/dns-query",
+                "Invalid DNS over HTTPS nameserver https://***@dns.example/dns-query",
+            ),
+            (
+                "tls://dot:p4ss#w0rd@1.1.1.1",
+                "Invalid DNS over TLS nameserver tls://***@1.1.1.1",
+            ),
+            (
+                "https://dns.example:notaport/dns-query",
+                "Invalid DNS over HTTPS nameserver https://dns.example:notaport/",
+            ),
+        ):
+            with self.subTest(entry=entry):
+                with patch("dns.query.https", side_effect=AssertionError):
+                    with self.assertRaises(ValueError) as ctx:
+                        parsedmarc.utils.query_dns(
+                            "1.0.0.1.in-addr.arpa",
+                            "PTR",
+                            nameservers=[entry],
+                            timeout=0.2,
+                        )
+                trace = "".join(traceback.format_exception(ctx.exception))
+                self.assertIn(shown, str(ctx.exception))
+                self.assertIsNone(ctx.exception.__cause__)
+                self.assertIsNone(ctx.exception.__context__)
+                for secret in ("p4ss", "w0rd"):
+                    self.assertNotIn(secret, trace)
+
+    def test_dnspython_rejection_of_an_entry_is_masked(self):
+        """dnspython rejects an entry urlsplit() cannot split with a message
+        that quotes it as configured ("nameserver https://u:pw@[x is not a
+        dns.nameserver.Nameserver instance ..."); query_dns() masks it."""
+        entry = "https://doh:S3CRETPW@[dns.example/dns-query"
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.utils.query_dns(
+                "1.0.0.1.in-addr.arpa", "PTR", nameservers=[entry], timeout=0.2
+            )
+        trace = "".join(traceback.format_exception(ctx.exception))
+        self.assertIn("https://doh:***@[dns.example/dns-query", str(ctx.exception))
+        self.assertNotIn("S3CRETPW", trace)
+
+    def test_get_reverse_dns_debug_log_masks_nameserver_credentials(self):
+        """get_reverse_dns() logs the DNS error it swallows at debug level,
+        and LifetimeTimeout/NoNameservers quote each failing nameserver
+        URL, so the configured credentials are masked there too."""
+        url = "https://doh:S3CRETPW@dns.example/dns-query"
+
+        def fail(*args, **kwargs):
+            raise OSError(f"connection to {url} refused (S3CRETPW)")
+
+        with patch("dns.query.https", side_effect=fail):
+            with self.assertLogs("parsedmarc.log", level="DEBUG") as logs:
+                result = parsedmarc.utils.get_reverse_dns(
+                    "1.0.0.1", nameservers=[url], timeout=0.2, retries=0
+                )
+        self.assertIsNone(result)
+        output = "\n".join(logs.output)
+        self.assertIn("get_reverse_dns(1.0.0.1) exception:", output)
+        self.assertIn("https://doh:***@dns.example/dns-query", output)
+        self.assertNotIn("S3CRETPW", output)
 
 
 class TestLoadIpDb(unittest.TestCase):

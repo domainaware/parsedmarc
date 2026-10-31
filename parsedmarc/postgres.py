@@ -20,7 +20,7 @@ else:
         psycopg_json = None
 
 from parsedmarc.log import logger
-from parsedmarc.utils import human_timestamp_to_datetime
+from parsedmarc.utils import human_timestamp_to_datetime, redact_url_credentials
 
 # psycopg is an optional dependency (the PostgreSQL backend is opt-in). The
 # pure helper functions below work without it; only PostgreSQLClient needs a
@@ -183,7 +183,16 @@ class PostgreSQLClient:
                 )
             conn.autocommit = False
         except psycopg.Error as exc:
-            raise PostgreSQLError(str(exc)) from exc
+            # libpq reports a malformed connection string by echoing the
+            # whole string, or the fragment it could not parse, and either
+            # can contain the password. psycopg raises ProgrammingError for
+            # those parse failures, so withhold their detail entirely.
+            if self._connection_string and isinstance(exc, psycopg.ProgrammingError):
+                raise PostgreSQLError(
+                    "Invalid PostgreSQL connection_string (details withheld "
+                    "because they may include the password)"
+                ) from None
+            raise PostgreSQLError(redact_url_credentials(str(exc))) from exc
         self._conn = conn
         return conn
 
