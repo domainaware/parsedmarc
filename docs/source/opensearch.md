@@ -118,7 +118,10 @@ check for duplicate reports searches both, so a report that is already
 in a dated index is not saved again into a stream. You can delete the
 dated indexes when they age out of your retention period, or move their
 documents into the streams. Documents saved by earlier releases have no
-`@timestamp`, which a data stream requires, so add it while reindexing:
+`@timestamp`, which a data stream requires, so add it while reindexing.
+Run parsedmarc once with `use_data_streams = True` first, so the stream
+and its template exist; a reindex into a name that is not a data stream
+yet creates an ordinary index of that name instead:
 
 ```text
 POST _reindex

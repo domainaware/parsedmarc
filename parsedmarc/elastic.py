@@ -53,9 +53,9 @@ _SERVERLESS_REJECTED_SETTINGS = frozenset({"number_of_shards", "number_of_replic
 _READY_DATA_STREAMS: set[str] = set()
 
 # Priority of the index template ``create_data_streams`` installs.
-# Elasticsearch's built-in templates have priority 100, and its
-# documentation recommends a priority higher than 500 for custom templates
-# whose patterns overlap them. The template's ``index_patterns`` is the
+# Elasticsearch's built-in templates have priority 100 and Fleet's
+# integration templates up to 200, and its documentation recommends a
+# priority higher than 500 for custom templates whose patterns overlap them. The template's ``index_patterns`` is the
 # exact stream name, so an overlap is unlikely in the first place.
 _DATA_STREAM_TEMPLATE_PRIORITY = 501
 

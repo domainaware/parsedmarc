@@ -647,6 +647,8 @@ The full set of configuration options is:
     named like the index without the date suffix (e.g. `dmarc_aggregate`)
     instead of to daily or monthly indexes. parsedmarc creates the stream
     and its index template; retention is left to an ISM policy you attach.
+    OpenSearch rejects data stream names that start with `.`, so an
+    `index_prefix` starting with `.` cannot be used with this option.
     See [Data streams and records retention](opensearch.md#data-streams-and-records-retention)
     (Default: `False`)
 - `splunk_hec`

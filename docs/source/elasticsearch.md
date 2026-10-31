@@ -492,12 +492,12 @@ PUT _component_template/dmarc_aggregate@custom
 
 Repeat that for `dmarc_failure@custom` and `smtp_tls@custom`, and for the
 prefixed or suffixed names if you use them. The component template
-applies to backing indices created after it, so a stream that already
-exists picks the policy up at its next rollover. To attach it to the
-existing backing indices now:
+applies only to backing indices created after it. A stream that already
+exists has a write index with no policy, so nothing would ever roll it
+over; attach the policy to its existing backing indices as well:
 
 ```text
-PUT .ds-dmarc_aggregate-*/_settings
+PUT dmarc_aggregate/_settings
 {
   "index.lifecycle.name": "parsedmarc"
 }
@@ -528,7 +528,10 @@ check for duplicate reports searches both, so a report that is already
 in a dated index is not saved again into a stream. You can delete the
 dated indexes when they age out of your retention period, or move their
 documents into the streams. Documents saved by earlier releases have no
-`@timestamp`, which a data stream requires, so add it while reindexing:
+`@timestamp`, which a data stream requires, so add it while reindexing.
+Run parsedmarc once with `use_data_streams = True` first, so the stream
+and its template exist; a reindex into a name that is not a data stream
+yet creates an ordinary index of that name instead:
 
 ```text
 POST _reindex
