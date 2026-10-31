@@ -414,16 +414,13 @@ easy to comply with records retention regulations such as GDPR: delete
 the indexes for the dates you no longer keep. For more information,
 check out the Elastic guide to [managing time-based indexes efficiently](https://www.elastic.co/blog/managing-time-based-indices-efficiently).
 
-Data streams need Elasticsearch 8.7 or later, because the index template
-uses `ignore_missing_component_templates`.
-
 Set `use_data_streams = True` in the `[elasticsearch]` section to write
 to [data streams] instead. Each report type then goes to one data stream
 named like the indexes without the date: `dmarc_aggregate`,
 `dmarc_failure`, and `smtp_tls`, with `index_prefix`, `index_suffix`, or
 the `index_prefix_domain_map` prefix applied as usual. The cluster
-creates the stream's backing indices (`.ds-dmarc_aggregate-…`) and rolls
-them over, and an ILM policy you attach deletes old data, so there is
+creates the stream's backing indices (`.ds-dmarc_aggregate-…`), and an
+ILM policy you attach rolls them over and deletes old ones, so there is
 one stable name per report type and far fewer shards.
 
 Before a parsedmarc process first saves to a stream, it puts an index
@@ -435,12 +432,17 @@ exist yet. The template:
 - has priority 501 and sets `number_of_shards` and `number_of_replicas`
   from the configuration, for each new backing index;
 - maps `@timestamp` as a date. Every document parsedmarc saves carries
-  `@timestamp`: the report's begin date for aggregate reports (on
-  every record's document), the arrival date for failure reports, and the report's begin date for SMTP
-  TLS reports. The other fields are mapped dynamically, as in the dated
-  indexes;
+  `@timestamp`: each record's begin date (`date_begin`) for aggregate
+  reports, which is the report's begin date unless parsedmarc split a
+  report spanning more than a day into daily records; the arrival date
+  for failure reports; and the report's begin date for SMTP TLS reports.
+  The other fields are mapped dynamically, as in the dated indexes;
 - includes a component template named `<stream>@custom`, such as
   `dmarc_aggregate@custom`, if one exists.
+
+Data streams need Elasticsearch 8.7 or later, because the template uses
+`ignore_missing_component_templates` to make the `@custom` component
+template optional.
 
 parsedmarc puts the template again in every process, so changes made to
 it directly do not last. Put your own settings, such as the ILM policy,
@@ -547,8 +549,9 @@ finished; until then, the dashboards count every document twice.
 If saving fails with `cannot create the data stream dmarc_aggregate: an
 index or alias with that name already exists`, an index or alias already
 uses the stream's name. parsedmarc releases before 5.0.0 wrote to an
-undated `dmarc_aggregate` index, for example. parsedmarc never writes
-into it in that case. Move its documents to a dated name, which the
+undated `dmarc_aggregate` index, for example. parsedmarc refuses to
+write into such an index rather than mixing new documents into it. Move
+its documents to a dated name, which the
 dashboards still match, and delete it:
 
 ```text

@@ -45,11 +45,11 @@ class OpenSearchError(Exception):
 # repeats idempotent calls.
 _READY_DATA_STREAMS: set[str] = set()
 
-# Priority of the index template ``create_data_streams`` installs. Kept
-# equal to the Elasticsearch module's value, which is higher than the
-# priority of Elasticsearch's built-in templates. The template's
-# ``index_patterns`` is the exact stream name, so an overlap with another
-# template is unlikely in the first place.
+# Priority of the index template ``create_data_streams`` installs. OpenSearch
+# itself installs no index templates, but plugins may; 501 stays above the
+# usual priority-100 convention and matches the Elasticsearch module. The
+# template's ``index_patterns`` is the exact stream name, so an overlap with
+# another template is unlikely in the first place.
 _DATA_STREAM_TEMPLATE_PRIORITY = 501
 
 
@@ -666,9 +666,11 @@ def create_data_streams(names: list[str], settings: dict[str, Any] | None = None
             continue
         try:
             client = connections.get_connection()
-            # A missing name is a 404. Elasticsearch answers a name held by
-            # a concrete index with 200 and an empty list instead (OpenSearch
-            # 3 answers it with a 404), so look for the stream in the response.
+            # OpenSearch 3 answers both a missing name and a name held by a
+            # concrete index with a 404. Elasticsearch answers the latter
+            # with 200 and an empty list, so, as in the Elasticsearch module,
+            # look for the stream in the response rather than trust the
+            # status alone.
             try:
                 response = client.indices.get_data_stream(name=name)
                 stream_exists = any(
@@ -790,8 +792,8 @@ def migrate_indexes(
     All three work unchanged with ``use_data_streams``: a data stream
     carries the undated name itself, so the backfill patterns match it as
     well as any dated indexes, and a stream that holds that exact name is
-    skipped by the ``published_policy.fo`` migration, because none of its
-    backing indices maps the field as ``long``.
+    skipped by the ``published_policy.fo`` migration, because the backing
+    index it inspects maps the field as ``text``, not ``long``.
 
     Args:
         aggregate_indexes (list): A list of aggregate index names

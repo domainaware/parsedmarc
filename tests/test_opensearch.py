@@ -1,9 +1,11 @@
 """Tests for parsedmarc.opensearch
 
 Mocks at the opensearch-dsl SDK boundary (connections.create_connection,
-Index, Search, Document.save) so the tests verify the parsedmarc-side
-transformation logic — document construction, index naming, deduplication
-queries, error wrapping — without needing a running OpenSearch cluster.
+Index, Search, Document.save, or a mock client registered as the
+``default`` connection so the real Document.save runs) so the tests
+verify the parsedmarc-side transformation logic — document
+construction, index naming, deduplication queries, error wrapping —
+without needing a running OpenSearch cluster.
 """
 
 import time

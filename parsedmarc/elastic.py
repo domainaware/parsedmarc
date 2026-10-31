@@ -871,8 +871,8 @@ def migrate_indexes(
     Both work unchanged with ``use_data_streams``: a data stream carries the
     undated name itself, so the backfill patterns match it as well as any
     dated indexes, and a stream that holds that exact name is skipped by
-    the ``published_policy.fo`` migration, because none of its backing
-    indices maps the field as ``long``.
+    the ``published_policy.fo`` migration, because the backing index it
+    inspects maps the field as ``text``, not ``long``.
 
     Args:
         aggregate_indexes (list): A list of aggregate index names

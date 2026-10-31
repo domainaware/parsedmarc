@@ -35,10 +35,11 @@ exist yet. The template:
 - has priority 501 and sets `number_of_shards` and `number_of_replicas`
   from the configuration, for each new backing index;
 - maps `@timestamp` as a date. Every document parsedmarc saves carries
-  `@timestamp`: the report's begin date for aggregate reports (on
-  every record's document), the arrival date for failure reports, and the report's begin date for SMTP
-  TLS reports. The other fields are mapped dynamically, as in the dated
-  indexes.
+  `@timestamp`: each record's begin date (`date_begin`) for aggregate
+  reports, which is the report's begin date unless parsedmarc split a
+  report spanning more than a day into daily records; the arrival date
+  for failure reports; and the report's begin date for SMTP TLS reports.
+  The other fields are mapped dynamically, as in the dated indexes.
 
 parsedmarc puts the template again in every process, so changes made to
 it directly do not last.
@@ -138,8 +139,9 @@ finished; until then, the dashboards count every document twice.
 If saving fails with `cannot create the data stream dmarc_aggregate: an
 index or alias with that name already exists`, an index or alias already
 uses the stream's name. parsedmarc releases before 5.0.0 wrote to an
-undated `dmarc_aggregate` index, for example. parsedmarc never writes
-into it in that case. Move its documents to a dated name, which the
+undated `dmarc_aggregate` index, for example. parsedmarc refuses to
+write into such an index rather than mixing new documents into it. Move
+its documents to a dated name, which the
 dashboards still match, and delete it:
 
 ```text

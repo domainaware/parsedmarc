@@ -597,7 +597,8 @@ The full set of configuration options is:
   - `use_data_streams` - bool: Save each report type to a data stream
     named like the index without the date suffix (e.g. `dmarc_aggregate`)
     instead of to daily or monthly indexes. parsedmarc creates the stream
-    and its index template; retention is left to an ILM policy you attach.
+    and its index template; retention is left to an ILM policy you attach. Requires Elasticsearch
+    8.7 or later.
     See [Data streams and records retention](elasticsearch.md#data-streams-and-records-retention)
     (Default: `False`)
   - `serverless` - bool: Set to `True` when targeting an Elastic Cloud
