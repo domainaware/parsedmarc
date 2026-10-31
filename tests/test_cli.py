@@ -2796,6 +2796,11 @@ client_assertion = s3cret-signed-jwt-assertion
         self._run_main(cfg_path, "--debug")
 
         parsedmarc_logger = logging.getLogger("parsedmarc.log")
+        # dnspython 2.9+ logs DNS over HTTPS traffic under httpx2 and
+        # httpcore2 (httpx and httpcore on 2.7 and 2.8), so all four must
+        # follow --debug.
+        for wanted_name in ("httpx", "httpcore", "httpx2", "httpcore2"):
+            self.assertIn(wanted_name, parsedmarc.cli._DEPENDENCY_LOGGERS)
         for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
             dep = logging.getLogger(name)
             self.assertEqual(dep.level, logging.DEBUG, name)
@@ -7498,6 +7503,37 @@ class TestParseConfigGeneral(unittest.TestCase):
                     "from ['https://dns.example/dns-query']",
                     str(ctx.exception),
                 )
+
+    def test_general_nameservers_pre_flight_rejects_invalid_test_address(self):
+        """An unparseable dns_test_address is reported by setting name and
+        value (dns.reversename.from_address raises dns.exception.SyntaxError,
+        "Text input is malformed.", for non-IP text), and no DNS query is
+        attempted."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        for address in ("not-an-ip", "1.1.1"):
+            with self.subTest(address):
+                cp = _config_with(
+                    "general",
+                    {
+                        "dns_test_address": address,
+                        "dns_timeout": "2.0",
+                        "nameservers": "https://dns.example/dns-query",
+                    },
+                )
+                with (
+                    patch("dns.query.https") as https,
+                    patch("dns.query.udp") as udp,
+                ):
+                    with self.assertRaises(ConfigurationError) as ctx:
+                        _parse_config(cp, _opts())
+                self.assertEqual(
+                    f"DNS pre-flight check failed: dns_test_address {address!r} "
+                    "is not a valid IP address",
+                    str(ctx.exception),
+                )
+                https.assert_not_called()
+                udp.assert_not_called()
 
     def test_general_nameservers_malformed_dot_entry_fails_pre_flight(self):
         """A malformed DNS over TLS nameservers entry raises a

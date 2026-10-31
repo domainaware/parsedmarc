@@ -366,9 +366,9 @@ def _nameservers_to_resolver_input(
     ``https://`` entries become DNS over HTTPS nameservers that share this
     process's HTTP client (httpx2 on dnspython 2.9+, httpx before), so proxy
     and CA environment variables apply, and ``tls://ip[:port][#hostname]``
-    entries become DNS over TLS nameservers. Everything else — plain IPv4/IPv6 addresses — is passed
-    through untouched, leaving dnspython to enrich and validate it exactly as
-    before.
+    entries become DNS over TLS nameservers. Everything else — plain
+    IPv4/IPv6 addresses — is passed through untouched, leaving dnspython to
+    enrich and validate it exactly as before.
 
     Args:
         nameservers (list[str]): The configured nameservers

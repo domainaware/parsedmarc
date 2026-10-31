@@ -19,6 +19,7 @@ from glob import escape as glob_escape, glob
 from ssl import CERT_NONE, create_default_context
 from typing import TYPE_CHECKING, Any
 
+import dns.exception
 import dns.resolver
 import dns.reversename
 import httpx
@@ -673,6 +674,10 @@ _DEPENDENCY_LOGGERS = (
     "msgraph",
     "httpx",
     "httpcore",
+    # dnspython 2.9+ does DNS over HTTPS through httpx2 / httpcore2, which
+    # log under their own names rather than httpx / httpcore.
+    "httpx2",
+    "httpcore2",
 )
 
 
@@ -824,8 +829,15 @@ def _parse_config(config: ConfigParser, opts):
             # failing, https://github.com/domainaware/parsedmarc/issues/935)
             # was reported as a missing PTR record.
             try:
+                reverse_name = str(dns.reversename.from_address(opts.dns_test_address))
+            except dns.exception.SyntaxError as addr_error:
+                raise ConfigurationError(
+                    f"DNS pre-flight check failed: dns_test_address "
+                    f"{opts.dns_test_address!r} is not a valid IP address"
+                ) from addr_error
+            try:
                 query_dns(
-                    str(dns.reversename.from_address(opts.dns_test_address)),
+                    reverse_name,
                     "PTR",
                     nameservers=opts.nameservers,
                     timeout=opts.dns_timeout,

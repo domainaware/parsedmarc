@@ -1687,7 +1687,8 @@ class TestEncryptedDnsNameservers(unittest.TestCase):
     def test_doh_client_class_falls_back_to_httpx(self):
         """With neither library bound in dns.query (dnspython without its
         [doh] extra), the class falls back to ``httpx.Client``; dnspython
-        then raises its own NoDOH error when a DoH query is made."""
+        (or httpx, if h2 is also missing) then raises its own error when a
+        DoH query is made."""
         with patch.dict(dns.query.__dict__):
             dns.query.__dict__.pop("httpx2", None)
             dns.query.__dict__.pop("httpx", None)
