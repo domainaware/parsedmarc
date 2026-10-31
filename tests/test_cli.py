@@ -7959,6 +7959,175 @@ class TestParseConfigOpenSearch(unittest.TestCase):
             _parse_config(cp, _opts())
 
 
+class TestParseConfigUseDataStreams(unittest.TestCase):
+    """``use_data_streams`` in [elasticsearch] and [opensearch] (issue
+    #842), and the warning that ``monthly_indexes`` is ignored with it."""
+
+    SECTIONS = ("elasticsearch", "opensearch")
+
+    def test_option_parsed_for_each_section(self):
+        from parsedmarc.cli import _parse_config
+
+        for section in self.SECTIONS:
+            for raw, expected in (("true", True), ("false", False)):
+                with self.subTest(section=section, value=raw):
+                    cp = _config_with(
+                        section, {"hosts": "h:9200", "use_data_streams": raw}
+                    )
+                    opts = _opts()
+                    _parse_config(cp, opts)
+                    self.assertIs(
+                        getattr(opts, f"{section}_use_data_streams"), expected
+                    )
+
+    def test_option_absent_leaves_attribute_unset(self):
+        """The default comes from the CLI's Namespace defaults, which the
+        real CLI builds before _parse_config runs."""
+        from parsedmarc.cli import _parse_config
+
+        for section in self.SECTIONS:
+            with self.subTest(section=section):
+                cp = _config_with(section, {"hosts": "h:9200"})
+                opts = _opts()
+                _parse_config(cp, opts)
+                self.assertFalse(hasattr(opts, f"{section}_use_data_streams"))
+
+    def test_monthly_indexes_with_data_streams_warns(self):
+        from parsedmarc.cli import _parse_config
+
+        for section in self.SECTIONS:
+            with self.subTest(section=section):
+                cp = _config_with(
+                    section,
+                    {
+                        "hosts": "h:9200",
+                        "monthly_indexes": "true",
+                        "use_data_streams": "true",
+                    },
+                )
+                opts = _opts()
+                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                    _parse_config(cp, opts)
+                self.assertEqual(len(cm.records), 1)
+                self.assertIn(f"[{section}] monthly_indexes", cm.output[0])
+                self.assertIn("use_data_streams", cm.output[0])
+                # Still parsed; the save functions ignore it in stream mode.
+                self.assertTrue(getattr(opts, f"{section}_monthly_indexes"))
+
+    def test_no_warning_unless_both_are_enabled(self):
+        from parsedmarc.cli import _parse_config
+
+        combinations = (
+            {"monthly_indexes": "true"},
+            {"use_data_streams": "true"},
+            {"monthly_indexes": "true", "use_data_streams": "false"},
+            {"monthly_indexes": "false", "use_data_streams": "true"},
+        )
+        for section in self.SECTIONS:
+            for settings in combinations:
+                with self.subTest(section=section, settings=settings):
+                    cp = _config_with(section, {"hosts": "h:9200", **settings})
+                    with self.assertNoLogs("parsedmarc.log", level="WARNING"):
+                        _parse_config(cp, _opts())
+
+
+class TestUseDataStreamsPassthrough(unittest.TestCase):
+    """Each backend's parsed option reaches that backend's three save
+    calls, and only those: enabling it in one section leaves the other
+    backend's saves False, and it is False when absent from both."""
+
+    def _run(self, es_extra: str = "", os_extra: str = "") -> dict[str, MagicMock]:
+        names = (
+            "elastic.save_aggregate_report_to_elasticsearch",
+            "elastic.save_failure_report_to_elasticsearch",
+            "elastic.save_smtp_tls_report_to_elasticsearch",
+            "opensearch.save_aggregate_report_to_opensearch",
+            "opensearch.save_failure_report_to_opensearch",
+            "opensearch.save_smtp_tls_report_to_opensearch",
+        )
+        config = f"""[general]
+save_aggregate = true
+save_failure = true
+save_smtp_tls = true
+silent = true
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[elasticsearch]
+hosts = localhost
+{es_extra}
+
+[opensearch]
+hosts = localhost
+{os_extra}
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        saves = {name: MagicMock() for name in names}
+        patches = [patch(f"parsedmarc.cli.{name}", saves[name]) for name in names]
+        patches += [
+            patch("parsedmarc.cli.elastic.set_hosts"),
+            patch("parsedmarc.cli.elastic.migrate_indexes"),
+            patch("parsedmarc.cli.opensearch.set_hosts"),
+            patch("parsedmarc.cli.opensearch.migrate_indexes"),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                side_effect=_fetch_invoking_save_callback(
+                    {
+                        "aggregate_reports": [
+                            {"policy_published": {"domain": "example.com"}}
+                        ],
+                        "failure_reports": [{"reported_domain": "example.com"}],
+                        "smtp_tls_reports": [
+                            {"policies": [{"policy_domain": "example.com"}]}
+                        ],
+                    }
+                ),
+            ),
+            patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
+        ]
+        for p in patches:
+            p.start()
+            self.addCleanup(p.stop)
+        parsedmarc.cli._main()
+        return saves
+
+    def _assert_flags(
+        self, saves: dict[str, MagicMock], elastic: bool, opensearch: bool
+    ) -> None:
+        for name, save in saves.items():
+            expected = elastic if name.startswith("elastic.") else opensearch
+            with self.subTest(save=name):
+                save.assert_called_once()
+                self.assertIs(save.call_args.kwargs["use_data_streams"], expected)
+
+    def test_enabled_in_both_sections_reaches_every_save_call(self):
+        enabled = "use_data_streams = true"
+        saves = self._run(es_extra=enabled, os_extra=enabled)
+        self._assert_flags(saves, elastic=True, opensearch=True)
+
+    def test_elasticsearch_section_only_reaches_elasticsearch_saves(self):
+        saves = self._run(es_extra="use_data_streams = true")
+        self._assert_flags(saves, elastic=True, opensearch=False)
+
+    def test_opensearch_section_only_reaches_opensearch_saves(self):
+        saves = self._run(os_extra="use_data_streams = true")
+        self._assert_flags(saves, elastic=False, opensearch=True)
+
+    def test_absent_defaults_to_false(self):
+        saves = self._run()
+        self._assert_flags(saves, elastic=False, opensearch=False)
+
+
 class TestParseConfigSplunkHec(unittest.TestCase):
     def test_splunk_hec_complete(self):
         from parsedmarc.cli import _parse_config
@@ -9487,8 +9656,9 @@ class TestParseConfigLoki(unittest.TestCase):
 
 class TestLokiCliWiring(unittest.TestCase):
     """End-to-end: a [loki] config reaches LokiClient, every report type
-    reaches its save method, and a failed push counts as an output error
-    (so mailbox messages are held back instead of archived)."""
+    reaches its save method, a failed push counts as an output error
+    (so mailbox messages are held back instead of archived), and a config
+    LokiClient rejects fails client initialization under the Loki name."""
 
     def _run_main(self, reports, extra_general="", save_side_effect=None):
         config = f"""[general]
@@ -9580,6 +9750,35 @@ tenant_id = fosdem
                 save_side_effect=LokiError("HTTP 503"),
             )
         self.assertEqual(ctx.exception.code, 1)
+
+    def test_rejected_client_config_names_the_loki_section(self):
+        """A [loki] config that parses but that LokiClient rejects is
+        reported as a ``Loki:`` RuntimeError.
+
+        _parse_config accepts ``token`` alongside ``username``/``password``;
+        only the real LokiClient constructor enforces that they are
+        exclusive, so this is the path a misconfigured section takes at
+        startup and on a SIGHUP reload.
+        """
+        config = _config_with(
+            "loki",
+            {"url": "http://loki.example.com:3100", "token": "t", "username": "u"},
+        )
+        # The non-None Namespace defaults _main() gives the loki_* options.
+        opts = _output_client_opts(
+            loki_timestamp="ingest",
+            loki_skip_certificate_verification=False,
+            loki_timeout=60,
+            loki_batch_size=1000,
+        )
+        parsedmarc.cli._parse_config(config, opts)
+        with self.assertRaises(RuntimeError) as context:
+            parsedmarc.cli._init_output_clients(opts)
+        self.assertEqual(
+            str(context.exception),
+            "Loki: Loki token and username/password are exclusive",
+        )
+        self.assertIsInstance(context.exception.__cause__, ValueError)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from opensearchpy import (
     Ip,
     Keyword,
     Nested,
+    NotFoundError,
     Object,
     OpenSearch,
     Q,
@@ -33,6 +34,23 @@ from parsedmarc.utils import human_timestamp_to_datetime
 
 class OpenSearchError(Exception):
     """Raised when an OpenSearch error occurs"""
+
+
+# Names of the data streams whose index template and stream
+# ``create_data_streams`` has already set up in this process, so each one
+# costs its API calls once per process rather than once per saved document.
+# ``set_hosts`` clears it, so a new connection (including a SIGHUP reload,
+# which may point at another cluster or change the index settings)
+# re-applies the template. Forgetting an entry is always safe: it only
+# repeats idempotent calls.
+_READY_DATA_STREAMS: set[str] = set()
+
+# Priority of the index template ``create_data_streams`` installs. OpenSearch
+# itself installs no index templates, but plugins may; 501 stays above the
+# usual priority-100 convention and matches the Elasticsearch module. The
+# template's ``index_patterns`` is the exact stream name, so an overlap with
+# another template is unlikely in the first place.
+_DATA_STREAM_TEMPLATE_PRIORITY = 501
 
 
 # Guard query for the dkim_results_combined/spf_results_combined backfill
@@ -531,6 +549,7 @@ def set_hosts(
         alias. Callers that need to close this exact client later (rather than
         whatever holds the alias at that point) should hold on to it.
     """
+    _READY_DATA_STREAMS.clear()
     if not isinstance(hosts, list):
         hosts = [hosts]
     logger.debug("Connecting to OpenSearch: hosts=%s, use_ssl=%s", hosts, use_ssl)
@@ -605,6 +624,98 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
             raise OpenSearchError(f"OpenSearch error: {e.__str__()}")
 
 
+def create_data_streams(names: list[str], settings: dict[str, Any] | None = None):
+    """
+    Create OpenSearch data streams and their index templates
+
+    For each name, puts an index template named after the stream whose
+    ``index_patterns`` is exactly that name -- no wildcard, so it never
+    applies to the date-suffixed indexes parsedmarc writes without data
+    streams -- and then creates the data stream if it does not exist yet.
+    parsedmarc puts its template again in every process that writes to the
+    stream, so edits made to it directly do not last; an ISM policy attaches
+    itself to the stream's backing indices through its own
+    ``ism_template`` instead. Each name is set up once per process;
+    ``set_hosts`` resets that.
+
+    The template maps only ``@timestamp``. Like ``create_indexes``, it
+    deliberately installs no mappings for the report fields themselves (see
+    issue #169), so they keep their dynamic ``object`` mapping.
+
+    Args:
+        names (list): A list of data stream names
+        settings (dict): Index settings for the stream's backing indices;
+            one shard and no replicas when ``None``, as in
+            ``create_indexes``.
+
+    Raises:
+        OpenSearchError: A concrete index or alias already holds one of the
+            names, or the cluster returned an error. A name that fails is
+            not remembered, so the next save retries it.
+    """
+    if settings is None:
+        effective_settings: dict[str, Any] = {
+            "number_of_shards": 1,
+            "number_of_replicas": 0,
+        }
+    else:
+        effective_settings = dict(settings)
+
+    for name in names:
+        if name in _READY_DATA_STREAMS:
+            continue
+        try:
+            client = connections.get_connection()
+            # OpenSearch 3 answers both a missing name and a name held by a
+            # concrete index with a 404. Elasticsearch answers the latter
+            # with 200 and an empty list, so, as in the Elasticsearch module,
+            # look for the stream in the response rather than trust the
+            # status alone.
+            try:
+                response = client.indices.get_data_stream(name=name)
+                stream_exists = any(
+                    stream.get("name") == name
+                    for stream in response.get("data_streams", [])
+                )
+            except NotFoundError:
+                stream_exists = False
+            # Checked before anything is written, so a name collision leaves
+            # no template behind.
+            collision = not stream_exists and Index(name).exists()
+            if not collision:
+                client.indices.put_index_template(
+                    name=name,
+                    body={
+                        "index_patterns": [name],
+                        "data_stream": {},
+                        "priority": _DATA_STREAM_TEMPLATE_PRIORITY,
+                        "template": {
+                            "settings": effective_settings,
+                            "mappings": {
+                                "properties": {"@timestamp": {"type": "date"}}
+                            },
+                        },
+                        "_meta": {
+                            "description": (
+                                "Managed by parsedmarc, which overwrites it. "
+                                "Attach ISM policies with an ism_template."
+                            )
+                        },
+                    },
+                )
+                if not stream_exists:
+                    logger.debug(f"Creating OpenSearch data stream: {name}")
+                    client.indices.create_data_stream(name=name)
+        except Exception as e:
+            raise OpenSearchError(f"OpenSearch error: {e.__str__()}")
+        if collision:
+            raise OpenSearchError(
+                f"OpenSearch error: cannot create the data stream {name}: "
+                "an index or alias with that name already exists"
+            )
+        _READY_DATA_STREAMS.add(name)
+
+
 _LEGACY_FO_FIELD = "published_policy.fo"
 # The same field split into the object/leaf names a mapping body nests it
 # under. Derived from the dotted name so the mapping written below cannot
@@ -677,6 +788,12 @@ def migrate_indexes(
     Third, the same treatment for the ``policies_combined``/
     ``failure_details_combined`` fields (same issue #169) on SMTP TLS
     report documents, for each name in ``smtp_tls_indexes``.
+
+    All three work unchanged with ``use_data_streams``: a data stream
+    carries the undated name itself, so the backfill patterns match it as
+    well as any dated indexes, and a stream that holds that exact name is
+    skipped by the ``published_policy.fo`` migration, because the backing
+    index it inspects maps the field as ``text``, not ``long``.
 
     Args:
         aggregate_indexes (list): A list of aggregate index names
@@ -853,6 +970,7 @@ def save_aggregate_report_to_opensearch(
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
+    use_data_streams: bool = False,
 ):
     """
     Saves a parsed DMARC aggregate report to OpenSearch
@@ -862,8 +980,11 @@ def save_aggregate_report_to_opensearch(
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
+            (ignored when ``use_data_streams`` is True)
         number_of_shards (int): The number of shards to use in the index
         number_of_replicas (int): The number of replicas to use in the index
+        use_data_streams (bool): Save to a data stream named like the index,
+            without the date suffix, instead of to a dated index
 
     Raises:
             AlreadySaved
@@ -890,6 +1011,8 @@ def save_aggregate_report_to_opensearch(
         search_index = "dmarc_aggregate*"
     if index_prefix is not None:
         search_index = f"{index_prefix}{search_index}"
+    # The trailing wildcard matches the data stream as well as the dated
+    # indexes, so duplicates are caught across a switch between the two.
     search = Search(index=search_index)
     query = org_name_query & report_id_query & domain_query
     query = query & begin_date_query & end_date_query
@@ -933,10 +1056,6 @@ def save_aggregate_report_to_opensearch(
         )
         normalized_timespan = record["normalized_timespan"]
 
-        if monthly_indexes:
-            index_date = begin_date.strftime("%Y-%m")
-        else:
-            index_date = begin_date.strftime("%Y-%m-%d")
         aggregate_report["begin_date"] = begin_date
         aggregate_report["end_date"] = end_date
         date_range = [aggregate_report["begin_date"], aggregate_report["end_date"]]
@@ -977,6 +1096,7 @@ def save_aggregate_report_to_opensearch(
                 "discovery_method"
             ),
             generator=metadata.get("generator"),
+            **{"@timestamp": begin_date},
         )
 
         for override in record["policy_evaluated"]["policy_override_reasons"]:
@@ -1006,15 +1126,24 @@ def save_aggregate_report_to_opensearch(
         if index_prefix:
             index = f"{index_prefix}{index}"
 
-        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
-        create_indexes([index], index_settings)
+        if use_data_streams:
+            create_data_streams([index], index_settings)
+        else:
+            if monthly_indexes:
+                index_date = begin_date.strftime("%Y-%m")
+            else:
+                index_date = begin_date.strftime("%Y-%m-%d")
+            index = f"{index}-{index_date}"
+            create_indexes([index], index_settings)
         agg_doc.meta.index = index
 
         try:
-            agg_doc.save()
+            # Data streams accept only op_type=create. No _id is set, so
+            # for a dated index it means the same as the default.
+            agg_doc.save(op_type="create")
         except Exception as e:
             raise OpenSearchError(f"OpenSearch error: {e.__str__()}")
 
@@ -1026,6 +1155,7 @@ def save_failure_report_to_opensearch(
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
+    use_data_streams: bool = False,
 ):
     """
     Saves a parsed DMARC failure report to OpenSearch
@@ -1035,10 +1165,14 @@ def save_failure_report_to_opensearch(
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily
-                                indexes
+                                indexes (ignored when ``use_data_streams``
+                                is True)
         number_of_shards (int): The number of shards to use in the index
         number_of_replicas (int): The number of replicas to use in the
                                   index
+        use_data_streams (bool): Save to a data stream named like the
+                                 index, without the date suffix, instead
+                                 of to a dated index
 
     Raises:
         AlreadySaved
@@ -1073,6 +1207,8 @@ def save_failure_report_to_opensearch(
         search_index = ",".join(
             f"{index_prefix}{part}" for part in search_index.split(",")
         )
+    # The trailing wildcards match the data stream as well as the dated
+    # indexes, so duplicates are caught across a switch between the two.
     search = Search(index=search_index)
     q = Q(dict(match=dict(arrival_date=arrival_date_epoch_milliseconds)))
 
@@ -1179,6 +1315,7 @@ def save_failure_report_to_opensearch(
             dkim_domain=failure_report["dkim_domain"],
             original_rcpt_to=failure_report["original_rcpt_to"],
             sample=sample,
+            **{"@timestamp": arrival_date},
         )
 
         index = "dmarc_failure"
@@ -1186,18 +1323,23 @@ def save_failure_report_to_opensearch(
             index = f"{index}_{index_suffix}"
         if index_prefix:
             index = f"{index_prefix}{index}"
-        if monthly_indexes:
-            index_date = arrival_date.strftime("%Y-%m")
-        else:
-            index_date = arrival_date.strftime("%Y-%m-%d")
-        index = f"{index}-{index_date}"
         index_settings = dict(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
-        create_indexes([index], index_settings)
+        if use_data_streams:
+            create_data_streams([index], index_settings)
+        else:
+            if monthly_indexes:
+                index_date = arrival_date.strftime("%Y-%m")
+            else:
+                index_date = arrival_date.strftime("%Y-%m-%d")
+            index = f"{index}-{index_date}"
+            create_indexes([index], index_settings)
         failure_doc.meta.index = index
         try:
-            failure_doc.save()
+            # Data streams accept only op_type=create. No _id is set, so
+            # for a dated index it means the same as the default.
+            failure_doc.save(op_type="create")
         except Exception as e:
             raise OpenSearchError(f"OpenSearch error: {e.__str__()}")
     except KeyError as e:
@@ -1213,6 +1355,7 @@ def save_smtp_tls_report_to_opensearch(
     monthly_indexes: bool = False,
     number_of_shards: int = 1,
     number_of_replicas: int = 0,
+    use_data_streams: bool = False,
 ):
     """
     Saves a parsed SMTP TLS report to OpenSearch
@@ -1222,8 +1365,11 @@ def save_smtp_tls_report_to_opensearch(
         index_suffix (str): The suffix of the name of the index to save to
         index_prefix (str): The prefix of the name of the index to save to
         monthly_indexes (bool): Use monthly indexes instead of daily indexes
+            (ignored when ``use_data_streams`` is True)
         number_of_shards (int): The number of shards to use in the index
         number_of_replicas (int): The number of replicas to use in the index
+        use_data_streams (bool): Save to a data stream named like the index,
+            without the date suffix, instead of to a dated index
 
     Raises:
             AlreadySaved
@@ -1236,10 +1382,6 @@ def save_smtp_tls_report_to_opensearch(
     end_date = human_timestamp_to_datetime(report["end_date"], to_utc=True)
     begin_date_human = begin_date.strftime("%Y-%m-%d %H:%M:%SZ")
     end_date_human = end_date.strftime("%Y-%m-%d %H:%M:%SZ")
-    if monthly_indexes:
-        index_date = begin_date.strftime("%Y-%m")
-    else:
-        index_date = begin_date.strftime("%Y-%m-%d")
     report = report.copy()
     report["begin_date"] = begin_date
     report["end_date"] = end_date
@@ -1255,6 +1397,8 @@ def save_smtp_tls_report_to_opensearch(
         search_index = "smtp_tls*"
     if index_prefix is not None:
         search_index = f"{index_prefix}{search_index}"
+    # The trailing wildcard matches the data stream as well as the dated
+    # indexes, so duplicates are caught across a switch between the two.
     search = Search(index=search_index)
     query = org_name_query & report_id_query
     query = query & begin_date_query & end_date_query
@@ -1281,7 +1425,12 @@ def save_smtp_tls_report_to_opensearch(
         index = f"{index}_{index_suffix}"
     if index_prefix:
         index = f"{index_prefix}{index}"
-    index = f"{index}-{index_date}"
+    if not use_data_streams:
+        if monthly_indexes:
+            index_date = begin_date.strftime("%Y-%m")
+        else:
+            index_date = begin_date.strftime("%Y-%m-%d")
+        index = f"{index}-{index_date}"
     index_settings = dict(
         number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
     )
@@ -1293,6 +1442,7 @@ def save_smtp_tls_report_to_opensearch(
         date_end=report["end_date"],
         contact_info=report["contact_info"],
         report_id=report["report_id"],
+        **{"@timestamp": report["begin_date"]},
     )
 
     for policy in report["policies"]:
@@ -1374,11 +1524,16 @@ def save_smtp_tls_report_to_opensearch(
                 )
         smtp_tls_doc.policies.append(policy_doc)
 
-    create_indexes([index], index_settings)
+    if use_data_streams:
+        create_data_streams([index], index_settings)
+    else:
+        create_indexes([index], index_settings)
     smtp_tls_doc.meta.index = index
 
     try:
-        smtp_tls_doc.save()
+        # Data streams accept only op_type=create. No _id is set, so for a
+        # dated index it means the same as the default.
+        smtp_tls_doc.save(op_type="create")
     except Exception as e:
         raise OpenSearchError(f"OpenSearch error: {e.__str__()}")
 
