@@ -54,7 +54,7 @@ To skip DNS lookups during testing, set `GITHUB_ACTIONS=true`.
 - `parsedmarc/types.py` — TypedDict definitions for all report types (`AggregateReport`, `FailureReport`, `SMTPTLSReport`, `ParsingResults`). Legacy alias `ForensicReport = FailureReport` preserved.
 - `parsedmarc/utils.py` — IP/DNS/GeoIP enrichment, base64 decoding, compression handling
 - `parsedmarc/mail/` — Polymorphic mail connections: `IMAPConnection`, `GmailConnection`, `MSGraphConnection`, `MaildirConnection`
-- `parsedmarc/{elastic,opensearch,splunk,kafkaclient,loganalytics,syslog,s3,webhook,gelf}.py` — Output integrations
+- `parsedmarc/{elastic,opensearch,splunk,kafkaclient,loganalytics,syslog,s3,webhook,gelf,loki}.py` — Output integrations
 
 ### Report type system
 

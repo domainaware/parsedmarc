@@ -117,6 +117,10 @@ aggregate_url = https://aggregate_url.example.com
 failure_url = https://failure_url.example.com
 smtp_tls_url = https://smtp_tls_url.example.com
 timeout = 60
+
+[loki]
+url = http://loki.example.com:3100
+labels = host=mail.example.com
 ```
 
 The full set of configuration options is:
@@ -911,6 +915,49 @@ The full set of configuration options is:
   - `smtp_tls_url` - str: URL of the webhook which should receive the SMTP TLS reports
   - `timeout` - int: Timeout in seconds for webhook requests (Default: `60`)
 
+- `loki` - Push every report record as one JSON log line to the
+  [Grafana Loki push API](https://grafana.com/docs/loki/latest/reference/loki-http-api/#ingest-logs).
+  The lines are the same flat records the syslog and GELF outputs send,
+  plus `report_type` (`aggregate`, `failure`, or `smtp_tls`) and `domain`
+  (the reported domain: `domain`, `reported_domain`, or `policy_domain`),
+  so LogQL's `| json` parser can filter and sum them, e.g. messages failing
+  DMARC per domain:
+  `sum by (domain) (sum_over_time({job="parsedmarc", report_type="aggregate"} | json dmarc_aligned, count | dmarc_aligned="false" | unwrap count [1d]))`.
+  Name the fields to extract: a bare `| json` turns every field into a
+  label, and the many distinct values quickly exceed Loki's per-query
+  series limit (`max_query_series`, 500 by default).
+  A ready-made Grafana dashboard for these lines ships in
+  [dashboards/grafana/Grafana-DMARC_Reports-Loki.json](https://github.com/domainaware/parsedmarc/blob/master/dashboards/grafana/Grafana-DMARC_Reports-Loki.json);
+  import it and pick your Loki datasource for its `DS_LOKI` input.
+  It expects the default `job=parsedmarc` label and `label_fields`.
+  - `url` - str: The Loki base URL; `/loki/api/v1/push` is appended when the
+    URL has no path. A URL with a path is used as is.
+  - `labels` - str: Comma-separated `name=value` stream labels, merged over
+    the defaults `job=parsedmarc` and `host=<FQDN of the parsedmarc host>`
+    (in a container, the FQDN is the container's hostname)
+  - `label_fields` - str: Comma-separated record fields used as stream
+    labels (Default: `report_type, domain`; empty for none). Keep these to
+    fields with few distinct values — every combination is its own Loki
+    stream, so fields like `source_ip_address` belong in the line only.
+    Records without a value for a field get no such label.
+  - `timestamp` - str: `ingest` (the time of the push) or `report_begin`
+    (the begin of the reported period, or the arrival date of a failure
+    report) (Default: `ingest`). Loki rejects entries older than its
+    `reject_old_samples_max_age` (one week by default) and, within a
+    stream, entries far older than the newest one, so `report_begin`
+    loses late or out-of-order reports unless Loki is configured for them.
+    The reported period is in the line either way (`begin_date`,
+    `end_date`).
+  - `username` - str: Basic authentication user
+  - `password` - str: Basic authentication password
+  - `token` - str: Bearer token, instead of basic authentication
+  - `tenant_id` - str: Tenant ID, sent as the `X-Scope-OrgID` header
+  - `skip_certificate_verification` - bool: Skip TLS certificate
+    verification (not recommended)
+  - `timeout` - float: Timeout in seconds for push requests (Default: `60`)
+  - `batch_size` - int: Maximum log lines per push request
+    (Default: `1000`)
+
 :::{warning}
 It is **strongly recommended** to **not** use the `nameservers`
 setting. By default, `parsedmarc` uses
@@ -1070,7 +1117,7 @@ an already-saved report — are unaffected, and S3 is idempotent because
 each report is written to an object key built from its type, date, report
 ID, and a hash of the fields that identify the report, so a retry
 overwrites the same object. Kafka,
-Splunk HEC, syslog, GELF, webhooks, Azure Log Analytics, and the
+Splunk HEC, syslog, GELF, webhooks, Loki, Azure Log Analytics, and the
 `--output` JSON/CSV files all append unconditionally, so each retry adds
 another copy of every report in the batch. That is why the default retry
 cap is deliberately low: at most three deliveries per report before its
@@ -1086,8 +1133,8 @@ syslog and GELF outputs send through Python logging handlers, which
 swallow delivery errors by design — so an unreachable webhook, syslog, or
 GELF endpoint is *not* treated as a failed save and does not hold a
 batch's messages back. Failures in Elasticsearch, OpenSearch, Splunk HEC,
-Kafka, S3, PostgreSQL, Azure Log Analytics, and the `--output` files are
-all detected and do.
+Kafka, S3, PostgreSQL, Loki, Azure Log Analytics, and the `--output` files
+are all detected and do.
 :::
 
 :::{note}
@@ -1233,6 +1280,7 @@ For sections with underscores in the name, the full section name is used:
 | `log_analytics` | `PARSEDMARC_LOG_ANALYTICS_` |
 | `gelf` | `PARSEDMARC_GELF_` |
 | `webhook` | `PARSEDMARC_WEBHOOK_` |
+| `loki` | `PARSEDMARC_LOKI_` |
 
 ## Using parsedmarc as a library
 

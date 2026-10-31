@@ -8963,6 +8963,17 @@ def _output_client_opts(**overrides) -> SimpleNamespace:
         "kafka_skip_certificate_verification",
         "kafka_username",
         "la_dce",
+        "loki_batch_size",
+        "loki_label_fields",
+        "loki_labels",
+        "loki_password",
+        "loki_skip_certificate_verification",
+        "loki_tenant_id",
+        "loki_timeout",
+        "loki_timestamp",
+        "loki_token",
+        "loki_url",
+        "loki_username",
         "opensearch_api_key",
         "opensearch_auth_type",
         "opensearch_aws_region",
@@ -9261,6 +9272,192 @@ class TestOptionalIntegrationExtras(unittest.TestCase):
                     f"The [{section}] configuration section requires the {extra} "
                     f"extra: pip install parsedmarc[{extra}]",
                 )
+
+
+class TestParseConfigLoki(unittest.TestCase):
+    def test_loki_complete(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "loki",
+            {
+                "url": "https://loki.example.com",
+                "labels": "host=mail2.example.com, env = prod",
+                "label_fields": "report_type, domain, org_name",
+                "timestamp": "report_begin",
+                "username": "u",
+                "password": "p",
+                "tenant_id": "fosdem",
+                "skip_certificate_verification": "true",
+                "timeout": "12.5",
+                "batch_size": "500",
+            },
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.loki_url, "https://loki.example.com")
+        self.assertEqual(opts.loki_labels, {"host": "mail2.example.com", "env": "prod"})
+        self.assertEqual(opts.loki_label_fields, ["report_type", "domain", "org_name"])
+        self.assertEqual(opts.loki_timestamp, "report_begin")
+        self.assertEqual(opts.loki_username, "u")
+        self.assertEqual(opts.loki_password, "p")
+        self.assertEqual(opts.loki_tenant_id, "fosdem")
+        self.assertTrue(opts.loki_skip_certificate_verification)
+        self.assertEqual(opts.loki_timeout, 12.5)
+        self.assertEqual(opts.loki_batch_size, 500)
+
+    def test_loki_token(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("loki", {"url": "http://l:3100", "token": "t"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.loki_token, "t")
+
+    def test_loki_empty_label_fields_means_no_dynamic_labels(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("loki", {"url": "http://l:3100", "label_fields": ""})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.loki_label_fields, [])
+
+    def test_loki_label_fields_strips_whitespace_around_each_field(self):
+        """Padding around commas must not leak into label names (it made
+        LokiClient raise ``Invalid Loki label name 'report_type '``)."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "loki",
+            {"url": "http://l:3100", "label_fields": "report_type , domain ,org_name "},
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.loki_label_fields, ["report_type", "domain", "org_name"])
+
+    def test_loki_missing_url_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("loki", {"labels": "a=b"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_loki_malformed_labels_raise(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("loki", {"url": "http://l:3100", "labels": "host"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_loki_invalid_timestamp_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("loki", {"url": "http://l:3100", "timestamp": "never"})
+        with self.assertRaises(ConfigurationError):
+            _parse_config(cp, _opts())
+
+    def test_loki_env_section_resolves(self):
+        from parsedmarc.cli import _resolve_section_key
+
+        self.assertEqual(_resolve_section_key("LOKI_URL"), ("loki", "url"))
+        self.assertEqual(_resolve_section_key("LOKI_PASSWORD"), ("loki", "password"))
+
+
+class TestLokiCliWiring(unittest.TestCase):
+    """End-to-end: a [loki] config reaches LokiClient, every report type
+    reaches its save method, and a failed push counts as an output error
+    (so mailbox messages are held back instead of archived)."""
+
+    def _run_main(self, reports, extra_general="", save_side_effect=None):
+        config = f"""[general]
+save_aggregate = true
+save_failure = true
+save_smtp_tls = true
+silent = true
+{extra_general}
+
+[imap]
+host = imap.example.com
+user = test-user
+password = test-password
+
+[loki]
+url = http://loki.example.com:3100
+labels = host=mail2.example.com
+timestamp = report_begin
+tenant_id = fosdem
+"""
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".ini", delete=False
+        ) as config_file:
+            config_file.write(config)
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+
+        with (
+            patch("parsedmarc.cli.loki.LokiClient") as mock_client_cls,
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                side_effect=_fetch_invoking_save_callback(reports),
+            ),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch.object(sys, "argv", ["parsedmarc", "-c", config_path]),
+        ):
+            client = mock_client_cls.return_value
+            if save_side_effect is not None:
+                for m in (
+                    "save_aggregate_report_to_loki",
+                    "save_failure_report_to_loki",
+                    "save_smtp_tls_report_to_loki",
+                ):
+                    getattr(client, m).side_effect = save_side_effect
+            parsedmarc.cli._main()
+        return mock_client_cls
+
+    def _reports(self):
+        return {
+            "aggregate_reports": [{"policy_published": {"domain": "example.com"}}],
+            "failure_reports": [{"reported_domain": "example.com"}],
+            "smtp_tls_reports": [{"organization_name": "Org", "policies": []}],
+        }
+
+    def test_client_constructed_from_config(self):
+        cls = self._run_main(self._reports())
+        cls.assert_called_once()
+        self.assertEqual(cls.call_args.args, ("http://loki.example.com:3100",))
+        kwargs = cls.call_args.kwargs
+        self.assertEqual(kwargs["labels"], {"host": "mail2.example.com"})
+        self.assertIsNone(kwargs["label_fields"])
+        self.assertEqual(kwargs["timestamp"], "report_begin")
+        self.assertEqual(kwargs["tenant_id"], "fosdem")
+        self.assertTrue(kwargs["verify"])
+        self.assertEqual(kwargs["timeout"], 60)
+        self.assertEqual(kwargs["batch_size"], 1000)
+
+    def test_all_report_types_saved_and_client_closed(self):
+        reports = self._reports()
+        client = self._run_main(reports).return_value
+        client.save_aggregate_report_to_loki.assert_called_once_with(
+            reports["aggregate_reports"][0]
+        )
+        client.save_failure_report_to_loki.assert_called_once_with(
+            reports["failure_reports"][0]
+        )
+        client.save_smtp_tls_report_to_loki.assert_called_once_with(
+            reports["smtp_tls_reports"][0]
+        )
+        client.close.assert_called()
+
+    def test_loki_error_is_an_output_error(self):
+        from parsedmarc.loki import LokiError
+
+        with self.assertRaises(SystemExit) as ctx:
+            self._run_main(
+                self._reports(),
+                extra_general="fail_on_output_error = true",
+                save_side_effect=LokiError("HTTP 503"),
+            )
+        self.assertEqual(ctx.exception.code, 1)
 
 
 if __name__ == "__main__":
