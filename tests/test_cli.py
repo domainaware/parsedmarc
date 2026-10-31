@@ -9656,8 +9656,9 @@ class TestParseConfigLoki(unittest.TestCase):
 
 class TestLokiCliWiring(unittest.TestCase):
     """End-to-end: a [loki] config reaches LokiClient, every report type
-    reaches its save method, and a failed push counts as an output error
-    (so mailbox messages are held back instead of archived)."""
+    reaches its save method, a failed push counts as an output error
+    (so mailbox messages are held back instead of archived), and a config
+    LokiClient rejects fails client initialization under the Loki name."""
 
     def _run_main(self, reports, extra_general="", save_side_effect=None):
         config = f"""[general]
@@ -9749,6 +9750,35 @@ tenant_id = fosdem
                 save_side_effect=LokiError("HTTP 503"),
             )
         self.assertEqual(ctx.exception.code, 1)
+
+    def test_rejected_client_config_names_the_loki_section(self):
+        """A [loki] config that parses but that LokiClient rejects is
+        reported as a ``Loki:`` RuntimeError.
+
+        _parse_config accepts ``token`` alongside ``username``/``password``;
+        only the real LokiClient constructor enforces that they are
+        exclusive, so this is the path a misconfigured section takes at
+        startup and on a SIGHUP reload.
+        """
+        config = _config_with(
+            "loki",
+            {"url": "http://loki.example.com:3100", "token": "t", "username": "u"},
+        )
+        # The non-None Namespace defaults _main() gives the loki_* options.
+        opts = _output_client_opts(
+            loki_timestamp="ingest",
+            loki_skip_certificate_verification=False,
+            loki_timeout=60,
+            loki_batch_size=1000,
+        )
+        parsedmarc.cli._parse_config(config, opts)
+        with self.assertRaises(RuntimeError) as context:
+            parsedmarc.cli._init_output_clients(opts)
+        self.assertEqual(
+            str(context.exception),
+            "Loki: Loki token and username/password are exclusive",
+        )
+        self.assertIsInstance(context.exception.__cause__, ValueError)
 
 
 if __name__ == "__main__":
