@@ -30,6 +30,7 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import dns.message
+import dns.query
 import dns.rcode
 import dns.rdata
 import dns.rdataclass
@@ -5769,6 +5770,66 @@ class TestHttpx2LogRedaction(unittest.TestCase):
             if isinstance(f, parsedmarc.cli._RedactUrlCredentialsFilter)
         ]
         self.assertEqual(len(installed), 1)
+
+
+class TestHttpx2UrlClassImport(unittest.TestCase):
+    """GHSA-hjr3-rx4c-24cv: ``_HTTP_URL_CLASSES`` must recognize
+    ``httpx2.URL`` whenever httpx2 is importable, not only when dnspython
+    imported it. dnspython 2.9 requires Python >= 3.11, so on Python 3.10
+    CI installs dnspython 2.8 (which never imports httpx2) while httpx2
+    still installs there (hatch in the ``[build]`` extra requires it), so
+    a constant taken from ``dns.query`` left ``httpx2.URL`` arguments on
+    the ``httpx2`` logger unmasked there."""
+
+    def _exec_fresh_cli(self):
+        """Execute parsedmarc.cli's source into a throwaway module and
+        return it, leaving the canonical module untouched. Module import
+        adds a StreamHandler to the parsedmarc logger, so the handler list
+        is restored afterwards."""
+        spec = importlib.util.find_spec("parsedmarc.cli")
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        saved = list(parsedmarc.log.logger.handlers)
+        try:
+            spec.loader.exec_module(mod)
+        finally:
+            parsedmarc.log.logger.handlers[:] = saved
+        return mod
+
+    def test_httpx2_url_masked_when_dnspython_did_not_import_httpx2(self):
+        """Simulate dnspython 2.8 (no ``dns.query.httpx2``) with httpx2
+        installed anyway: the httpx2 URL must still be masked. The old
+        constant, built from ``getattr(dns.query, "httpx2", None)``, left
+        it unredacted."""
+        try:
+            import httpx2  # pyright: ignore[reportMissingImports]
+        except ModuleNotFoundError:
+            self.skipTest("httpx2 is not installed")
+        with patch.dict(dns.query.__dict__):
+            dns.query.__dict__.pop("httpx2", None)
+            fresh = self._exec_fresh_cli()
+        url = httpx2.URL("https://u:S3CRET@h.example/x?token=TOKSECRET")
+        self.assertEqual(
+            fresh._RedactUrlCredentialsFilter._redact(url),
+            "https://u:***@h.example/x?token=***",
+        )
+
+    def test_without_httpx2_only_httpx_urls_are_matched(self):
+        """With httpx2 unimportable (a None ``sys.modules`` entry makes
+        ``import httpx2`` raise ModuleNotFoundError), the module still
+        imports, ``httpx2`` is None, and httpx URLs are still masked.
+        This covers the fallback arm of the guard added for
+        GHSA-hjr3-rx4c-24cv."""
+        with patch.dict(sys.modules, {"httpx2": None}):
+            fresh = self._exec_fresh_cli()
+        self.assertIsNone(fresh.httpx2)
+        self.assertEqual(fresh._HTTP_URL_CLASSES, (httpx.URL,))
+        self.assertEqual(
+            fresh._RedactUrlCredentialsFilter._redact(
+                httpx.URL("https://u:S3CRET@h.example/x")
+            ),
+            "https://u:***@h.example/x",
+        )
 
 
 class TestInitOutputClientsRollback(unittest.TestCase):
