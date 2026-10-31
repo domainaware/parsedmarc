@@ -9190,6 +9190,19 @@ class TestParseConfigLoki(unittest.TestCase):
         _parse_config(cp, opts)
         self.assertEqual(opts.loki_label_fields, [])
 
+    def test_loki_label_fields_strips_whitespace_around_each_field(self):
+        """Padding around commas must not leak into label names (it made
+        LokiClient raise ``Invalid Loki label name 'report_type '``)."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "loki",
+            {"url": "http://l:3100", "label_fields": "report_type , domain ,org_name "},
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(opts.loki_label_fields, ["report_type", "domain", "org_name"])
+
     def test_loki_missing_url_raises(self):
         from parsedmarc.cli import ConfigurationError, _parse_config
 

@@ -1533,7 +1533,7 @@ def _parse_config(config: ConfigParser, opts):
                 opts.loki_labels[name.strip()] = value.strip()
         if "label_fields" in loki_config:
             opts.loki_label_fields = [
-                field
+                field.strip()
                 for field in _str_to_list(loki_config["label_fields"])
                 if field.strip()
             ]

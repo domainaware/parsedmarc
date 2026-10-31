@@ -277,9 +277,10 @@ elif [ -n "$SCHED_SHARING" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Seed sample data via parsedmarc -> ES, OS, Splunk HEC
+# 4. Seed sample data via parsedmarc -> ES, OS, Splunk HEC, PostgreSQL, Loki
 #    Skipped when ES already has aggregate docs from a prior run. Set
-#    RESEED=1 to wipe ES/OS/Splunk parsedmarc data first and re-seed.
+#    RESEED=1 to wipe parsedmarc data from every backend first and re-seed
+#    (Loki is wiped on RESEED=1 even when ES is empty).
 # ---------------------------------------------------------------------------
 log "Seeding sample data with parsedmarc-dev.ini"
 ES_AGG_COUNT=$(curl -sf 'http://localhost:9200/dmarc_aggregate*/_count' 2>/dev/null \
@@ -325,8 +326,13 @@ else
         "${COMPOSE[@]}" exec -T -e PGPASSWORD="$PG_PASSWORD" postgresql \
             psql -U "$PG_USER" -d "$PG_DB" \
             -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1 || true
+    fi
+
+    if [ "${RESEED:-0}" = "1" ]; then
         # Loki: the container keeps its data inside itself, so recreating it
-        # is a clean wipe.
+        # is a clean wipe. Done whenever RESEED=1, even if ES is empty (e.g.
+        # the ES container was recreated): Loki does not dedupe, so seeding on
+        # top of leftover logs would append a duplicate copy.
         "${COMPOSE[@]}" up -d --force-recreate loki >/dev/null 2>&1 || true
         wait_for "Loki (after wipe)" curl -sf http://localhost:3100/ready
     fi
