@@ -3,6 +3,8 @@
 import json
 import os
 import re
+import subprocess
+import tempfile
 import unittest
 from typing import Any, cast
 from unittest.mock import patch
@@ -231,6 +233,114 @@ class TestGrafanaLokiDashboard(unittest.TestCase):
             if re.search(r"unwrap\s+\w+_session_count", target["expr"]):
                 with self.subTest(panel=panel["title"], ref=target["refId"]):
                     self.assertIn('policy_type!=""', target["expr"])
+
+
+BOOTSTRAP = os.path.join(ROOT, "dashboard-dev-bootstrap.sh")
+
+# Stands in for the Grafana HTTP API: the Loki datasource lookup answers from
+# FAKE_LOKI_UID (404 when unset) and every request body is appended to
+# FAKE_POSTS, one per line.
+FAKE_CURL = r"""#!/bin/bash
+url="" data="" write=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -w) write="$2"; shift ;;
+        -d) data="$2"; shift ;;
+        -u|-H|-X|-o) shift ;;
+        -*) ;;
+        *) url="$1" ;;
+    esac
+    shift
+done
+if [ -n "$data" ]; then
+    printf '%s\n' "$data" >> "$FAKE_POSTS"
+fi
+if [[ "$url" == */api/datasources/name/Loki ]]; then
+    if [ -n "${FAKE_LOKI_UID:-}" ]; then
+        printf '{"name": "Loki", "uid": "%s"}' "$FAKE_LOKI_UID"
+        code=200
+    else
+        printf '{"message": "Data source not found"}'
+        code=404
+    fi
+    [ -n "$write" ] && printf '\n%s' "$code"
+fi
+exit 0
+"""
+
+
+class TestBootstrapLokiDatasourceUid(unittest.TestCase):
+    """The dev bootstrap must bind the imported dashboard to whichever uid the
+    'Loki' datasource really has, not assume the uid it creates."""
+
+    def _import(self, existing_uid: str | None) -> tuple[str, list[str]]:
+        """Run the bootstrap's Loki datasource and dashboard import steps
+        against a fake curl. Returns the datasource uid the imported
+        dashboard uses and the POSTed request bodies."""
+        with open(BOOTSTRAP) as f:
+            script = f.read()
+        start = script.index("# Loki datasource for the Loki DMARC dashboard")
+        end = script.index('log "Importing Splunk dashboard views')
+        with tempfile.TemporaryDirectory() as tmp:
+            curl = os.path.join(tmp, "curl")
+            with open(curl, "w") as f:
+                f.write(FAKE_CURL)
+            os.chmod(curl, 0o755)
+            posts = os.path.join(tmp, "posts")
+            env = {
+                **os.environ,
+                "PATH": tmp + os.pathsep + os.environ["PATH"],
+                "FAKE_POSTS": posts,
+                "GRAFANA_USER": "admin",
+                "GRAFANA_PASSWORD": "pw",
+            }
+            env.pop("FAKE_LOKI_UID", None)
+            if existing_uid:
+                env["FAKE_LOKI_UID"] = existing_uid
+            prelude = "set -euo pipefail\nlog() { :; }\n"
+            subprocess.run(
+                ["bash", "-c", prelude + script[start:end]],
+                cwd=ROOT,
+                env=env,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            with open(posts) as f:
+                bodies = f.read().splitlines()
+        imported = [b for b in bodies if '"dashboard"' in b]
+        loki = [
+            b
+            for b in imported
+            if json.loads(b)["dashboard"]["uid"] == self._loki_dashboard_uid()
+        ]
+        self.assertEqual(len(loki), 1)
+        uids = {
+            t["datasource"]["uid"]
+            for _, t in _targets(json.loads(loki[0])["dashboard"])
+        }
+        self.assertEqual(len(uids), 1)
+        return uids.pop(), bodies
+
+    @staticmethod
+    def _created(bodies: list[str]) -> list[dict[str, Any]]:
+        """Loki datasources the script POSTed (dashboard imports excluded)."""
+        parsed = [json.loads(b) for b in bodies]
+        return [d for d in parsed if d.get("type") == "loki"]
+
+    def _loki_dashboard_uid(self) -> str:
+        return _load(LOKI_DASHBOARD)["uid"]
+
+    def test_existing_datasource_uid_is_used(self):
+        uid, bodies = self._import("custom-loki-uid")
+        self.assertEqual(uid, "custom-loki-uid")
+        # An existing datasource is not created again.
+        self.assertEqual(self._created(bodies), [])
+
+    def test_created_datasource_uses_dmarc_loki(self):
+        uid, bodies = self._import(None)
+        self.assertEqual(uid, "dmarc-loki")
+        self.assertEqual([d["uid"] for d in self._created(bodies)], ["dmarc-loki"])
 
 
 if __name__ == "__main__":

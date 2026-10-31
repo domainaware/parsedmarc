@@ -577,14 +577,18 @@ EOF
     echo "  created datasource 'PostgreSQL'"
 fi
 
-# Loki datasource for the Loki DMARC dashboard. Fixed uid dmarc-loki so the
-# dashboard import below can resolve its ${DS_LOKI} input. Skipped when
-# already present.
-loki_ds_code=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
-    -o /dev/null -w "%{http_code}" \
+# Loki datasource for the Loki DMARC dashboard. Created with uid dmarc-loki
+# when missing; an existing datasource named Loki keeps its own uid, which the
+# dashboard import below resolves its ${DS_LOKI} input to.
+LOKI_DS_UID=dmarc-loki
+loki_ds_resp=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -w $'\n%{http_code}' \
     "http://localhost:3000/api/datasources/name/Loki")
+loki_ds_code="${loki_ds_resp##*$'\n'}"
 if [ "$loki_ds_code" = "200" ]; then
-    echo "  datasource 'Loki' already exists — skipping"
+    LOKI_DS_UID=$(printf '%s' "${loki_ds_resp%$'\n'*}" \
+        | python3 -c 'import json, sys; print(json.load(sys.stdin)["uid"])')
+    echo "  datasource 'Loki' already exists (uid ${LOKI_DS_UID}) — skipping"
 else
     curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
         -H 'Content-Type: application/json' \
@@ -630,11 +634,11 @@ curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
     -d "$GF_PG_BODY" | sed 's/^/  /'
 
 log "Importing Grafana Loki dashboard"
-GF_LOKI_BODY=$(python3 -c '
-import json
+GF_LOKI_BODY=$(LOKI_DS_UID="$LOKI_DS_UID" python3 -c '
+import json, os
 with open("dashboards/grafana/Grafana-DMARC_Reports-Loki.json") as f:
     text = f.read()
-text = text.replace("${DS_LOKI}", "dmarc-loki")
+text = text.replace("${DS_LOKI}", os.environ["LOKI_DS_UID"])
 d = json.loads(text)
 d.pop("__inputs", None)
 d.pop("__requires", None)
