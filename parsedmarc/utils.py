@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict, cast
 from urllib.parse import urlsplit
 
 import mailparser
@@ -46,6 +46,11 @@ from parsedmarc.constants import (
 )
 from parsedmarc.log import logger
 
+if TYPE_CHECKING:
+    # dnspython 2.9+ installs httpx2 through its [doh] extra; 2.7 and 2.8
+    # install httpx, so httpx2 may be absent
+    import httpx2  # pyright: ignore[reportMissingImports]
+
 # Errors considered transient and retryable by query_dns. LifetimeTimeout is
 # dnspython's deadline expiry; NoNameservers typically wraps a SERVFAIL from
 # upstream; OSError covers socket-level failures during TCP fallback.
@@ -55,9 +60,9 @@ _RETRYABLE_DNS_ERRORS = (
     OSError,
 )
 
-# The process-wide httpx client used for DNS over HTTPS queries, and the PID
+# The process-wide HTTP client used for DNS over HTTPS queries, and the PID
 # it was created under. See _get_doh_session().
-_DOH_SESSION: httpx.Client | None = None
+_DOH_SESSION: httpx.Client | httpx2.Client | None = None
 _DOH_SESSION_PID: int | None = None
 
 null_file = subprocess.DEVNULL
@@ -204,9 +209,32 @@ def get_base_domain(domain: str) -> str | None:
     return publicsuffix
 
 
-def _get_doh_session() -> httpx.Client:
+def _doh_client_class() -> type[httpx.Client] | type[httpx2.Client]:
     """
-    Returns the shared ``httpx.Client`` used for DNS over HTTPS queries.
+    Returns the HTTP client class ``dns.query.https()`` accepts as a
+    ``session``.
+
+    dnspython 2.9 moved DNS over HTTPS from httpx to httpx2, and
+    ``dns.query.https()`` rejects a session of the other library's class
+    (``ValueError: session parameter must be an httpx2.Client``), so an
+    ``httpx.Client`` broke every DoH query under dnspython 2.9
+    (https://github.com/domainaware/parsedmarc/issues/935). The class is
+    taken from the module dnspython itself imported, so it matches its
+    ``isinstance`` check even when httpx2 is installed beside dnspython 2.8.
+
+    Returns:
+        type: ``httpx2.Client`` under dnspython 2.9+, ``httpx.Client`` before
+    """
+    return (
+        getattr(dns.query, "httpx2", None) or getattr(dns.query, "httpx", httpx)
+    ).Client
+
+
+def _get_doh_session() -> httpx.Client | httpx2.Client:
+    """
+    Returns the shared HTTP client used for DNS over HTTPS queries: an
+    ``httpx2.Client`` under dnspython 2.9+, an ``httpx.Client`` before (see
+    ``_doh_client_class()``).
 
     The client is created on first use and reused afterwards, so DoH queries
     share TLS connections instead of renegotiating one per lookup. It is
@@ -217,41 +245,43 @@ def _get_doh_session() -> httpx.Client:
     created under, because a ``fork()``-based worker pool (``n_procs``) would
     otherwise inherit — and concurrently use — the parent's sockets.
 
-    ``httpx.Client`` defaults are what make this work behind a corporate
-    proxy: ``trust_env=True`` honors ``HTTP_PROXY``/``HTTPS_PROXY``/
-    ``NO_PROXY`` and ``SSL_CERT_FILE``/``SSL_CERT_DIR``, and ``verify=True``
-    keeps certificate verification on. Neither is overridden here.
+    The client defaults (identical in httpx and httpx2) are what make this
+    work behind a corporate proxy: ``trust_env=True`` honors ``HTTP_PROXY``/
+    ``HTTPS_PROXY``/``NO_PROXY`` and ``SSL_CERT_FILE``/``SSL_CERT_DIR``, and
+    ``verify=True`` keeps certificate verification on. Neither is overridden
+    here.
 
     Returns:
-        httpx.Client: The shared DoH client for this process
+        httpx.Client | httpx2.Client: The shared DoH client for this process
     """
     global _DOH_SESSION, _DOH_SESSION_PID
     pid = os.getpid()
     if _DOH_SESSION is None or _DOH_SESSION_PID != pid:
-        _DOH_SESSION = httpx.Client(http1=True, http2=True)
+        _DOH_SESSION = _doh_client_class()(http1=True, http2=True)
         _DOH_SESSION_PID = pid
     return _DOH_SESSION
 
 
 class _SessionDoHNameserver(dns.nameserver.DoHNameserver):
     """
-    A DNS over HTTPS nameserver that queries through a shared ``httpx``
-    client.
+    A DNS over HTTPS nameserver that queries through a shared HTTP client
+    (httpx2 on dnspython 2.9+, httpx before).
 
     dnspython's stock ``DoHNameserver`` calls ``dns.query.https()`` without a
-    ``session``, which makes that function build an ``httpx.Client`` with its
-    own custom transport — and httpx only reads proxy environment variables
-    when no transport is supplied (``allow_env_proxies = trust_env and
-    transport is None``). Stock DoH therefore ignores ``HTTPS_PROXY``
-    entirely — and a proxy is the only way out of the networks this exists
-    for (https://github.com/domainaware/parsedmarc/issues/880).
+    ``session``, which makes that function build a client with its own
+    custom transport — and httpx and httpx2 only read proxy environment
+    variables when no transport is supplied (``allow_env_proxies =
+    trust_env and transport is None``). Stock DoH therefore ignores
+    ``HTTPS_PROXY`` entirely — and a proxy is the only way out of the
+    networks this exists for
+    (https://github.com/domainaware/parsedmarc/issues/880).
 
     Passing our own session instead gets environment proxies, environment CA
     configuration (``SSL_CERT_FILE``), and connection reuse across queries.
     ``bootstrap_address`` is deliberately not passed: with a session, the DoH
-    server's hostname is resolved by httpx — locally through the OS resolver,
-    or by the proxy itself via ``CONNECT`` when one is configured — so no
-    UDP/53 access is required.
+    server's hostname is resolved by the HTTP client — locally through the
+    OS resolver, or by the proxy itself via ``CONNECT`` when one is
+    configured — so no UDP/53 access is required.
     """
 
     def query(
@@ -334,9 +364,9 @@ def _nameservers_to_resolver_input(
     ``dns.resolver.Resolver.nameservers`` accepts.
 
     ``https://`` entries become DNS over HTTPS nameservers that share this
-    process's ``httpx`` client (so proxy and CA environment variables apply),
-    and ``tls://ip[:port][#hostname]`` entries become DNS over TLS
-    nameservers. Everything else — plain IPv4/IPv6 addresses — is passed
+    process's HTTP client (httpx2 on dnspython 2.9+, httpx before), so proxy
+    and CA environment variables apply, and ``tls://ip[:port][#hostname]``
+    entries become DNS over TLS nameservers. Everything else — plain IPv4/IPv6 addresses — is passed
     through untouched, leaving dnspython to enrich and validate it exactly as
     before.
 

@@ -19,6 +19,8 @@ from glob import escape as glob_escape, glob
 from ssl import CERT_NONE, create_default_context
 from typing import TYPE_CHECKING, Any
 
+import dns.resolver
+import dns.reversename
 import httpx
 import yaml
 from tqdm import tqdm
@@ -127,12 +129,12 @@ from parsedmarc.utils import (
     ReverseDNSMap,
     configure_ipinfo_api,
     get_base_domain,
-    get_reverse_dns,
     human_timestamp_to_datetime,
     is_mbox,
     load_ip_db,
     load_psl_overrides,
     load_reverse_dns_map,
+    query_dns,
     sanitize_for_log,
 )
 
@@ -816,22 +818,26 @@ def _parse_config(config: ConfigParser, opts):
             opts.dns_test_address = general_config["dns_test_address"]
         if "nameservers" in general_config:
             opts.nameservers = _str_to_list(general_config["nameservers"])
-            # nameservers pre-flight check
-            dummy_hostname = None
+            # nameservers pre-flight check. query_dns() is called directly
+            # rather than get_reverse_dns(), which swallows every DNS error
+            # and returns None, so a broken transport (e.g. every DoH query
+            # failing, https://github.com/domainaware/parsedmarc/issues/935)
+            # was reported as a missing PTR record.
             try:
-                dummy_hostname = get_reverse_dns(
-                    opts.dns_test_address,
+                query_dns(
+                    str(dns.reversename.from_address(opts.dns_test_address)),
+                    "PTR",
                     nameservers=opts.nameservers,
                     timeout=opts.dns_timeout,
                 )
+            except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer) as ns_error:
+                raise ConfigurationError(
+                    f"DNS pre-flight check failed: no PTR record for {opts.dns_test_address} from {opts.nameservers}: {ns_error}"
+                ) from ns_error
             except Exception as ns_error:
                 raise ConfigurationError(
                     f"DNS pre-flight check failed: {ns_error}"
                 ) from ns_error
-            if not dummy_hostname:
-                raise ConfigurationError(
-                    f"DNS pre-flight check failed: no PTR record for {opts.dns_test_address} from {opts.nameservers}"
-                )
         if "save_aggregate" in general_config:
             opts.save_aggregate = bool(general_config.getboolean("save_aggregate"))
         if "save_failure" in general_config:

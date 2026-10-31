@@ -23,6 +23,11 @@ from types import ModuleType, SimpleNamespace
 from typing import cast
 from unittest.mock import MagicMock, patch
 
+import dns.message
+import dns.rcode
+import dns.rdata
+import dns.rdataclass
+import dns.rdatatype
 import httpx
 import opensearchpy
 from azure.core.exceptions import ClientAuthenticationError
@@ -7387,7 +7392,8 @@ class TestParseConfigGeneral(unittest.TestCase):
         """A nameservers list may mix DNS over HTTPS URLs and DNS over TLS
         entries with plain IP addresses (issue #880); _parse_config splits
         and strips them like any other list value, and hands them to the DNS
-        pre-flight check (mocked here so no network is needed)."""
+        pre-flight check (dns.query.https is mocked so no network is
+        needed)."""
         from parsedmarc.cli import _parse_config
 
         cp = _config_with(
@@ -7401,17 +7407,97 @@ class TestParseConfigGeneral(unittest.TestCase):
             },
         )
         opts = _opts()
-        with patch(
-            "parsedmarc.cli.get_reverse_dns", return_value="one.one.one.one"
-        ) as mock_reverse_dns:
+        queried: list[tuple[str, str]] = []
+
+        def responder(request, where, *args, **kwargs):
+            queried.append((where, request.question[0].to_text()))
+            response = dns.message.make_response(request)
+            rrset = response.find_rrset(
+                response.answer,
+                request.question[0].name,
+                dns.rdataclass.IN,
+                dns.rdatatype.PTR,
+                create=True,
+            )
+            rrset.add(dns.rdata.from_text("IN", "PTR", "one.one.one.one."), 300)
+            return response
+
+        with patch("dns.query.https", side_effect=responder):
             _parse_config(cp, opts)
         self.assertEqual(
             opts.nameservers,
             ["https://cloudflare-dns.com/dns-query", "tls://9.9.9.9#dns.quad9.net"],
         )
+        # The first (DoH) nameserver answered the pre-flight PTR query for
+        # dns_test_address, so the DoT one was never needed
         self.assertEqual(
-            mock_reverse_dns.call_args.kwargs["nameservers"], opts.nameservers
+            queried,
+            [
+                (
+                    "https://cloudflare-dns.com/dns-query",
+                    "1.1.1.1.in-addr.arpa. IN PTR",
+                )
+            ],
         )
+
+    def test_general_nameservers_pre_flight_reports_the_resolver_error(self):
+        """A nameserver that fails every query is reported with the
+        resolver's own error, not as a missing PTR record. Issue #935: under
+        dnspython 2.9 every DoH query raised "session parameter must be an
+        httpx2.Client", and the pre-flight check said "no PTR record for
+        1.1.1.1", because get_reverse_dns() turns every DNS error into
+        None."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with(
+            "general",
+            {
+                "dns_test_address": "1.1.1.1",
+                "dns_timeout": "0.2",
+                "nameservers": "https://dns.example/dns-query",
+            },
+        )
+        error = ValueError("session parameter must be an httpx2.Client")
+        with patch("dns.query.https", side_effect=error):
+            with self.assertRaises(ConfigurationError) as ctx:
+                _parse_config(cp, _opts())
+        message = str(ctx.exception)
+        self.assertIn("DNS pre-flight check failed", message)
+        self.assertIn("session parameter must be an httpx2.Client", message)
+        self.assertNotIn("no PTR record", message)
+
+    def test_general_nameservers_pre_flight_reports_a_missing_ptr_record(self):
+        """When the nameserver answers but has no PTR record for
+        dns_test_address — NXDOMAIN, or NOERROR with an empty answer
+        section — the pre-flight error says so and names the nameservers."""
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        def nxdomain(request, *args, **kwargs):
+            response = dns.message.make_response(request)
+            response.set_rcode(dns.rcode.NXDOMAIN)
+            return response
+
+        def no_answer(request, *args, **kwargs):
+            return dns.message.make_response(request)
+
+        for name, responder in (("NXDOMAIN", nxdomain), ("NoAnswer", no_answer)):
+            with self.subTest(name):
+                cp = _config_with(
+                    "general",
+                    {
+                        "dns_test_address": "1.1.1.1",
+                        "dns_timeout": "2.0",
+                        "nameservers": "https://dns.example/dns-query",
+                    },
+                )
+                with patch("dns.query.https", side_effect=responder):
+                    with self.assertRaises(ConfigurationError) as ctx:
+                        _parse_config(cp, _opts())
+                self.assertIn(
+                    "DNS pre-flight check failed: no PTR record for 1.1.1.1 "
+                    "from ['https://dns.example/dns-query']",
+                    str(ctx.exception),
+                )
 
     def test_general_nameservers_malformed_dot_entry_fails_pre_flight(self):
         """A malformed DNS over TLS nameservers entry raises a
