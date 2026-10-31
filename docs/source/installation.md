@@ -106,7 +106,7 @@ dependencies it actually uses.
 - the parsing library (aggregate, failure, and SMTP TLS reports),
 - the CLI, reading reports from files, an IMAP mailbox, a Maildir, or an
   mbox file,
-- and CSV/JSON, Splunk HEC, webhook, and syslog output.
+- and CSV/JSON, Splunk HEC, webhook, syslog, and Grafana Loki output.
 
 Everything else needs an extra:
 

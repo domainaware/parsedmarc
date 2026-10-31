@@ -174,6 +174,7 @@ wait_for "OpenSearch Dashboards" \
 wait_for "Grafana" curl -sf http://localhost:3000/api/health
 wait_for "PostgreSQL" \
     "${COMPOSE[@]}" exec -T postgresql pg_isready -U "$PG_USER" -d "$PG_DB"
+wait_for "Loki" curl -sf http://localhost:3100/ready
 # Splunk's HEC port is healthy once management API is up too.
 wait_for "Splunk HEC" curl -ksf https://localhost:8088/services/collector/health
 # Splunkd management API (used for dashboard imports) lives inside the container.
@@ -276,9 +277,10 @@ elif [ -n "$SCHED_SHARING" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Seed sample data via parsedmarc -> ES, OS, Splunk HEC
+# 4. Seed sample data via parsedmarc -> ES, OS, Splunk HEC, PostgreSQL, Loki
 #    Skipped when ES already has aggregate docs from a prior run. Set
-#    RESEED=1 to wipe ES/OS/Splunk parsedmarc data first and re-seed.
+#    RESEED=1 to wipe parsedmarc data from every backend first and re-seed
+#    (Loki is wiped on RESEED=1 even when ES is empty).
 # ---------------------------------------------------------------------------
 log "Seeding sample data with parsedmarc-dev.ini"
 ES_AGG_COUNT=$(curl -sf 'http://localhost:9200/dmarc_aggregate*/_count' 2>/dev/null \
@@ -324,6 +326,15 @@ else
         "${COMPOSE[@]}" exec -T -e PGPASSWORD="$PG_PASSWORD" postgresql \
             psql -U "$PG_USER" -d "$PG_DB" \
             -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;' >/dev/null 2>&1 || true
+    fi
+
+    if [ "${RESEED:-0}" = "1" ]; then
+        # Loki: the container keeps its data inside itself, so recreating it
+        # is a clean wipe. Done whenever RESEED=1, even if ES is empty (e.g.
+        # the ES container was recreated): Loki does not dedupe, so seeding on
+        # top of leftover logs would append a duplicate copy.
+        "${COMPOSE[@]}" up -d --force-recreate loki >/dev/null 2>&1 || true
+        wait_for "Loki (after wipe)" curl -sf http://localhost:3100/ready
     fi
 
     # Resolve a Python environment for the seed and make sure parsedmarc plus
@@ -429,7 +440,10 @@ else
         echo "           ${PARSEDMARC_BIN} — the seed run will fail to initialize its"
         echo "           outputs. Install them with: pip install -e '.[all,postgresql]'"
     fi
-    env "${pg_seed_env[@]}" \
+    # The Loki output is part of the base install, so it is always seeded.
+    # Lines keep the default ingest timestamp: Loki rejects samples older
+    # than a week, and the sample reports are years old.
+    env "${pg_seed_env[@]}" PARSEDMARC_LOKI_URL=http://localhost:3100 \
         "$PARSEDMARC_BIN" -t 2.0 --dns-retries 1 -c parsedmarc-dev.ini "${SAMPLE_FILES[@]}" || true
 fi
 
@@ -563,6 +577,28 @@ EOF
     echo "  created datasource 'PostgreSQL'"
 fi
 
+# Loki datasource for the Loki DMARC dashboard. Created with uid dmarc-loki
+# when missing; an existing datasource named Loki keeps its own uid, which the
+# dashboard import below resolves its ${DS_LOKI} input to.
+LOKI_DS_UID=dmarc-loki
+loki_ds_resp=$(curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -w $'\n%{http_code}' \
+    "http://localhost:3000/api/datasources/name/Loki")
+loki_ds_code="${loki_ds_resp##*$'\n'}"
+if [ "$loki_ds_code" = "200" ]; then
+    LOKI_DS_UID=$(printf '%s' "${loki_ds_resp%$'\n'*}" \
+        | python3 -c 'import json, sys; print(json.load(sys.stdin)["uid"])')
+    echo "  datasource 'Loki' already exists (uid ${LOKI_DS_UID}) — skipping"
+else
+    curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+        -H 'Content-Type: application/json' \
+        -X POST "http://localhost:3000/api/datasources" \
+        -d '{"name": "Loki", "uid": "dmarc-loki", "type": "loki", "url": "http://loki:3100", "access": "proxy", "isDefault": false}' \
+        | sed 's/^/  /'
+    echo
+    echo "  created datasource 'Loki'"
+fi
+
 log "Importing Grafana dashboard"
 GF_BODY=$(python3 -c '
 import json, sys
@@ -597,6 +633,23 @@ curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
     -X POST "http://localhost:3000/api/dashboards/db" \
     -d "$GF_PG_BODY" | sed 's/^/  /'
 
+log "Importing Grafana Loki dashboard"
+GF_LOKI_BODY=$(LOKI_DS_UID="$LOKI_DS_UID" python3 -c '
+import json, os
+with open("dashboards/grafana/Grafana-DMARC_Reports-Loki.json") as f:
+    text = f.read()
+text = text.replace("${DS_LOKI}", os.environ["LOKI_DS_UID"])
+d = json.loads(text)
+d.pop("__inputs", None)
+d.pop("__requires", None)
+d["id"] = None
+print(json.dumps({"dashboard": d, "overwrite": True, "folderUid": ""}))
+')
+curl -sS -u "${GRAFANA_USER}:${GRAFANA_PASSWORD}" \
+    -H 'Content-Type: application/json' \
+    -X POST "http://localhost:3000/api/dashboards/db" \
+    -d "$GF_LOKI_BODY" | sed 's/^/  /'
+
 log "Importing Splunk dashboard views into the DMARC app"
 splunk_import_view() {
     local name="$1"
@@ -626,4 +679,5 @@ cat <<EOF
   Grafana                 http://localhost:3000/   (${GRAFANA_USER} / ${GRAFANA_PASSWORD})
   Splunk                  http://localhost:8000/   (admin / ${SPLUNK_PASSWORD})
   PostgreSQL              localhost:5432           (${PG_USER} / ${PG_PASSWORD}, db ${PG_DB})
+  Loki                    http://localhost:3100/
 EOF

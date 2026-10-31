@@ -19,6 +19,9 @@ from glob import escape as glob_escape, glob
 from ssl import CERT_NONE, create_default_context
 from typing import TYPE_CHECKING, Any
 
+import dns.exception
+import dns.resolver
+import dns.reversename
 import httpx
 import yaml
 from tqdm import tqdm
@@ -36,6 +39,7 @@ from parsedmarc import (
     email_results_via_msgraph,
     get_dmarc_reports_from_mailbox,
     get_dmarc_reports_from_mbox,
+    loki,
     postgres,
     save_output,
     splunk,
@@ -128,12 +132,12 @@ from parsedmarc.utils import (
     ReverseDNSMap,
     configure_ipinfo_api,
     get_base_domain,
-    get_reverse_dns,
     human_timestamp_to_datetime,
     is_mbox,
     load_ip_db,
     load_psl_overrides,
     load_reverse_dns_map,
+    query_dns,
     sanitize_for_log,
 )
 
@@ -526,6 +530,7 @@ _KNOWN_SECTIONS = frozenset(
         "log_analytics",
         "gelf",
         "webhook",
+        "loki",
     }
 )
 
@@ -672,6 +677,10 @@ _DEPENDENCY_LOGGERS = (
     "msgraph",
     "httpx",
     "httpcore",
+    # dnspython 2.9+ does DNS over HTTPS through httpx2 / httpcore2, which
+    # log under their own names rather than httpx / httpcore.
+    "httpx2",
+    "httpcore2",
 )
 
 
@@ -817,22 +826,33 @@ def _parse_config(config: ConfigParser, opts):
             opts.dns_test_address = general_config["dns_test_address"]
         if "nameservers" in general_config:
             opts.nameservers = _str_to_list(general_config["nameservers"])
-            # nameservers pre-flight check
-            dummy_hostname = None
+            # nameservers pre-flight check. query_dns() is called directly
+            # rather than get_reverse_dns(), which swallows every DNS error
+            # and returns None, so a broken transport (e.g. every DoH query
+            # failing, https://github.com/domainaware/parsedmarc/issues/935)
+            # was reported as a missing PTR record.
             try:
-                dummy_hostname = get_reverse_dns(
-                    opts.dns_test_address,
+                reverse_name = str(dns.reversename.from_address(opts.dns_test_address))
+            except dns.exception.SyntaxError as addr_error:
+                raise ConfigurationError(
+                    f"DNS pre-flight check failed: dns_test_address "
+                    f"{opts.dns_test_address!r} is not a valid IP address"
+                ) from addr_error
+            try:
+                query_dns(
+                    reverse_name,
+                    "PTR",
                     nameservers=opts.nameservers,
                     timeout=opts.dns_timeout,
                 )
+            except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer) as ns_error:
+                raise ConfigurationError(
+                    f"DNS pre-flight check failed: no PTR record for {opts.dns_test_address} from {opts.nameservers}: {ns_error}"
+                ) from ns_error
             except Exception as ns_error:
                 raise ConfigurationError(
                     f"DNS pre-flight check failed: {ns_error}"
                 ) from ns_error
-            if not dummy_hostname:
-                raise ConfigurationError(
-                    f"DNS pre-flight check failed: no PTR record for {opts.dns_test_address} from {opts.nameservers}"
-                )
         if "save_aggregate" in general_config:
             opts.save_aggregate = bool(general_config.getboolean("save_aggregate"))
         if "save_failure" in general_config:
@@ -1538,6 +1558,51 @@ def _parse_config(config: ConfigParser, opts):
         if "timeout" in webhook_config:
             opts.webhook_timeout = webhook_config.getint("timeout")
 
+    if "loki" in config.sections():
+        loki_config = config["loki"]
+        if "url" in loki_config:
+            opts.loki_url = loki_config["url"]
+        else:
+            raise ConfigurationError("url setting missing from the loki config section")
+        if "labels" in loki_config:
+            opts.loki_labels = {}
+            for pair in _str_to_list(loki_config["labels"]):
+                name, sep, value = pair.partition("=")
+                if not sep or not name.strip():
+                    raise ConfigurationError(
+                        f"Invalid loki label '{pair}', expected name=value"
+                    )
+                opts.loki_labels[name.strip()] = value.strip()
+        if "label_fields" in loki_config:
+            opts.loki_label_fields = [
+                field.strip()
+                for field in _str_to_list(loki_config["label_fields"])
+                if field.strip()
+            ]
+        if "timestamp" in loki_config:
+            opts.loki_timestamp = loki_config["timestamp"]
+            if opts.loki_timestamp not in loki.TIMESTAMP_MODES:
+                raise ConfigurationError(
+                    f"Invalid loki timestamp '{opts.loki_timestamp}', must be one "
+                    f"of: {', '.join(loki.TIMESTAMP_MODES)}"
+                )
+        if "username" in loki_config:
+            opts.loki_username = loki_config["username"]
+        if "password" in loki_config:
+            opts.loki_password = loki_config["password"]
+        if "token" in loki_config:
+            opts.loki_token = loki_config["token"]
+        if "tenant_id" in loki_config:
+            opts.loki_tenant_id = loki_config["tenant_id"]
+        if "skip_certificate_verification" in loki_config:
+            opts.loki_skip_certificate_verification = loki_config.getboolean(
+                "skip_certificate_verification"
+            )
+        if "timeout" in loki_config:
+            opts.loki_timeout = loki_config.getfloat("timeout")
+        if "batch_size" in loki_config:
+            opts.loki_batch_size = loki_config.getint("batch_size")
+
     return index_prefix_domain_map
 
 
@@ -2070,6 +2135,25 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
     except Exception as e:
         raise RuntimeError(f"Webhook: {e}") from e
 
+    try:
+        if opts.loki_url:
+            logger.debug("Initializing Loki client: url=%s", opts.loki_url)
+            clients["loki_client"] = loki.LokiClient(
+                opts.loki_url,
+                labels=opts.loki_labels,
+                label_fields=opts.loki_label_fields,
+                timestamp=opts.loki_timestamp,
+                username=opts.loki_username,
+                password=opts.loki_password,
+                token=opts.loki_token,
+                tenant_id=opts.loki_tenant_id,
+                verify=not opts.loki_skip_certificate_verification,
+                timeout=opts.loki_timeout,
+                batch_size=opts.loki_batch_size,
+            )
+    except Exception as e:
+        raise RuntimeError(f"Loki: {e}") from e
+
     # The Log Analytics client is built per batch in process_reports(),
     # under the same opts.la_dce guard. Checking it here means a missing
     # extra is reported at startup -- and again on a SIGHUP reload --
@@ -2486,6 +2570,7 @@ def _main():
         hec_client = clients.get("hec_client")
         gelf_client = clients.get("gelf_client")
         webhook_client = clients.get("webhook_client")
+        loki_client = clients.get("loki_client")
         pg_client = clients.get("postgresql_client")
 
         kafka_aggregate_topic = opts.kafka_aggregate_topic
@@ -2578,6 +2663,12 @@ def _main():
                         )
                 except Exception as error_:
                     log_output_error("Webhook", error_.__str__())
+
+                try:
+                    if loki_client:
+                        loki_client.save_aggregate_report_to_loki(report)
+                except Exception as error_:
+                    log_output_error("Loki", error_.__str__())
 
             if hec_client:
                 try:
@@ -2674,6 +2765,12 @@ def _main():
                 except Exception as error_:
                     log_output_error("Webhook", error_.__str__())
 
+                try:
+                    if loki_client:
+                        loki_client.save_failure_report_to_loki(report)
+                except Exception as error_:
+                    log_output_error("Loki", error_.__str__())
+
             if hec_client:
                 try:
                     failure_reports_ = reports_["failure_reports"]
@@ -2768,6 +2865,12 @@ def _main():
                         )
                 except Exception as error_:
                     log_output_error("Webhook", error_.__str__())
+
+                try:
+                    if loki_client:
+                        loki_client.save_smtp_tls_report_to_loki(report)
+                except Exception as error_:
+                    log_output_error("Loki", error_.__str__())
 
             if hec_client:
                 try:
@@ -3089,6 +3192,17 @@ def _main():
         webhook_failure_url=None,
         webhook_smtp_tls_url=None,
         webhook_timeout=60,
+        loki_url=None,
+        loki_labels=None,
+        loki_label_fields=None,
+        loki_timestamp="ingest",
+        loki_username=None,
+        loki_password=None,
+        loki_token=None,
+        loki_tenant_id=None,
+        loki_skip_certificate_verification=False,
+        loki_timeout=60,
+        loki_batch_size=1000,
         normalize_timespan_threshold_hours=24.0,
         postgresql_host=None,
         postgresql_port=5432,

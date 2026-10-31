@@ -44,7 +44,7 @@ and Valimail.
   PostgreSQL, for use with premade dashboards
 - Optionally send the results to Apache Kafka, Amazon S3, Azure Log
   Analytics (Microsoft Sentinel), a Graylog (GELF) endpoint, a syslog server,
-  or an HTTP webhook
+  Grafana Loki, or an HTTP webhook
 
 ## Python Compatibility
 
