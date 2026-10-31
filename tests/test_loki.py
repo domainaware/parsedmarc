@@ -339,12 +339,6 @@ class TestLokiOtherReportTypes(unittest.TestCase):
         self.assertEqual(line["domain"], "a.example")
         self.assertEqual(line["report_type"], "aggregate")
 
-    def test_forensic_alias(self):
-        self.assertIs(
-            LokiClient.save_forensic_report_to_loki,
-            LokiClient.save_failure_report_to_loki,
-        )
-
 
 @patch(
     "parsedmarc.loki.parsed_aggregate_reports_to_csv_rows", return_value=AGGREGATE_ROWS
@@ -386,6 +380,31 @@ class TestLokiErrors(unittest.TestCase):
         with self.assertRaises(LokiError) as ctx:
             client.save_aggregate_report_to_loki(AGGREGATE)
         self.assertIn("260", str(ctx.exception))
+
+    def test_redirect_raises_and_is_not_followed(self, _rows):
+        """httpx turns a redirected POST into a GET, which the target would
+        answer 200 without storing anything; a 3xx must raise instead."""
+        requested = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            requested.append(str(request.url))
+            if request.url.host == "loki.example.org":
+                return httpx.Response(
+                    301, headers={"Location": "http://elsewhere.example.org/ok"}
+                )
+            return httpx.Response(200)
+
+        real_client = httpx.Client
+
+        def client_factory(**kwargs):
+            return real_client(transport=httpx.MockTransport(handler), **kwargs)
+
+        with patch("parsedmarc.loki.httpx.Client", side_effect=client_factory):
+            client = LokiClient("http://loki.example.org:3100")
+        with self.assertRaises(LokiError) as ctx:
+            client.save_aggregate_report_to_loki(AGGREGATE)
+        self.assertIn("301", str(ctx.exception))
+        self.assertEqual(requested, ["http://loki.example.org:3100/loki/api/v1/push"])
 
     def test_success_statuses(self, _rows):
         for status in (200, 204):

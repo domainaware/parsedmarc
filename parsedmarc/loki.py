@@ -117,8 +117,10 @@ class LokiClient(object):
         if tenant_id:
             headers["X-Scope-OrgID"] = tenant_id
         auth = httpx.BasicAuth(username or "", password or "") if username else None
+        # Redirects are not followed: httpx re-sends a 301/302 POST as a GET,
+        # which the target can answer 200 without storing anything.
         self.session = httpx.Client(
-            headers=headers, auth=auth, verify=verify, follow_redirects=True
+            headers=headers, auth=auth, verify=verify, follow_redirects=False
         )
 
     def save_aggregate_report_to_loki(
@@ -208,6 +210,3 @@ class LokiClient(object):
     def close(self):
         """Close the underlying HTTP session."""
         self.session.close()
-
-    # Backward-compatible alias
-    save_forensic_report_to_loki = save_failure_report_to_loki
