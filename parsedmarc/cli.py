@@ -20,7 +20,6 @@ from ssl import CERT_NONE, create_default_context
 from typing import TYPE_CHECKING, Any
 
 import dns.exception
-import dns.query
 import dns.resolver
 import dns.reversename
 import httpx
@@ -113,6 +112,23 @@ else:
 
         class APIError(Exception):
             """Never-raised placeholder for the absent msgraph extra."""
+
+
+# dnspython 2.9+ does DNS over HTTPS through httpx2 (installed by its
+# [doh] extra); 2.7 and 2.8 use httpx, so httpx2 may be absent. It may
+# also be present without dnspython having imported it: dnspython 2.9
+# needs Python 3.11, but httpx2 installs on 3.10 and other tools pull it
+# in. _RedactUrlCredentialsFilter must recognize httpx2.URL whenever
+# httpx2 can log one, so it is imported here rather than taken from
+# dns.query (unlike utils.py's _doh_client_class(), which has to match
+# the library dnspython itself imported).
+if TYPE_CHECKING:
+    import httpx2  # pyright: ignore[reportMissingImports]
+else:
+    try:
+        import httpx2
+    except ModuleNotFoundError:
+        httpx2 = None
 
 
 from parsedmarc.constants import DEFAULT_DNS_MAX_RETRIES, DEFAULT_DNS_TIMEOUT
@@ -687,12 +703,11 @@ _DEPENDENCY_LOGGERS = (
 )
 
 
-# URL classes whose instances appear as log-record arguments. dnspython
-# 2.9+ does DNS over HTTPS through httpx2, whose URL is not an httpx.URL;
-# like _doh_client_class() in utils.py, take the module dnspython itself
-# imported (absent under dnspython 2.7/2.8, which use httpx).
-_HTTP_URL_CLASSES: tuple[type, ...] = (httpx.URL,) + tuple(
-    module.URL for module in (getattr(dns.query, "httpx2", None),) if module
+# URL classes whose instances appear as log-record arguments. httpx2.URL
+# is not an httpx.URL, so each installed library contributes its own
+# class (see the httpx2 import guard above).
+_HTTP_URL_CLASSES: tuple[type, ...] = (httpx.URL,) + (
+    (httpx2.URL,) if httpx2 is not None else ()
 )
 
 
