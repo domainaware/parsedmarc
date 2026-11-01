@@ -2965,6 +2965,287 @@ client_assertion = s3cret-signed-jwt-assertion
             self.assertEqual(logging.getLogger(name).level, logging.WARNING, name)
 
 
+def _recording_smtp_class(kind: str, calls: list, *, advertise_starttls: bool):
+    """A stand-in for ``smtplib.SMTP`` / ``smtplib.SMTP_SSL`` that appends
+    each call it receives to ``calls`` in order. ``advertise_starttls=False``
+    plays a server, or an on-path attacker, whose EHLO reply has no
+    STARTTLS (GHSA-3588-2mr7-vrcm)."""
+
+    class _RecordingSMTP:
+        def __init__(self, host="", port=0, *args, **kwargs):
+            calls.append((kind, host, port))
+
+        def ehlo_or_helo_if_needed(self):
+            calls.append(("ehlo",))
+
+        def ehlo(self):
+            calls.append(("ehlo",))
+
+        def has_extn(self, name):
+            return name.lower() == "starttls" and advertise_starttls
+
+        def starttls(self, context=None):
+            calls.append(("starttls",))
+
+        def login(self, user, password):
+            calls.append(("login", user, password))
+
+        def sendmail(self, sender, to, msg):
+            calls.append(("sendmail", sender, sorted(to), msg))
+
+    return _RecordingSMTP
+
+
+class TestCliStartTLS(unittest.TestCase):
+    """GHSA-3588-2mr7-vrcm: the ``[smtp]`` and ``[imap]`` ``starttls``
+    option. Unset, a plain-text (``ssl = False``) connection must be
+    upgraded with STARTTLS before credentials are sent; ``starttls =
+    false`` is the explicit plain-text opt-out and is logged as a WARNING.
+    SMTP is exercised end to end through ``_main()`` with ``smtplib``
+    patched; IMAP through the kwargs handed to ``IMAPConnection``."""
+
+    PASSWORD = "Sup3rSecret-placeholder"
+
+    SMTP_CONFIG = """[general]
+offline = true
+silent = true
+
+[smtp]
+host = smtp.example.com
+port = 587
+user = dmarc@example.com
+password = Sup3rSecret-placeholder
+from = dmarc@example.com
+to = admin@example.com
+"""
+
+    IMAP_CONFIG = """[general]
+offline = true
+silent = true
+
+[imap]
+host = imap.example.com
+port = 143
+ssl = false
+user = dmarc@example.com
+password = Sup3rSecret-placeholder
+"""
+
+    def setUp(self):
+        # Every SMTP test parses the same sample report; without a fresh
+        # dedup cache the second run would skip it as already seen, parse
+        # nothing, and skip the results email.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        # _main() reconfigures process-global dependency loggers; restore
+        # them so these tests don't leak state into the rest of the suite.
+        saved = {}
+        for name in parsedmarc.cli._DEPENDENCY_LOGGERS:
+            dep = logging.getLogger(name)
+            saved[name] = (dep.level, list(dep.handlers), dep.propagate)
+
+        def restore():
+            for name, (level, handlers, propagate) in saved.items():
+                dep = logging.getLogger(name)
+                dep.setLevel(level)
+                dep.handlers = handlers
+                dep.propagate = propagate
+
+        self.addCleanup(restore)
+
+    def _write_config(self, config_text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(config_text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _capture_records(self) -> list[logging.LogRecord]:
+        """Collect every record the parsedmarc logger emits from here on.
+
+        The level is lowered to WARNING (as ``assertLogs`` does in the
+        positive tests) because ``_parse_config()`` runs before ``_main()``
+        sets the level, and an earlier ``_main()`` in this process may have
+        left it at ERROR -- which would make a "no WARNING" assertion pass
+        vacuously."""
+        records: list[logging.LogRecord] = []
+        handler = logging.Handler()
+        handler.emit = records.append  # pyright: ignore[reportAttributeAccessIssue]
+        log = parsedmarc.log.logger
+        previous_level = log.level
+        log.setLevel(logging.WARNING)
+        log.addHandler(handler)
+        self.addCleanup(log.setLevel, previous_level)
+        self.addCleanup(log.removeHandler, handler)
+        return records
+
+    def _run_smtp(self, config_text, *, advertise_starttls):
+        calls: list = []
+        cfg_path = self._write_config(config_text)
+        argv = ["parsedmarc", "-c", cfg_path, SAMPLE_AGGREGATE_REPORT_PATH]
+        with (
+            patch(
+                "smtplib.SMTP",
+                _recording_smtp_class(
+                    "SMTP", calls, advertise_starttls=advertise_starttls
+                ),
+            ),
+            patch(
+                "smtplib.SMTP_SSL",
+                _recording_smtp_class(
+                    "SMTP_SSL", calls, advertise_starttls=advertise_starttls
+                ),
+            ),
+            patch.object(sys, "argv", argv),
+        ):
+            parsedmarc.cli._main()
+        return calls
+
+    def testDefaultSmtpRefusesPlainTextAuthentication(self):
+        """GHSA-3588-2mr7-vrcm: with the default ``[smtp]`` settings
+        (``ssl = False``, no ``starttls``) and a server whose EHLO reply has
+        no STARTTLS, the CLI logs "Failed to email results" and exits 1
+        without sending LOGIN or the report, and the password appears
+        nowhere in the logged error or traceback."""
+        calls: list = []
+        with self.assertLogs("parsedmarc.log", level="ERROR") as logs:
+            with self.assertRaises(SystemExit) as system_exit:
+                calls = self._run_smtp(self.SMTP_CONFIG, advertise_starttls=False)
+
+        self.assertEqual(system_exit.exception.code, 1)
+        output = "\n".join(logs.output)
+        self.assertIn("Failed to email results", output)
+        self.assertIn("STARTTLS", output)
+        self.assertNotIn(self.PASSWORD, output)
+        names = [call[0] for call in calls]
+        self.assertNotIn("login", names)
+        self.assertNotIn("sendmail", names)
+
+    def testDefaultSmtpUpgradesBeforeLogin(self):
+        """With the default settings and a server that advertises STARTTLS,
+        the connection is upgraded before LOGIN and the report is sent, and
+        no plain-text WARNING is logged (GHSA-3588-2mr7-vrcm)."""
+        records = self._capture_records()
+        calls = self._run_smtp(self.SMTP_CONFIG, advertise_starttls=True)
+
+        names = [call[0] for call in calls]
+        self.assertEqual(calls[0], ("SMTP", "smtp.example.com", 587))
+        self.assertLess(names.index("starttls"), names.index("login"))
+        self.assertLess(names.index("login"), names.index("sendmail"))
+        self.assertEqual(
+            calls[names.index("login")],
+            ("login", "dmarc@example.com", self.PASSWORD),
+        )
+        self.assertFalse(any("plain text" in record.getMessage() for record in records))
+
+    def testSmtpStartTLSFalseOptsOutWithWarning(self):
+        """``[smtp] starttls = false`` reaches mailsuite: LOGIN and the report
+        are sent without STARTTLS, and a WARNING says the credentials go out
+        in plain text, without naming them (GHSA-3588-2mr7-vrcm)."""
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            calls = self._run_smtp(
+                self.SMTP_CONFIG + "starttls = false\n", advertise_starttls=False
+            )
+
+        names = [call[0] for call in calls]
+        self.assertNotIn("starttls", names)
+        self.assertEqual(
+            calls[names.index("login")],
+            ("login", "dmarc@example.com", self.PASSWORD),
+        )
+        sendmail = calls[names.index("sendmail")]
+        self.assertEqual(sendmail[2], ["admin@example.com"])
+        output = "\n".join(logs.output)
+        self.assertIn("WARNING:parsedmarc.log:[smtp] starttls = False", output)
+        self.assertIn("SMTP credentials", output)
+        self.assertNotIn(self.PASSWORD, output)
+
+    def testSmtpStartTLSFalseWithSslLogsNoWarning(self):
+        """With ``ssl = true`` the ``starttls`` option is ignored, so no
+        plain-text WARNING is logged and implicit TLS is used
+        (GHSA-3588-2mr7-vrcm)."""
+        records = self._capture_records()
+        calls = self._run_smtp(
+            self.SMTP_CONFIG + "ssl = true\nstarttls = false\n",
+            advertise_starttls=False,
+        )
+
+        names = [call[0] for call in calls]
+        self.assertEqual(names[0], "SMTP_SSL")
+        self.assertNotIn("starttls", names)
+        self.assertIn("sendmail", names)
+        self.assertFalse(any("plain text" in record.getMessage() for record in records))
+
+    def _run_imap(self, config_text, env=None):
+        cfg_path = self._write_config(config_text)
+        with (
+            patch("parsedmarc.cli.IMAPConnection") as mock_imap,
+            patch("parsedmarc.cli.get_dmarc_reports_from_mailbox") as mock_get,
+            patch.dict(os.environ, env or {}),
+            patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]),
+        ):
+            mock_imap.return_value = object()
+            mock_get.return_value = {
+                "aggregate_reports": [],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+            parsedmarc.cli._main()
+        return mock_imap.call_args.kwargs
+
+    def testImapStartTLSDefaultsToNone(self):
+        """Without ``[imap] starttls``, ``IMAPConnection`` gets
+        ``starttls=None`` -- mailsuite's default, which refuses to log in
+        over a connection that was not upgraded (GHSA-3588-2mr7-vrcm) --
+        and no plain-text WARNING is logged."""
+        records = self._capture_records()
+
+        kwargs = self._run_imap(self.IMAP_CONFIG)
+
+        self.assertIn("starttls", kwargs)
+        self.assertIsNone(kwargs["starttls"])
+        self.assertFalse(kwargs["ssl"])
+        self.assertFalse(any("plain text" in record.getMessage() for record in records))
+
+    def testImapStartTLSFalseFromIni(self):
+        """``[imap] starttls = false`` with ``ssl = false`` hands
+        ``starttls=False`` to ``IMAPConnection`` and logs the plain-text
+        WARNING (GHSA-3588-2mr7-vrcm)."""
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            kwargs = self._run_imap(self.IMAP_CONFIG + "starttls = false\n")
+
+        self.assertIs(kwargs["starttls"], False)
+        output = "\n".join(logs.output)
+        self.assertIn("WARNING:parsedmarc.log:[imap] starttls = False", output)
+        self.assertIn("IMAP credentials", output)
+        self.assertNotIn(self.PASSWORD, output)
+
+    def testImapStartTLSFromEnvVar(self):
+        """``PARSEDMARC_IMAP_STARTTLS`` reaches ``IMAPConnection`` through
+        the generic section/key mapping, in both directions
+        (GHSA-3588-2mr7-vrcm)."""
+        for value, expected in (("false", False), ("true", True)):
+            with self.subTest(value=value):
+                kwargs = self._run_imap(
+                    self.IMAP_CONFIG, env={"PARSEDMARC_IMAP_STARTTLS": value}
+                )
+                self.assertIs(kwargs["starttls"], expected)
+
+    def testImapStartTLSFalseWithSslLogsNoWarning(self):
+        """With ``[imap] ssl = true`` the ``starttls`` option is ignored by
+        mailsuite, so no plain-text WARNING is logged
+        (GHSA-3588-2mr7-vrcm)."""
+        records = self._capture_records()
+
+        kwargs = self._run_imap(
+            self.IMAP_CONFIG.replace("ssl = false", "ssl = true") + "starttls = false\n"
+        )
+
+        self.assertTrue(kwargs["ssl"])
+        self.assertIs(kwargs["starttls"], False)
+        self.assertFalse(any("plain text" in record.getMessage() for record in records))
+
+
 class TestMSGraphEmailResults(unittest.TestCase):
     """#472: the periodic summary email is sent via the same
     already-authenticated Microsoft Graph mailbox connection when

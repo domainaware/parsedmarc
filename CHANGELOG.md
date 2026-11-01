@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Security
+
+- **Credentials are no longer sent in plain text when an attacker strips STARTTLS from the SMTP or IMAP server's reply** ([GHSA-3588-2mr7-vrcm](https://github.com/domainaware/parsedmarc/security/advisories/GHSA-3588-2mr7-vrcm), affects 11.2.0 and earlier). With `[smtp]` `ssl = False` (the default; the default port is 25), `email_results()` opened a plain-text connection and upgraded it with STARTTLS only if the server's EHLO reply listed STARTTLS; otherwise it logged a warning and authenticated anyway. That reply arrives before any encryption, so an on-path attacker who removed STARTTLS from it received the SMTP username and password and the emailed results (CWE-319). The CLI requires `[smtp]` `user` and `password` whenever `[smtp]` `host` is set, so every deployment that emailed results with the default settings used this path. `[imap]` `ssl = False` (the default is `True`) had the same weakness: parsedmarc logged in over plain text when the server did not advertise STARTTLS. mailsuite 2.3.4 ([GHSA-2x4j-7g3q-wr6f](https://github.com/seanthegeek/mailsuite/security/advisories/GHSA-2x4j-7g3q-wr6f)) now refuses a plain-text connection that was not upgraded before any credentials are sent, so the run fails with "Failed to email results" or "IMAP Error" instead. **mailsuite 2.3.4 or later is now required.** `ssl = True` (implicit TLS), the Microsoft Graph and Gmail API connections, and servers that advertise STARTTLS are unchanged. **Compatibility:** a server that offers no TLS at all now fails. Set the new `[imap]` or `[smtp]` `starttls = False` option to allow plain-text authentication again (recommended only for a server on the same host, such as DavMail on the loopback address; a warning is logged at startup when it is set and `ssl = False`), or switch to `ssl = True`. Library callers can pass the new `starttls` argument to `email_results()` (`None` by default, which requires STARTTLS before credentials are sent; `True` always requires it; `False` never upgrades). A call to `email_results()` without `username` and `password` still sends the message in plain text when the server does not advertise STARTTLS, with a warning. Reported by helixnebulatech.
+
 ## 11.2.0
 
 ### New features

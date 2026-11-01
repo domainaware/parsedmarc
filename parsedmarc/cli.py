@@ -1059,6 +1059,16 @@ def _parse_config(config: ConfigParser, opts):
             opts.imap_skip_certificate_verification = bool(
                 imap_config.getboolean("skip_certificate_verification")
             )
+        if "starttls" in imap_config:
+            opts.imap_starttls = bool(imap_config.getboolean("starttls"))
+        if getattr(opts, "imap_starttls", None) is False and not getattr(
+            opts, "imap_ssl", True
+        ):
+            logger.warning(
+                "[imap] starttls = False and ssl = False: the IMAP connection "
+                "will not be encrypted, and the IMAP credentials will be sent "
+                "in plain text"
+            )
         if "user" in imap_config:
             opts.imap_user = imap_config["user"]
         else:
@@ -1455,6 +1465,18 @@ def _parse_config(config: ConfigParser, opts):
         if "skip_certificate_verification" in smtp_config:
             smtp_verify = bool(smtp_config.getboolean("skip_certificate_verification"))
             opts.smtp_skip_certificate_verification = smtp_verify
+        if "starttls" in smtp_config:
+            opts.smtp_starttls = bool(smtp_config.getboolean("starttls"))
+        if (
+            getattr(opts, "smtp_host", None)
+            and getattr(opts, "smtp_starttls", None) is False
+            and not getattr(opts, "smtp_ssl", False)
+        ):
+            logger.warning(
+                "[smtp] starttls = False and ssl = False: the SMTP connection "
+                "will not be encrypted, and the SMTP credentials and the "
+                "results email will be sent in plain text"
+            )
         if "to" in smtp_config:
             opts.smtp_to = _str_to_list(smtp_config["to"])
         else:
@@ -3160,6 +3182,7 @@ def _main():
         imap_host=None,
         imap_skip_certificate_verification=False,
         imap_ssl=True,
+        imap_starttls=None,
         imap_port=993,
         imap_timeout=30,
         imap_max_retries=4,
@@ -3224,6 +3247,7 @@ def _main():
         smtp_host=None,
         smtp_port=25,
         smtp_ssl=False,
+        smtp_starttls=None,
         smtp_skip_certificate_verification=False,
         smtp_user=None,
         smtp_password=None,
@@ -3582,6 +3606,7 @@ def _main():
                 max_retries=imap_max_retries,
                 user=opts.imap_user,
                 password=opts.imap_password,
+                starttls=opts.imap_starttls,
             )
 
         except Exception:
@@ -3847,6 +3872,7 @@ def _main():
                 require_encryption=opts.smtp_ssl,
                 attachment_filename=opts.smtp_attachment,
                 message=opts.smtp_message,
+                starttls=opts.smtp_starttls,
             )
         except Exception:
             logger.exception("Failed to email results")

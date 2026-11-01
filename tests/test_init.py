@@ -18,6 +18,7 @@ import mailbox
 import os
 import quopri
 import time
+import traceback
 import unittest
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
@@ -5797,6 +5798,223 @@ class TestEmailResultsErrorBranches(unittest.TestCase):
                 # str, not list — triggers assert
                 mail_to="admin@example.com",  # pyright: ignore[reportArgumentType]
             )
+
+
+def _fake_smtp_class(kind: str, calls: list, *, advertise_starttls: bool) -> type:
+    """Build a stand-in for ``smtplib.SMTP`` / ``smtplib.SMTP_SSL`` that
+    appends every call it receives to ``calls``, in order, so a test can
+    assert what happened on the wire and in which order (modeled on the fake
+    in mailsuite's ``tests/test_smtp.py``). ``kind`` names the patched class
+    in the constructor entry, and ``advertise_starttls`` decides whether the
+    EHLO reply lists STARTTLS -- ``False`` plays a server, or an on-path
+    attacker, that strips it (GHSA-3588-2mr7-vrcm)."""
+
+    class _FakeSMTP:
+        def __init__(self, host="", port=0, *args, **kwargs):
+            calls.append((kind, host, port))
+
+        def ehlo_or_helo_if_needed(self):
+            calls.append(("ehlo",))
+
+        def ehlo(self):
+            calls.append(("ehlo",))
+
+        def has_extn(self, name):
+            return name.lower() == "starttls" and advertise_starttls
+
+        def starttls(self, context=None):
+            calls.append(("starttls",))
+
+        def login(self, user, password):
+            calls.append(("login", user, password))
+
+        def auth(self, mechanism, authobject, **kwargs):
+            calls.append(("auth", mechanism))
+
+        def sendmail(self, sender, to, msg):
+            calls.append(("sendmail", sender, sorted(to), msg))
+
+    return _FakeSMTP
+
+
+class TestEmailResultsStartTLS(unittest.TestCase):
+    """GHSA-3588-2mr7-vrcm: with ``require_encryption=False``,
+    ``email_results()`` used to authenticate in plain text whenever the
+    server's EHLO reply did not list STARTTLS, so an on-path attacker who
+    stripped STARTTLS from that reply received the SMTP credentials and the
+    report. With mailsuite >= 2.3.4 the default (``starttls=None``) refuses
+    to send credentials over a connection that was not upgraded, and
+    ``starttls=False`` is the explicit plain-text opt-out. These tests patch
+    ``smtplib`` itself (the SDK boundary under mailsuite's ``send_email()``)
+    and assert on the recorded calls and their payloads."""
+
+    PASSWORD = "Sup3rSecret-placeholder"
+
+    def _send(self, *, advertise_starttls: bool, **kwargs) -> list:
+        calls: list = []
+        with (
+            patch(
+                "smtplib.SMTP",
+                _fake_smtp_class("SMTP", calls, advertise_starttls=advertise_starttls),
+            ),
+            patch(
+                "smtplib.SMTP_SSL",
+                _fake_smtp_class(
+                    "SMTP_SSL", calls, advertise_starttls=advertise_starttls
+                ),
+            ),
+        ):
+            try:
+                parsedmarc.email_results(
+                    {
+                        "aggregate_reports": [],
+                        "failure_reports": [],
+                        "smtp_tls_reports": [],
+                    },
+                    "smtp.example.com",
+                    "dmarc@example.com",
+                    ["admin@example.com"],
+                    port=587,
+                    **kwargs,
+                )
+            finally:
+                self.calls = calls
+        return calls
+
+    def _names(self, calls: list) -> list:
+        return [call[0] for call in calls]
+
+    def testCredentialsWithoutStartTLSAreRefused(self):
+        """GHSA-3588-2mr7-vrcm: by default, credentials are never sent when
+        the server does not advertise STARTTLS. The send fails with
+        mailsuite's SMTPError before LOGIN, nothing is sent, and the
+        password appears nowhere in the error or its traceback."""
+        from mailsuite.smtp import SMTPError
+
+        with self.assertRaises(SMTPError) as ctx:
+            self._send(
+                advertise_starttls=False,
+                username="dmarc@example.com",
+                password=self.PASSWORD,
+            )
+
+        names = self._names(self.calls)
+        self.assertEqual(names[0], "SMTP")
+        self.assertNotIn("SMTP_SSL", names)
+        self.assertNotIn("login", names)
+        self.assertNotIn("auth", names)
+        self.assertNotIn("sendmail", names)
+        self.assertIn("STARTTLS", str(ctx.exception))
+        formatted = "".join(
+            traceback.format_exception(
+                type(ctx.exception), ctx.exception, ctx.exception.__traceback__
+            )
+        )
+        self.assertNotIn(self.PASSWORD, formatted)
+
+    def testStartTLSPrecedesLoginAndSend(self):
+        """When the server advertises STARTTLS, the connection is upgraded
+        before LOGIN, LOGIN gets the configured credentials, and the report
+        is sent last (GHSA-3588-2mr7-vrcm)."""
+        calls = self._send(
+            advertise_starttls=True,
+            username="dmarc@example.com",
+            password=self.PASSWORD,
+        )
+
+        names = self._names(calls)
+        self.assertEqual(calls[0], ("SMTP", "smtp.example.com", 587))
+        self.assertLess(names.index("starttls"), names.index("login"))
+        self.assertLess(names.index("login"), names.index("sendmail"))
+        login = calls[names.index("login")]
+        self.assertEqual(login, ("login", "dmarc@example.com", self.PASSWORD))
+        sendmail = calls[names.index("sendmail")]
+        self.assertEqual(sendmail[1], "dmarc@example.com")
+        self.assertEqual(sendmail[2], ["admin@example.com"])
+        self.assertIn("Subject: DMARC results for ", sendmail[3])
+        self.assertIn('filename="DMARC-', sendmail[3])
+
+    def testRequireEncryptionUsesImplicitTLS(self):
+        """``require_encryption=True`` connects with ``SMTP_SSL`` and never
+        issues STARTTLS, whatever ``starttls`` says (GHSA-3588-2mr7-vrcm)."""
+        for starttls in (None, True, False):
+            with self.subTest(starttls=starttls):
+                calls = self._send(
+                    advertise_starttls=False,
+                    require_encryption=True,
+                    starttls=starttls,
+                    username="dmarc@example.com",
+                    password=self.PASSWORD,
+                )
+                names = self._names(calls)
+                self.assertEqual(calls[0], ("SMTP_SSL", "smtp.example.com", 587))
+                self.assertNotIn("SMTP", names)
+                self.assertNotIn("starttls", names)
+                self.assertLess(names.index("login"), names.index("sendmail"))
+
+    def testNoCredentialsWithoutStartTLSSendsWithWarning(self):
+        """Without credentials there is nothing to steal at login, so a
+        server without STARTTLS still gets the message in plain text, with
+        mailsuite's warning (GHSA-3588-2mr7-vrcm scope)."""
+        with self.assertLogs("mailsuite.smtp", level="WARNING") as logs:
+            calls = self._send(advertise_starttls=False)
+
+        names = self._names(calls)
+        self.assertNotIn("starttls", names)
+        self.assertNotIn("login", names)
+        self.assertEqual(names[-1], "sendmail")
+        self.assertTrue(
+            any("does not support STARTTLS" in line for line in logs.output),
+            logs.output,
+        )
+
+    def testStartTLSFalseAuthenticatesInPlainText(self):
+        """``starttls=False`` is the explicit opt-out from
+        GHSA-3588-2mr7-vrcm's fix: credentials are sent without STARTTLS,
+        with a warning."""
+        with self.assertLogs("mailsuite.smtp", level="WARNING") as logs:
+            calls = self._send(
+                advertise_starttls=False,
+                starttls=False,
+                username="dmarc@example.com",
+                password=self.PASSWORD,
+            )
+
+        names = self._names(calls)
+        self.assertNotIn("starttls", names)
+        self.assertEqual(
+            calls[names.index("login")],
+            ("login", "dmarc@example.com", self.PASSWORD),
+        )
+        self.assertLess(names.index("login"), names.index("sendmail"))
+        self.assertTrue(any("unencrypted" in line for line in logs.output), logs.output)
+
+    def testStartTLSFalseNeverUpgradesEvenWhenAdvertised(self):
+        """``starttls=False`` never upgrades, even when the server
+        advertises STARTTLS (GHSA-3588-2mr7-vrcm opt-out semantics)."""
+        calls = self._send(
+            advertise_starttls=True,
+            starttls=False,
+            username="dmarc@example.com",
+            password=self.PASSWORD,
+        )
+
+        names = self._names(calls)
+        self.assertNotIn("starttls", names)
+        self.assertLess(names.index("login"), names.index("sendmail"))
+
+    def testStartTLSTrueRefusesWithoutAdvertisement(self):
+        """``starttls=True`` requires the upgrade: no STARTTLS in the EHLO
+        reply raises before anything is sent, even without credentials
+        (GHSA-3588-2mr7-vrcm)."""
+        from mailsuite.smtp import SMTPError
+
+        with self.assertRaises(SMTPError):
+            self._send(advertise_starttls=False, starttls=True)
+
+        names = self._names(self.calls)
+        self.assertNotIn("sendmail", names)
+        self.assertNotIn("login", names)
 
 
 class TestEmailResultsViaMsGraph(unittest.TestCase):

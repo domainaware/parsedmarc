@@ -319,8 +319,19 @@ The full set of configuration options is:
     If your host recommends another port, still try 993
     :::
 
-  - `ssl` - bool: Use an encrypted SSL/TLS connection
-      (Default: `True`)
+  - `ssl` - bool: Use an encrypted SSL/TLS connection from the start
+      (implicit TLS, usually port 993) (Default: `True`). When `False`,
+      the connection starts in plain text and must be upgraded with
+      STARTTLS before logging in (usually port 143); see `starttls`.
+  - `starttls` - bool: Whether to upgrade a plain-text (`ssl = False`)
+      connection with STARTTLS. When unset (the default), the connection
+      is upgraded if the server advertises STARTTLS, and parsedmarc
+      refuses to log in if it does not, so the credentials are never sent
+      in plain text. `true` always requires the upgrade. `false` never
+      upgrades, even when the server advertises STARTTLS, so the
+      credentials and messages are sent in plain text; use it only for a
+      server on the same host, such as [DavMail](davmail.md) on the
+      loopback address. Ignored when `ssl = True`.
   - `skip_certificate_verification` - bool: Skip certificate
       verification (not recommended)
   - `timeout` - int: Number of seconds to wait for an IMAP operation
@@ -679,8 +690,21 @@ The full set of configuration options is:
     configured, in which case omitting it sends the summary via
     Microsoft Graph instead — see "Sending the summary email via
     Microsoft Graph" above.
-  - `port` - int: The SMTP port (Default: `25`)
-  - `ssl` - bool: Require SSL/TLS instead of using STARTTLS
+  - `port` - int: The SMTP port (Default: `25`). Usually `587` for
+    STARTTLS, or `465` with `ssl = True`.
+  - `ssl` - bool: Use an encrypted SSL/TLS connection from the start
+    (implicit TLS, usually port 465) (Default: `False`). When `False`,
+    the connection starts in plain text and must be upgraded with
+    STARTTLS before authenticating; see `starttls`.
+  - `starttls` - bool: Whether to upgrade a plain-text (`ssl = False`)
+    connection with STARTTLS. When unset (the default), the connection
+    is upgraded if the server advertises STARTTLS, and parsedmarc
+    refuses to authenticate if it does not, so the credentials are never
+    sent in plain text ("Failed to email results" is logged). `true`
+    always requires the upgrade. `false` never upgrades, even when the
+    server advertises STARTTLS, so the credentials and the results
+    email are sent in plain text; use it only for a server on the same
+    host. Ignored when `ssl = True`.
   - `skip_certificate_verification` - bool: Skip certificate
     verification (not recommended)
   - `user` - str: the SMTP username. SMTP-only; not used when sending

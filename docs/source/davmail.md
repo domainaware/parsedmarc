@@ -183,7 +183,16 @@ config file:
 host=127.0.0.1
 port=1143
 ssl=False
+starttls=False
+
+[mailbox]
 watch=True
 ```
+
+The DavMail configuration above runs its IMAP listener without TLS
+(`davmail.ssl.nosecureimap=true`), so parsedmarc refuses to log in unless
+`starttls=False` allows plain-text authentication. Only set it when DavMail
+listens on the loopback address only (`davmail.bindAddress=127.0.0.1` and
+`davmail.allowRemote=false`, as above).
 
 [modern auth/multi-factor authentication]: https://davmail.sourceforge.net/faq.html

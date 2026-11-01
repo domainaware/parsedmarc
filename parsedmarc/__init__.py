@@ -3887,6 +3887,7 @@ def email_results(
     subject: str | None = None,
     attachment_filename: str | None = None,
     message: str | None = None,
+    starttls: bool | None = None,
 ):
     """
     Emails parsing results as a zip file
@@ -3899,13 +3900,28 @@ def email_results(
         mail_cc (list): A list of addresses to CC
         mail_bcc (list): A list of addresses to BCC
         port (int): Port to use
-        require_encryption (bool): Require a secure connection from the start
+        require_encryption (bool): Connect with implicit SSL/TLS from the
+            start (usually port 465). When ``False``, the connection starts
+            in plain text and ``starttls`` decides whether it is upgraded.
         verify (bool): verify the SSL/TLS certificate
         username (str): An optional username
         password (str): An optional password
         subject (str): Overrides the default message subject
         attachment_filename (str): Override the default attachment filename
         message (str): Override the default plain text body
+        starttls (bool | None): Whether to upgrade a plain-text
+            (``require_encryption=False``) connection with STARTTLS.
+            ``None`` (the default) upgrades when the server advertises
+            STARTTLS; when it does not, ``mailsuite.smtp.SMTPError`` is
+            raised before authenticating if ``username`` and ``password``
+            are given, so credentials are never sent in plain text, and
+            without credentials the message is sent in plain text and a
+            warning is logged. ``True`` requires the upgrade and raises
+            ``mailsuite.smtp.SMTPError`` if the server does not advertise
+            STARTTLS. ``False`` never upgrades, even when the server
+            advertises STARTTLS, so any credentials and the message are
+            sent in plain text (a warning is logged when credentials are
+            sent). Ignored when ``require_encryption=True``.
     """
     logger.debug("Emailing report")
     assert isinstance(mail_to, list)
@@ -3931,6 +3947,7 @@ def email_results(
         subject=subject,
         attachments=attachments,
         plain_message=message,
+        starttls=starttls,
     )
 
 
