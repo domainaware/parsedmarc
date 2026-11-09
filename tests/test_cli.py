@@ -997,10 +997,14 @@ hosts = localhost
             "PARSEDMARC_GMAIL_API_CREDENTIALS_FILE": "/etc/parsedmarc/gmail.json",
             "PARSEDMARC_GMAIL_API_TOKEN_FILE": "/etc/parsedmarc/gmail.token",
             "PARSEDMARC_MSGRAPH_TOKEN_FILE": "/etc/parsedmarc/msgraph.token",
+            "PARSEDMARC_MAILBOX_ATTEMPTS_FILE": "/var/lib/parsedmarc/attempts.json",
         }
         with patch.dict(os.environ, env, clear=False):
             _apply_env_overrides(config)
         self.assertEqual(config.get("general", "log_file"), "/var/log/parsedmarc.log")
+        self.assertEqual(
+            config.get("mailbox", "attempts_file"), "/var/lib/parsedmarc/attempts.json"
+        )
         self.assertEqual(
             config.get("gmail_api", "credentials_file"),
             "/etc/parsedmarc/gmail.json",
@@ -7248,6 +7252,52 @@ max_unsaved_retries = 7
         self.assertEqual(watch_kwargs.get("max_unsaved_retries"), 7)
 
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testAttemptsFileReachesBothCallSitesExpanded(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_reports
+    ):
+        """[mailbox] attempts_file reaches the one-shot fetch and the
+        watcher, with ``$VAR`` expanded like every other file path; without
+        it both get None and keep no record."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+        base = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+"""
+        for extra, expected in (
+            ("attempts_file = $STATE_DIR/attempts.json\n", "/srv/state/attempts.json"),
+            ("", None),
+        ):
+            with self.subTest(expected=expected):
+                config_path = self._write_config(base + extra)
+                with patch.dict(os.environ, {"STATE_DIR": "/srv/state"}):
+                    with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+                        with self.assertRaises(SystemExit):
+                            parsedmarc.cli._main()
+                self.assertEqual(
+                    mock_get_reports.call_args.kwargs.get("attempts_file", "unset"),
+                    expected,
+                )
+                self.assertEqual(
+                    mock_watch_inbox.call_args.kwargs.get("attempts_file", "unset"),
+                    expected,
+                )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.IMAPConnection")
     def testFileOutputFailureIsRecordedAndReportsTheBatchUnsaved(
         self, mock_imap_connection, mock_get_reports
@@ -8012,6 +8062,22 @@ class TestParseConfigMailbox(unittest.TestCase):
         opts = _opts()
         _parse_config(config, opts)
         self.assertEqual(opts.mailbox_max_unsaved_retries, 0)
+
+    def test_mailbox_attempts_file_expands_the_path(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("mailbox", {"attempts_file": "$STATE_DIR/attempts.json"})
+        opts = _opts()
+        with patch.dict(os.environ, {"STATE_DIR": "/srv/state"}):
+            _parse_config(cp, opts)
+        self.assertEqual(opts.mailbox_attempts_file, "/srv/state/attempts.json")
+
+    def test_mailbox_attempts_file_absent_is_not_set(self):
+        from parsedmarc.cli import _parse_config
+
+        opts = _opts()
+        _parse_config(_config_with("mailbox", {"watch": "true"}), opts)
+        self.assertFalse(hasattr(opts, "mailbox_attempts_file"))
 
     def test_mailbox_absent_per_type_delete_keys_are_not_set(self):
         from parsedmarc.cli import _parse_config
