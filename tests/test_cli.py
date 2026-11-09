@@ -8794,6 +8794,57 @@ class TestWorkerDeathEndsTheRun(unittest.TestCase):
             ["example.com:1538463741"],
         )
 
+    def _write_twilight(self, box):
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            content = message.read()
+        for _ in range(2):
+            box.add(content)
+
+    def test_file_reports_are_saved_when_a_worker_dies_in_the_mailbox(self):
+        """A worker that dies while a mailbox batch is parsed leaves that
+        batch in the mailbox, but the report file parsed before the
+        mailbox was opened is still saved."""
+        output_dir = os.path.join(self.tmp_dir, "output")
+        maildir_path = os.path.join(self.tmp_dir, "maildir")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {output_dir}\n")
+            cfg.write(f"[maildir]\npath = {maildir_path}\ncreate = true\n")
+        self._write_twilight(mailbox.Maildir(maildir_path, create=True))
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            self._run_main(sample)
+        with open(os.path.join(output_dir, "aggregate.json")) as saved:
+            reports = json.load(saved)
+        self.assertEqual(
+            [r["report_metadata"]["report_id"] for r in reports],
+            ["example.com:1538463741"],
+        )
+        self.assertEqual(len(mailbox.Maildir(maildir_path)), 2)
+
+    def test_input_error_opens_no_mailbox_and_keeps_the_archived_file(self):
+        """After a worker dies on an mbox, the run opens no mailbox, and the
+        report file parsed before it stays under archive_directory."""
+        archive_dir = os.path.join(self.tmp_dir, "archive")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"archive_directory = {archive_dir}\n")
+            cfg.write(f"[maildir]\npath = {self.tmp_dir}/maildir\ncreate = true\n")
+        report_name = "!example.com!1538204542!1538463818.xml"
+        report_path = os.path.join(self.tmp_dir, report_name)
+        shutil.copy(os.path.join("samples/aggregate", report_name), report_path)
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        self._write_twilight(box)
+        box.close()
+        with (
+            patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job),
+            patch("parsedmarc.cli.MaildirConnection") as maildir_connection,
+        ):
+            self._run_main(report_path, mbox_path)
+        maildir_connection.assert_not_called()
+        self.assertFalse(os.path.exists(report_path))
+        archived = [name for _, _, names in os.walk(archive_dir) for name in names]
+        self.assertEqual(archived, [report_name])
+
 
 class TestParseConfigElasticsearch(unittest.TestCase):
     def test_elasticsearch_basic(self):

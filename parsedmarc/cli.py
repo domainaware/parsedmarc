@@ -3884,11 +3884,18 @@ def _main():
             smtp_tls_reports += reports["smtp_tls_reports"]
 
         except ParserError as error:
-            # fail_on_output_error turns a failed batch save into a
-            # ParserError inside mailbox_save_callback; it reaches here
-            # through get_dmarc_reports_from_mailbox, which leaves the
-            # batch's messages in the mailbox on its way out.
+            # A worker process that died during the fetch, or a failed
+            # batch save under fail_on_output_error (a ParserError raised
+            # inside mailbox_save_callback). Either way the batch's
+            # messages stay in the mailbox and earlier batches are saved;
+            # the reports from files and mbox inputs, some perhaps already
+            # moved under archive_directory, are saved before exiting.
             logger.error(error.__str__())
+            if any(file_parsing_results.values()):
+                try:
+                    process_reports(file_parsing_results)
+                except ParserError as save_error:
+                    logger.error(save_error.__str__())
             sys.exit(1)
         except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
             if msgraph_connection is None:
