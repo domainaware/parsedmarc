@@ -8716,8 +8716,8 @@ def _dying_parse_job(job, *, config):
 
 class TestWorkerDeathEndsTheRun(unittest.TestCase):
     """A parsing worker process that dies makes ``parallel_map`` raise
-    ``ParserError``. For report files and mbox files _main() logs it and
-    exits with status 1, as it does for the mailbox paths, instead of
+    ``ParserError``. For report files and mbox files _main() logs it, saves
+    the reports parsed before it, and exits with status 1, instead of
     ending in a traceback. The workers really die here, under the default
     start method."""
 
@@ -8765,6 +8765,30 @@ class TestWorkerDeathEndsTheRun(unittest.TestCase):
         box.close()
         with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
             self._run_main(mbox_path)
+
+    def test_reports_parsed_before_the_death_are_saved(self):
+        """Report files are parsed before mbox files; a worker that dies on
+        the mbox must not discard the file's report, which with
+        archive_directory set has already been moved out of the input."""
+        output_dir = os.path.join(self.tmp_dir, "output")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {output_dir}\n")
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            content = message.read()
+        for _ in range(2):
+            box.add(mailbox.mboxMessage(content))
+        box.close()
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            self._run_main(sample, mbox_path)
+        with open(os.path.join(output_dir, "aggregate.json")) as saved:
+            reports = json.load(saved)
+        self.assertEqual(
+            [r["report_metadata"]["report_id"] for r in reports],
+            ["example.com:1538463741"],
+        )
 
 
 class TestParseConfigElasticsearch(unittest.TestCase):

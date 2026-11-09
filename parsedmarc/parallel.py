@@ -84,7 +84,9 @@ def _init_worker(
     # so SIGTERM gets its default action. Ctrl-C sends SIGINT to the whole
     # process group, workers included, under every start method; the parent
     # decides how to shut down and lets the batch in progress finish, so
-    # workers ignore SIGINT.
+    # workers ignore SIGINT. Under spawn or forkserver a Ctrl-C that lands
+    # before this line has run still kills the worker, which then ends the
+    # batch as a worker that died does.
     signal.signal(signal.SIGTERM, signal.SIG_DFL)
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
@@ -643,6 +645,9 @@ def _map_plain(
 
     When a worker dies the pool is broken; its other workers are killed
     and ``BrokenProcessPool`` propagates for ``parallel_map()`` to convert.
+    Any other early exit (an exception, a ``KeyboardInterrupt``, the caller
+    closing the iterator) kills the workers too: they ignore SIGINT, and
+    leaving the ``with`` block would otherwise wait for the whole window.
     """
     with ProcessPoolExecutor(
         max_workers=n_procs,
@@ -687,6 +692,6 @@ def _map_plain(
                 except StopIteration:
                     continue
                 window.append(executor.submit(func, job))
-        except BrokenProcessPool:
+        except BaseException:
             _kill_workers(executor)
             raise

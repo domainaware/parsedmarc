@@ -3559,6 +3559,11 @@ def _main():
     parser_config = _build_parser_config(opts)
 
     func = functools.partial(_parse_report_file_job, config=parser_config)
+    # Set when parsing report files or an mbox file ends in a ParserError
+    # (a worker process that died, a missing mbox). No more input is read;
+    # what was gathered is saved before the run exits with status 1, since
+    # files already moved under archive_directory are kept nowhere else.
+    input_error = False
     try:
         for file_path, result in parallel_map(
             func,
@@ -3596,7 +3601,7 @@ def _main():
     except ParserError as error:
         # parallel_map raises ParserError when a worker process dies.
         logger.error(error.__str__())
-        sys.exit(1)
+        input_error = True
 
     if pbar is not None:
         pbar.close()
@@ -3609,6 +3614,8 @@ def _main():
         logger.info("Shutdown requested, stopping file processing early")
 
     for mbox_path in mbox_paths:
+        if input_error:
+            break
         if _shutdown_requested:
             logger.info("Shutdown requested, skipping remaining mbox files")
             break
@@ -3621,9 +3628,11 @@ def _main():
             )
         except ParserError as error:
             # A missing mbox, a message error that is not an invalid
-            # report, or a parsing worker process that died.
+            # report, or a parsing worker process that died. The reports
+            # of this mbox are lost with the error; earlier ones are kept.
             logger.error(error.__str__())
-            sys.exit(1)
+            input_error = True
+            break
         aggregate_reports += reports["aggregate_reports"]
         failure_reports += reports["failure_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]
@@ -3640,6 +3649,15 @@ def _main():
         "failure_reports": list(failure_reports),
         "smtp_tls_reports": list(smtp_tls_reports),
     }
+
+    if input_error:
+        # Save what was parsed, then stop: no mailbox is opened and no
+        # results email is sent for a run whose input was cut short.
+        try:
+            process_reports(file_parsing_results)
+        except ParserError as error:
+            logger.error(error.__str__())
+        sys.exit(1)
 
     mailbox_connection = None
     msgraph_connection: MSGraphConnection | None = None

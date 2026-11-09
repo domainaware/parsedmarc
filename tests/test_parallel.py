@@ -5,6 +5,7 @@ import logging
 import math
 import multiprocessing
 import os
+import shutil
 import tempfile
 import time
 import types
@@ -603,6 +604,27 @@ class TestParallelMapParseTimeout(unittest.TestCase):
         self.assertTrue(start_queues[0]._writer.closed)
 
 
+class TestPlainPoolEarlyExit(unittest.TestCase):
+    """Without a ``parse_timeout`` the pool is a plain
+    ``ProcessPoolExecutor``, whose ``with`` block waits for every job in the
+    window on the way out. Workers ignore SIGINT, so a caller that leaves
+    early (a ``KeyboardInterrupt``, closing the iterator) would wait for the
+    whole window; the workers are killed instead."""
+
+    def test_closing_the_iterator_kills_the_workers(self):
+        """Before the fix the close waited for both slow jobs, 5.0 s on the
+        workstation."""
+        before = set(multiprocessing.active_children())
+        results = parallel_map(_sleep_job, [0.0, _SLOW, _SLOW], 2)
+        # parallel_map is typed to return an Iterator; it is a generator.
+        assert isinstance(results, types.GeneratorType)
+        self.assertEqual(next(results), 0.0)
+        start = time.monotonic()
+        results.close()
+        self.assertLess(time.monotonic() - start, budget(3))
+        self.assertLessEqual(set(multiprocessing.active_children()), before)
+
+
 class TestTimeoutResults(unittest.TestCase):
     """The values parallel_map yields for a timed-out email or file job have
     the shapes the callers handle for an unparseable input."""
@@ -676,39 +698,82 @@ class TestWorkerSignalHandlers(unittest.TestCase):
                     dict(zip(names, results)), {n: expected[n] for n in names}
                 )
 
-    def test_ctrl_c_lets_the_running_jobs_finish_under_fork(self):
+    def test_ctrl_c_lets_the_running_jobs_finish_under_every_start_method(self):
         """A terminal sends Ctrl-C's SIGINT to every process in its
         foreground process group, the workers included. The parent's handler
         (here, as in the CLI, one that only notes the signal) lets the batch
         finish, so the workers must survive the signal too; with the default
         action each worker died and the run ended in ``BrokenProcessPool``.
-        The test signals the parent and each worker itself rather than its
-        whole process group, which holds the test runner too."""
+        Each job writes its worker's pid as it starts, and the signal goes
+        out once every worker has one, so a spawned worker's initializer has
+        run. The test signals the parent and each worker itself rather than
+        its whole process group, which holds the test runner too."""
         import signal
         import threading
 
-        _use_fork(self)
+        n_procs = 2
         received = []
         self.addCleanup(signal.signal, signal.SIGINT, signal.getsignal(signal.SIGINT))
         signal.signal(signal.SIGINT, lambda signum, frame: received.append(signum))
+        original_method = multiprocessing.get_start_method()
+        self.addCleanup(multiprocessing.set_start_method, original_method, force=True)
+        available = multiprocessing.get_all_start_methods()
 
-        for kwargs in ({}, {"parse_timeout": 30.0, "timeout_result": _timeout_value}):
-            with self.subTest(**kwargs):
-                received.clear()
-                before = set(multiprocessing.active_children())
+        for method in ("fork", "forkserver", "spawn"):
+            for kwargs in (
+                {},
+                {"parse_timeout": 30.0, "timeout_result": _timeout_value},
+            ):
+                with self.subTest(start_method=method, **kwargs):
+                    if method not in available:
+                        self.skipTest(f"the {method} start method is not available")
+                    multiprocessing.set_start_method(method, force=True)
+                    received.clear()
+                    pid_dir = tempfile.mkdtemp()
+                    self.addCleanup(shutil.rmtree, pid_dir, ignore_errors=True)
+                    signalled = []
 
-                def interrupt(before=before):
-                    for child in set(multiprocessing.active_children()) - before:
-                        os.kill(child.pid, signal.SIGINT)
-                    os.kill(os.getpid(), signal.SIGINT)
+                    def interrupt(pid_dir=pid_dir, signalled=signalled):
+                        deadline = time.monotonic() + 30.0
+                        pids = []
+                        while time.monotonic() < deadline:
+                            pids = os.listdir(pid_dir)
+                            if len(pids) >= n_procs:
+                                break
+                            time.sleep(0.05)
+                        for pid in pids:
+                            os.kill(int(pid), signal.SIGINT)
+                            signalled.append(pid)
+                        os.kill(os.getpid(), signal.SIGINT)
 
-                timer = threading.Timer(0.5, interrupt)
-                timer.start()
-                self.addCleanup(timer.cancel)
-                results = list(parallel_map(_sleep_job, [2.0, 2.0], 2, **kwargs))
-                timer.join()
-                self.assertEqual(results, [2.0, 2.0])
-                self.assertEqual(received, [signal.SIGINT])
+                    timer = threading.Thread(target=interrupt)
+                    timer.start()
+                    jobs = [(pid_dir, 2.0)] * n_procs
+                    try:
+                        results = list(
+                            parallel_map(
+                                _pid_marking_sleep_job, jobs, n_procs, **kwargs
+                            )
+                        )
+                    except KeyboardInterrupt:
+                        # A worker that took the signal returns its
+                        # KeyboardInterrupt as the job's outcome.
+                        results = ["KeyboardInterrupt in a worker"]
+                    finally:
+                        timer.join()
+                    self.assertEqual(len(set(signalled)), n_procs)
+                    self.assertEqual(results, [2.0] * n_procs)
+                    self.assertEqual(received, [signal.SIGINT])
+
+
+def _pid_marking_sleep_job(job):
+    """Write this worker's pid as a file name under ``job[0]``, then sleep
+    ``job[1]`` seconds and return it. Module-level so it pickles."""
+    pid_dir, seconds = job
+    with open(os.path.join(pid_dir, str(os.getpid())), "w"):
+        pass
+    time.sleep(seconds)
+    return seconds
 
 
 def _exit_job(value):
