@@ -4478,6 +4478,27 @@ class TestGetDmarcReportsFromMailboxValidation(unittest.TestCase):
         self.assertIn("max_unsaved_retries", str(ctx.exception))
         conn.watch.assert_not_called()
 
+    def test_invalid_parse_timeout_raises_before_fetching_or_watching(self):
+        """Like max_unsaved_retries: raised inside a watch check, the
+        ValueError would be swallowed and retried on every check."""
+        for parse_timeout in (-1.0, float("nan"), float("inf")):
+            with self.subTest(parse_timeout=parse_timeout):
+                conn = MagicMock()
+                with self.assertRaises(ValueError) as ctx:
+                    parsedmarc.get_dmarc_reports_from_mailbox(
+                        connection=conn, parse_timeout=parse_timeout
+                    )
+                self.assertIn("parse_timeout", str(ctx.exception))
+                conn.fetch_messages.assert_not_called()
+                with self.assertRaises(ValueError) as ctx:
+                    parsedmarc.watch_inbox(
+                        mailbox_connection=conn,
+                        callback=lambda batch: None,
+                        parse_timeout=parse_timeout,
+                    )
+                self.assertIn("parse_timeout", str(ctx.exception))
+                conn.watch.assert_not_called()
+
 
 class TestMigrateForensicArchiveFolderErrorHandling(unittest.TestCase):
     """The one migration scenario a real on-disk Maildir can't reproduce: a
@@ -4756,6 +4777,116 @@ class TestGetDmarcReportsFromMailboxContentErrors(unittest.TestCase):
                     )
         # The nested message is a poison on every Python.
         self.assertGreater(exercised, 0)
+
+
+_SLOW_MESSAGE = (
+    "From: reporter@example.net\r\nTo: dmarc@example.com\r\n"
+    "Subject: slow to parse\r\nX-Test-Slow: yes\r\n\r\nbody\r\n"
+)
+
+
+def _parallel_map_timing_out(calls):
+    """An in-process stand-in for ``parsedmarc.parallel.parallel_map`` that
+    runs the real job function on every message except the one carrying
+    ``X-Test-Slow``, for which it yields ``timeout_result``, as the real
+    ``parallel_map`` does for a job that ran past ``parse_timeout``. Each
+    call's keyword arguments and ``n_procs`` are appended to ``calls``."""
+
+    def fake_parallel_map(func, jobs, n_procs, **kwargs):
+        calls.append(dict(kwargs, n_procs=n_procs))
+        for job in jobs:
+            content = job if isinstance(job, bytes) else job.encode()
+            if b"X-Test-Slow: yes" in content:
+                yield kwargs["timeout_result"](job, kwargs["parse_timeout"])
+            else:
+                yield func(job)
+
+    return fake_parallel_map
+
+
+class TestParseTimeoutDisposal(unittest.TestCase):
+    """A message whose parse ran past ``parse_timeout`` is handled like any
+    other invalid message: moved to the invalid folder by the mailbox loop,
+    skipped with a warning by the mbox loop. With a timeout set, ``n_procs``
+    1 takes the ``parallel_map`` branch, since only a worker process can be
+    stopped. ``parallel_map`` is replaced by a stand-in that times out the
+    marked message, because a real parse that slow needs an input the parse
+    limits do not already reject; the timeout itself is tested in
+    ``tests/test_parallel.py``."""
+
+    def setUp(self):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        with open("samples/aggregate/twilight.eml", encoding="utf-8") as f:
+            self.aggregate = f.read()
+
+    def test_mailbox_message_that_times_out_moves_to_invalid(self):
+        calls = []
+        conn = _InMemoryIMAPConnection({1: _SLOW_MESSAGE, 2: self.aggregate})
+        with (
+            patch("parsedmarc.parallel.parallel_map", _parallel_map_timing_out(calls)),
+            self.assertLogs("parsedmarc.log", level="WARNING") as logs,
+        ):
+            result = parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=conn, offline=True, n_procs=1, parse_timeout=1.0
+            )
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(conn.folders["INBOX"], {})
+        self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
+        self.assertEqual(list(conn.folders["Archive/Aggregate"]), [2])
+        self.assertTrue(
+            any(
+                "longer than parse_timeout (1 seconds)" in line for line in logs.output
+            ),
+            logs.output,
+        )
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["n_procs"], 1)
+        self.assertEqual(calls[0]["parse_timeout"], 1.0)
+        self.assertEqual(calls[0]["heartbeat"], conn.keepalive)
+
+    def test_mailbox_without_timeout_and_one_process_parses_in_process(self):
+        calls = []
+        conn = _InMemoryIMAPConnection({2: self.aggregate})
+        with patch("parsedmarc.parallel.parallel_map", _parallel_map_timing_out(calls)):
+            result = parsedmarc.get_dmarc_reports_from_mailbox(
+                connection=conn, offline=True, n_procs=1
+            )
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(calls, [])
+
+    def test_mbox_message_that_times_out_is_skipped_with_a_warning(self):
+        tmp = mkdtemp()
+        self.addCleanup(rmtree, tmp, ignore_errors=True)
+        path = os.path.join(tmp, "reports.mbox")
+        box = mailbox.mbox(path)
+        box.lock()
+        try:
+            box.add(mailbox.mboxMessage(_SLOW_MESSAGE))
+            box.add(mailbox.mboxMessage(self.aggregate))
+            box.flush()
+        finally:
+            box.unlock()
+        box.close()
+
+        calls = []
+        with (
+            patch("parsedmarc.parallel.parallel_map", _parallel_map_timing_out(calls)),
+            self.assertLogs("parsedmarc.log", level="WARNING") as logs,
+        ):
+            result = parsedmarc.get_dmarc_reports_from_mbox(
+                path, offline=True, n_procs=1, parse_timeout=1.0
+            )
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertTrue(
+            any(
+                "longer than parse_timeout (1 seconds)" in line for line in logs.output
+            ),
+            logs.output,
+        )
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["n_procs"], 1)
+        self.assertEqual(calls[0]["parse_timeout"], 1.0)
 
 
 class _FailingFetchMaildirConnection(MaildirConnection):

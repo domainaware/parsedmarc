@@ -3410,6 +3410,7 @@ def get_dmarc_reports_from_mbox(
     offline: bool = False,
     normalize_timespan_threshold_hours: float = 24.0,
     n_procs: int = 1,
+    parse_timeout: float = 0.0,
     config: ParserConfig | None = None,
 ) -> ParsingResults:
     """Parses a mailbox in mbox format containing e-mails with attached
@@ -3434,6 +3435,13 @@ def get_dmarc_reports_from_mbox(
             parallel. Message reading, deduplication, and result assembly
             stay in the calling process; only parsing is parallelized. Not
             part of ``config``; always applies.
+        parse_timeout (float): Stop parsing a message after this many
+            seconds and skip it with a warning, as an invalid message
+            (``0``, the default, means no limit). When set, messages are
+            parsed in worker processes even with ``n_procs`` 1. A negative
+            or non-finite value raises ``ValueError``. See
+            ``parsedmarc.parallel.parallel_map()``. Not part of
+            ``config``; always applies.
         config (ParserConfig): a single object carrying all parsing and
             enrichment options plus the caches; when provided, the
             individual option keyword arguments listed above are ignored in
@@ -3465,8 +3473,12 @@ def get_dmarc_reports_from_mbox(
         total_messages = len(message_keys)
         logger.debug(f"Found {total_messages} messages in {input_}")
 
-        if n_procs > 1 and total_messages > 1:
-            from parsedmarc.parallel import _parse_report_email_job, parallel_map
+        if parse_timeout or (n_procs > 1 and total_messages > 1):
+            from parsedmarc.parallel import (
+                _email_timeout_result,
+                _parse_report_email_job,
+                parallel_map,
+            )
 
             func = functools.partial(_parse_report_email_job, config=cfg)
 
@@ -3477,7 +3489,13 @@ def get_dmarc_reports_from_mbox(
                     yield mbox.get_bytes(message_key)
 
             for result in tqdm(
-                parallel_map(func, _jobs(), n_procs),
+                parallel_map(
+                    func,
+                    _jobs(),
+                    n_procs,
+                    parse_timeout=parse_timeout,
+                    timeout_result=_email_timeout_result,
+                ),
                 total=total_messages,
                 disable=None,
             ):
@@ -3604,6 +3622,7 @@ def get_dmarc_reports_from_mailbox(
     create_folders: bool = True,
     normalize_timespan_threshold_hours: float = 24.0,
     n_procs: int = 1,
+    parse_timeout: float = 0.0,
     save_callback: Callable[[ParsingResults], bool | None] | None = None,
     max_unsaved_retries: int = 2,
     config: ParserConfig | None = None,
@@ -3659,6 +3678,15 @@ def get_dmarc_reports_from_mailbox(
             happens after the parsing phase completes, rather than
             interleaved message-by-message as it is when ``n_procs`` is 1.
             Not part of ``config``; always applies.
+        parse_timeout (float): Stop parsing a message after this many
+            seconds and move it to the ``Invalid`` archive subfolder, as an
+            invalid message (``0``, the default, means no limit). When set,
+            messages are parsed in worker processes even with ``n_procs``
+            1, so disposition of invalid messages happens after the parsing
+            phase as it does with ``n_procs > 1``. A negative or non-finite
+            value raises ``ValueError``. See
+            ``parsedmarc.parallel.parallel_map()``. Not part of
+            ``config``; always applies.
         save_callback: An optional callable invoked once per fetched batch
             with a ``ParsingResults`` dict holding only that batch's newly
             parsed reports, after parsing but before any of the batch's
@@ -3735,6 +3763,10 @@ def get_dmarc_reports_from_mailbox(
 
     if max_unsaved_retries < 0:
         raise ValueError("max_unsaved_retries must be >= 0")
+
+    from parsedmarc.parallel import _check_parse_timeout
+
+    _check_parse_timeout(parse_timeout)
 
     if connection is None:
         raise ValueError("Must supply a connection")
@@ -3851,8 +3883,12 @@ def get_dmarc_reports_from_mailbox(
 
     logger.debug(f"Processing {message_limit} messages")
 
-    if n_procs > 1 and message_limit > 1:
-        from parsedmarc.parallel import _parse_report_email_job, parallel_map
+    if parse_timeout or (n_procs > 1 and message_limit > 1):
+        from parsedmarc.parallel import (
+            _email_timeout_result,
+            _parse_report_email_job,
+            parallel_map,
+        )
 
         # The config's caches (ip_address_cache, seen_aggregate_report_ids,
         # reverse_dns_map) never cross the process boundary --
@@ -3890,7 +3926,12 @@ def get_dmarc_reports_from_mailbox(
                 yield msg_content
 
         for result in parallel_map(
-            func, _jobs(), n_procs, heartbeat=connection.keepalive
+            func,
+            _jobs(),
+            n_procs,
+            heartbeat=connection.keepalive,
+            parse_timeout=parse_timeout,
+            timeout_result=_email_timeout_result,
         ):
             message_id = fetched_ids.popleft()
             if isinstance(result, ParserError):
@@ -4137,6 +4178,7 @@ def get_dmarc_reports_from_mailbox(
             results=results,
             since=current_time,
             n_procs=n_procs,
+            parse_timeout=parse_timeout,
             save_callback=save_callback,
             max_unsaved_retries=max_unsaved_retries,
             config=cfg,
@@ -4172,6 +4214,7 @@ def watch_inbox(
     normalize_timespan_threshold_hours: float = 24.0,
     config_reloading: Callable | None = None,
     n_procs: int = 1,
+    parse_timeout: float = 0.0,
     max_unsaved_retries: int = 2,
     config: ParserConfig | None = None,
 ):
@@ -4240,6 +4283,12 @@ def watch_inbox(
         n_procs (int): Number of processes to use for parsing messages in
             parallel. Passed through to ``get_dmarc_reports_from_mailbox``
             on each check. Not part of ``config``; always applies.
+        parse_timeout (float): Stop parsing a message after this many
+            seconds and treat it as invalid (``0``, the default, means no
+            limit). Passed through to ``get_dmarc_reports_from_mailbox``
+            on each check; a negative or non-finite value raises
+            ``ValueError`` before the watch starts. Not part of ``config``;
+            always applies.
         max_unsaved_retries (int): How many times a message may be retried
             after ``callback`` first reported its batch unsaved, before it is
             moved to the ``Unsaved`` archive subfolder (default 2). Passed
@@ -4261,6 +4310,10 @@ def watch_inbox(
     # backends' per-check exception handling instead of surfacing.
     if max_unsaved_retries < 0:
         raise ValueError("max_unsaved_retries must be >= 0")
+
+    from parsedmarc.parallel import _check_parse_timeout
+
+    _check_parse_timeout(parse_timeout)
 
     cfg = _resolve_config(
         config,
@@ -4291,6 +4344,7 @@ def watch_inbox(
             since=since,
             create_folders=False,
             n_procs=n_procs,
+            parse_timeout=parse_timeout,
             save_callback=callback,
             max_unsaved_retries=max_unsaved_retries,
             config=cfg,
