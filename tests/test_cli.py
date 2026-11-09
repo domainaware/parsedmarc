@@ -8722,6 +8722,10 @@ class TestWorkerDeathEndsTheRun(unittest.TestCase):
     start method."""
 
     def setUp(self):
+        # The run records the reports it parses in the shared dedup set;
+        # leaving them there would make later runs skip the same samples.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
         for stream in ("sys.stdout", "sys.stderr"):
             patcher = patch(stream, new_callable=io.StringIO)
             patcher.start()
