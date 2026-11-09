@@ -42,7 +42,9 @@ from lxml import etree  # type: ignore[import-untyped]
 
 import parsedmarc
 import parsedmarc.constants as constants
+from parsedmarc.attempts import MAX_PARSE_ATTEMPTS, attempt_key
 from parsedmarc.mail import IMAPConnection, MaildirConnection, MSGraphConnection
+from parsedmarc.parallel import _parse_report_email_job
 from parsedmarc.types import (
     AggregateReport,
     FailureReport,
@@ -5694,6 +5696,370 @@ class TestGetDmarcReportsFromMailboxMaildirSaveCallback(unittest.TestCase):
         conn, result = self._run(save_callback=None, n_procs=2)
         self.assertEqual(len(result["aggregate_reports"]), 1)
         self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+
+
+# Read by the worker job below, which runs in another process and so
+# cannot be handed the test's temporary path any other way.
+_WORKER_ATTEMPTS_FILE_VARIABLE = "TEST_ATTEMPTS_FILE_FOR_PARSE_WORKERS"
+
+
+def _job_requiring_recorded_attempt(msg_content, *, config):
+    """A parallel parse job that parses only a message whose attempt is
+    already in the attempts file, and rejects any other as invalid.
+
+    Module level so a process pool can pickle it under every start method.
+    """
+    with open(os.environ[_WORKER_ATTEMPTS_FILE_VARIABLE], encoding="utf-8") as f:
+        attempts = json.load(f)["attempts"]
+    digest = attempt_key("", "", msg_content).rsplit("\x1f", 1)[1]
+    if not any(
+        key.endswith("\x1f" + digest) and entry["count"] == 1
+        for key, entry in attempts.items()
+    ):
+        return parsedmarc.InvalidDMARCReport("no attempt recorded before the job")
+    return _parse_report_email_job(msg_content, config=config)
+
+
+class _FailingInvalidMoveIMAPConnection(_InMemoryIMAPConnection):
+    """The in-memory IMAP backend, refusing every move to the Invalid
+    folder."""
+
+    def move_message(self, message_id, folder_name):
+        if folder_name.endswith("/Invalid"):
+            raise RuntimeError("server said no")
+        super().move_message(message_id, folder_name)
+
+
+class _ArrivalIMAPConnection(_InMemoryIMAPConnection):
+    """The in-memory IMAP backend, delivering one more message right after
+    its first fetch_messages() call, so batch_size=0 recurses once."""
+
+    def __init__(self, messages, extra_id, extra_content):
+        super().__init__(messages)
+        self._extra = (extra_id, extra_content)
+
+    def fetch_messages(self, reports_folder, **kwargs):
+        result = super().fetch_messages(reports_folder, **kwargs)
+        if self._extra is not None:
+            extra_id, extra_content = self._extra
+            self._extra = None
+            self.folders["INBOX"][extra_id] = extra_content
+        return result
+
+
+class _SingleCheckIMAPConnection(_InMemoryIMAPConnection):
+    """The in-memory IMAP backend, whose watch() runs one check."""
+
+    def watch(self, check_callback, check_timeout, config_reloading=None):
+        del check_timeout, config_reloading
+        check_callback(self)
+
+
+class TestCrashedMessageAttempts(unittest.TestCase):
+    """attempts_file: a message whose parse never finished (the process
+    died) is counted in a JSON file, and once it has died
+    MAX_PARSE_ATTEMPTS times it is set aside as invalid without being
+    parsed again, so a one-shot run no longer dies on it forever
+    (GHSA-qcc2-4x3v-v4g7, GHSA-q7gm-8cj9-94hr, GHSA-4272-4r8g-6c5h). The
+    file is read and written for real; the process deaths are simulated by
+    seeding the file with the count earlier runs would have left."""
+
+    AGGREGATE = "samples/aggregate/twilight.eml"
+    SMTP_TLS = "samples/smtp_tls/google.com_smtp_tls_report.eml"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.eml"
+
+    def setUp(self):
+        self._tmp = mkdtemp()
+        self.addCleanup(rmtree, self._tmp, ignore_errors=True)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        parsedmarc._FAILED_SAVE_ATTEMPTS.clear()
+        self.addCleanup(parsedmarc._FAILED_SAVE_ATTEMPTS.clear)
+        self.path = os.path.join(self._tmp, "attempts.json")
+        self.samples = {}
+        for name in (self.AGGREGATE, self.SMTP_TLS, self.FAILURE):
+            with open(name, encoding="utf-8") as sample:
+                self.samples[name] = sample.read()
+
+    def _seed(self, message_id, content, count):
+        with open(self.path, "w", encoding="utf-8") as attempts_file:
+            json.dump(
+                {
+                    "version": 1,
+                    "attempts": {
+                        attempt_key("INBOX", message_id, content): {
+                            "count": count,
+                            "last": datetime.now(timezone.utc).isoformat(),
+                        }
+                    },
+                },
+                attempts_file,
+            )
+
+    def _attempts(self):
+        with open(self.path, encoding="utf-8") as attempts_file:
+            return json.load(attempts_file)["attempts"]
+
+    def _run(self, conn, **kwargs):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        return parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True, attempts_file=self.path, **kwargs
+        )
+
+    def test_attempt_is_recorded_before_the_parse_and_cleared_after(self):
+        content = self.samples[self.AGGREGATE]
+        key = attempt_key("INBOX", 1, content)
+        seen_during_parse = []
+        real_parse = parsedmarc.parse_report_email
+
+        def parse_and_look(*args, **kwargs):
+            seen_during_parse.append(self._attempts().get(key))
+            return real_parse(*args, **kwargs)
+
+        conn = _InMemoryIMAPConnection({1: content})
+        with patch("parsedmarc.parse_report_email", parse_and_look):
+            result = self._run(conn)
+
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(seen_during_parse), 1)
+        self.assertIsNotNone(seen_during_parse[0])
+        self.assertEqual(seen_during_parse[0]["count"], 1)
+        self.assertEqual(self._attempts(), {})
+        self.assertEqual(list(conn.folders["Archive/Aggregate"]), [1])
+
+    def test_unparseable_message_clears_its_attempt(self):
+        """A ParserError is a finished parse: the message goes to Invalid
+        as before and its attempt is not left behind to count as a crash."""
+        junk = "From: noise@example.com\nSubject: not a report\n\nplain text\n"
+        conn = _InMemoryIMAPConnection({1: junk})
+        with self.assertLogs("parsedmarc.log", level="WARNING"):
+            self._run(conn)
+        self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
+        self.assertEqual(self._attempts(), {})
+
+    def test_message_at_the_cap_is_moved_to_invalid_without_parsing(self):
+        crashed = self.samples[self.AGGREGATE]
+        healthy = self.samples[self.SMTP_TLS]
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                self._seed(1, crashed, count=2)
+                parsed = []
+                real_parse = parsedmarc.parse_report_email
+
+                def parse_and_note(content, *args, **kwargs):
+                    parsed.append(content)
+                    return real_parse(content, *args, **kwargs)
+
+                conn = _InMemoryIMAPConnection({1: crashed, 2: healthy})
+                with patch("parsedmarc.parse_report_email", parse_and_note):
+                    with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+                        result = self._run(conn, n_procs=n_procs)
+
+                self.assertEqual(result["aggregate_reports"], [])
+                self.assertEqual(len(result["smtp_tls_reports"]), 1)
+                self.assertEqual(conn.folders["INBOX"], {})
+                self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
+                self.assertEqual(list(conn.folders["Archive/SMTP-TLS"]), [2])
+                self.assertIn(
+                    "Message UID 1 in INBOX has crashed parsedmarc 2 time(s) "
+                    "before it could be parsed; moving it to Archive/Invalid "
+                    "without parsing it",
+                    "\n".join(cm.output),
+                )
+                self.assertNotIn(crashed, parsed)
+                if n_procs == 1:
+                    self.assertEqual(parsed, [healthy])
+                # Out of the folder, so the entry is gone.
+                self.assertEqual(self._attempts(), {})
+
+    def test_message_below_the_cap_is_parsed_again(self):
+        """One unfinished attempt (a crash for any reason) is not enough:
+        the message is parsed again, and a successful parse clears it."""
+        content = self.samples[self.AGGREGATE]
+        self._seed(1, content, count=1)
+        conn = _InMemoryIMAPConnection({1: content})
+        result = self._run(conn)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(list(conn.folders["Archive/Aggregate"]), [1])
+        self.assertEqual(self._attempts(), {})
+
+    def test_message_at_the_cap_is_deleted_with_delete_invalid(self):
+        content = self.samples[self.AGGREGATE]
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                self._seed(1, content, count=2)
+                conn = _InMemoryIMAPConnection(
+                    {1: content, 2: self.samples[self.SMTP_TLS]}
+                )
+                with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+                    self._run(conn, n_procs=n_procs, delete_invalid=True)
+                self.assertEqual(conn.folders["INBOX"], {})
+                self.assertEqual(conn.folders["Archive/Invalid"], {})
+                self.assertEqual(conn.folders["Archive/Aggregate"], {})
+                self.assertIn(
+                    "has crashed parsedmarc 2 time(s) before it could be "
+                    "parsed; deleting it without parsing it",
+                    "\n".join(cm.output),
+                )
+                self.assertEqual(self._attempts(), {})
+
+    def test_failed_save_is_not_counted_as_a_crash(self):
+        """The attempt is cleared when the parse returns, before the save,
+        so a batch an output keeps rejecting stays in the folder for the
+        Unsaved retry logic and is never set aside as a crashed message."""
+        content = self.samples[self.AGGREGATE]
+        conn = _InMemoryIMAPConnection({1: content})
+        for _ in range(MAX_PARSE_ATTEMPTS + 2):
+            with self.assertLogs("parsedmarc.log", level="ERROR"):
+                self._run(
+                    conn, save_callback=lambda batch: False, max_unsaved_retries=10
+                )
+            self.assertEqual(self._attempts(), {})
+        self.assertEqual(list(conn.folders["INBOX"]), [1])
+        self.assertEqual(conn.folders["Archive/Invalid"], {})
+
+    def test_test_mode_records_and_clears_but_moves_nothing(self):
+        crashed = self.samples[self.AGGREGATE]
+        healthy = self.samples[self.SMTP_TLS]
+        junk = "From: noise@example.com\nSubject: not a report\n\nplain text\n"
+        self._seed(1, crashed, count=2)
+        conn = _InMemoryIMAPConnection({1: crashed, 2: healthy, 3: junk})
+
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            result = self._run(conn, test=True)
+
+        self.assertEqual(result["aggregate_reports"], [])
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(sorted(conn.folders["INBOX"]), [1, 2, 3])
+        self.assertNotIn("Archive/Invalid", conn.folders)
+        self.assertIn(
+            "leaving it in place without parsing it (test mode)",
+            "\n".join(cm.output),
+        )
+        # The set-aside message is still in the folder, so its count stays;
+        # the parsed and the unparseable ones were recorded and cleared.
+        attempts = self._attempts()
+        self.assertEqual(list(attempts), [attempt_key("INBOX", 1, crashed)])
+        self.assertEqual(attempts[attempt_key("INBOX", 1, crashed)]["count"], 3)
+
+    def test_parallel_path_records_each_attempt_before_submitting_it(self):
+        conn = _InMemoryIMAPConnection(
+            {1: self.samples[self.AGGREGATE], 2: self.samples[self.SMTP_TLS]}
+        )
+        with patch.dict(os.environ, {_WORKER_ATTEMPTS_FILE_VARIABLE: self.path}):
+            with patch(
+                "parsedmarc.parallel._parse_report_email_job",
+                _job_requiring_recorded_attempt,
+            ):
+                result = self._run(conn, n_procs=2)
+
+        # The job rejects a message whose attempt was not yet on disk, which
+        # would have sent it to Invalid.
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertNotIn(1, conn.folders["Archive/Invalid"])
+        self.assertNotIn(2, conn.folders["Archive/Invalid"])
+        self.assertEqual(self._attempts(), {})
+
+    def test_parallel_path_parses_a_suspect_alone_in_this_process(self):
+        """With n_procs > 1 a run that died had several messages in flight,
+        and only one of them killed it. A message with one unfinished
+        attempt is therefore not submitted to the pool beside others: it is
+        parsed in this process after them, its attempt recorded first, so a
+        second death counts against it alone and the messages parsed beside
+        it the first time are not set aside with it."""
+        suspect = self.samples[self.AGGREGATE]
+        others = {2: self.samples[self.SMTP_TLS], 3: self.samples[self.FAILURE]}
+        self._seed(1, suspect, count=1)
+        key = attempt_key("INBOX", 1, suspect)
+        parsed_here = []
+        real_parse = parsedmarc.parse_report_email
+        parent = os.getpid()
+
+        def parse_and_look(content, *args, **kwargs):
+            if os.getpid() == parent:
+                parsed_here.append((content, self._attempts().get(key)))
+            return real_parse(content, *args, **kwargs)
+
+        conn = _InMemoryIMAPConnection({1: suspect, **others})
+        with patch("parsedmarc.parse_report_email", parse_and_look):
+            with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                result = self._run(conn, n_procs=2)
+
+        self.assertEqual(len(parsed_here), 1)
+        self.assertEqual(parsed_here[0][0], suspect)
+        self.assertEqual(parsed_here[0][1]["count"], 2)
+        self.assertIn(
+            "Message UID 1 in INBOX was being parsed when parsedmarc last "
+            "stopped without finishing; parsing it on its own",
+            "\n".join(cm.output),
+        )
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(len(result["failure_reports"]), 1)
+        self.assertEqual(conn.folders["INBOX"], {})
+        self.assertEqual(self._attempts(), {})
+
+    def test_failed_disposal_keeps_the_entry(self):
+        """The entry is cleared only once the message has left the folder:
+        a move the server refuses leaves the count in place, so the next
+        run sets the message aside again instead of parsing it."""
+        content = self.samples[self.AGGREGATE]
+        key = attempt_key("INBOX", 1, content)
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                self._seed(1, content, count=2)
+                conn = _FailingInvalidMoveIMAPConnection(
+                    {1: content, 2: self.samples[self.SMTP_TLS]}
+                )
+                with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+                    self._run(conn, n_procs=n_procs)
+                self.assertEqual(list(conn.folders["INBOX"]), [1])
+                self.assertEqual(self._attempts()[key]["count"], 3)
+                self.assertIn(
+                    "Error moving invalid message UID 1", "\n".join(cm.output)
+                )
+
+    def test_batch_size_zero_recursion_forwards_the_attempts_file(self):
+        """A message that arrives during the run is processed by the
+        recursive re-check call, which must use the same attempts file."""
+        crashed = self.samples[self.SMTP_TLS]
+        self._seed(2, crashed, count=2)
+        conn = _ArrivalIMAPConnection(
+            {1: self.samples[self.AGGREGATE]}, extra_id=2, extra_content=crashed
+        )
+        with self.assertLogs("parsedmarc.log", level="ERROR"):
+            result = self._run(conn, batch_size=0)
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(result["smtp_tls_reports"], [])
+        self.assertEqual(list(conn.folders["Archive/Invalid"]), [2])
+
+    def test_watch_inbox_forwards_the_attempts_file(self):
+        crashed = self.samples[self.AGGREGATE]
+        self._seed(1, crashed, count=2)
+        conn = _SingleCheckIMAPConnection({1: crashed})
+        conn.create_folder("Archive/Invalid")
+        with self.assertLogs("parsedmarc.log", level="ERROR"):
+            parsedmarc.watch_inbox(
+                conn,
+                lambda batch: None,
+                offline=True,
+                attempts_file=self.path,
+            )
+        self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
+        self.assertEqual(self._attempts(), {})
+
+    def test_no_attempts_file_keeps_no_record(self):
+        content = self.samples[self.AGGREGATE]
+        self._seed(1, content, count=5)
+        conn = _InMemoryIMAPConnection({1: content})
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        result = parsedmarc.get_dmarc_reports_from_mailbox(
+            connection=conn, offline=True
+        )
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(list(conn.folders["Archive/Aggregate"]), [1])
+        # The file is neither consulted nor written.
+        self.assertEqual(self._attempts()[attempt_key("INBOX", 1, content)]["count"], 5)
 
 
 class _MidRunArrivalMaildirConnection(MaildirConnection):

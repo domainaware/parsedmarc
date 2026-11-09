@@ -42,6 +42,7 @@ from mailsuite.smtp import send_email
 from mailsuite.utils import MessageLimitExceeded, check_message_limits
 from tqdm import tqdm
 
+from parsedmarc.attempts import MAX_PARSE_ATTEMPTS, AttemptStore, attempt_key
 from parsedmarc.config import (
     IP_ADDRESS_CACHE,
     REVERSE_DNS_MAP,
@@ -3345,10 +3346,11 @@ def _dispose_invalid_message(
     message_id: int | str,
     delete: bool,
     invalid_reports_folder: str,
-) -> None:
+) -> bool:
     """Delete or move an unparseable message, per ``delete``.
 
     Callers pass their effective ``delete_invalid`` value as ``delete``.
+    Returns whether the message left the reports folder.
 
     Shared, unmodified, by the sequential and parallel branches of
     ``get_dmarc_reports_from_mailbox`` so both dispose of invalid messages
@@ -3385,6 +3387,41 @@ def _dispose_invalid_message(
             f"Mailbox error: Error {action} invalid message UID {message_id}: "
             f"{type(e).__name__}: {e}"
         )
+        return False
+    return True
+
+
+def _record_parse_attempt(
+    attempt_store: AttemptStore,
+    key: str,
+    message_id: int | str,
+    reports_folder: str,
+    delete_invalid: bool,
+    invalid_reports_folder: str,
+    test: bool,
+) -> bool:
+    """Record that a message is about to be parsed; return ``True`` when it
+    must be set aside instead.
+
+    A message whose earlier parse attempts never finished
+    ``MAX_PARSE_ATTEMPTS`` times is taken to be what killed those runs: the
+    error is logged here, and the caller disposes of the message as invalid
+    without parsing it (or, under ``test``, leaves it in place).
+    """
+    count = attempt_store.record(key)
+    if count <= MAX_PARSE_ATTEMPTS:
+        return False
+    if test:
+        action = "leaving it in place without parsing it (test mode)"
+    elif delete_invalid:
+        action = "deleting it without parsing it"
+    else:
+        action = f"moving it to {invalid_reports_folder} without parsing it"
+    logger.error(
+        f"Message UID {message_id} in {reports_folder} has crashed parsedmarc "
+        f"{count - 1} time(s) before it could be parsed; {action}"
+    )
+    return True
 
 
 def get_dmarc_reports_from_mbox(
@@ -3597,6 +3634,7 @@ def get_dmarc_reports_from_mailbox(
     n_procs: int = 1,
     save_callback: Callable[[ParsingResults], bool | None] | None = None,
     max_unsaved_retries: int = 2,
+    attempts_file: str | None = None,
     config: ParserConfig | None = None,
 ) -> ParsingResults:
     """
@@ -3694,6 +3732,20 @@ def get_dmarc_reports_from_mailbox(
             checks), not across separate one-shot processes, each of which
             starts a message's count over. Mailbox orchestration, so like
             ``batch_size`` it is not part of ``config``.
+        attempts_file (str | None): A JSON file in which to count, per
+            message, the parse attempts that started but never finished,
+            because the process died while parsing (the out-of-memory
+            killer, a container memory cap). An attempt is recorded before
+            a message is parsed and cleared as soon as the parse returns a
+            report or raises ``ParserError``, so a failed save is not
+            counted. A message that has died ``MAX_PARSE_ATTEMPTS`` (2)
+            times is logged at error level and disposed of as invalid
+            (moved to ``Invalid``, or deleted under ``delete_invalid``)
+            without being parsed again. With ``n_procs > 1``, a message
+            that was being parsed when an earlier run died is parsed on its
+            own in this process after the others, so the messages parsed
+            beside it are not blamed for it. ``None`` (the default) keeps
+            no record. Mailbox orchestration, not part of ``config``.
         config (ParserConfig): a single object carrying all parsing and
             enrichment options plus the caches; when provided, it replaces
             the individual parsing and enrichment option keyword arguments
@@ -3702,8 +3754,9 @@ def get_dmarc_reports_from_mailbox(
             ignored. The remaining keyword arguments control mailbox
             handling and orchestration rather than parsing (the folder
             names, the ``delete`` options, ``test``, ``since``,
-            ``batch_size``, ``save_callback``, ``max_unsaved_retries``);
-            they are not part of ``config`` and always apply.
+            ``batch_size``, ``save_callback``, ``max_unsaved_retries``,
+            ``attempts_file``); they are not part of ``config`` and always
+            apply.
 
     Returns:
         dict: Lists of ``aggregate_reports``, ``failure_reports``, and ``smtp_tls_reports``
@@ -3729,6 +3782,8 @@ def get_dmarc_reports_from_mailbox(
 
     if connection is None:
         raise ValueError("Must supply a connection")
+
+    attempt_store = AttemptStore(attempts_file) if attempts_file else None
 
     cfg = _resolve_config(
         config,
@@ -3842,6 +3897,66 @@ def get_dmarc_reports_from_mailbox(
 
     logger.debug(f"Processing {message_limit} messages")
 
+    def _parse_finished(key: str | None) -> None:
+        # A parse that returned a result or raised ParserError did not
+        # crash the process, so its attempt is cleared before anything that
+        # can fail for other reasons (the save, the move) runs.
+        if attempt_store is not None and key is not None:
+            attempt_store.clear(key)
+
+    def _parse_in_process(
+        message_id: int | str, msg_content: str | ParserError
+    ) -> None:
+        key: str | None = None
+        try:
+            if isinstance(msg_content, ParserError):
+                raise msg_content
+            if attempt_store is not None:
+                key = attempt_key(reports_folder, message_id, msg_content)
+                if _record_parse_attempt(
+                    attempt_store,
+                    key,
+                    message_id,
+                    reports_folder,
+                    delete_invalid,
+                    invalid_reports_folder,
+                    test,
+                ):
+                    # The entry is kept until the message has left the
+                    # folder, so a failed move is retried on the next run.
+                    if not test and _dispose_invalid_message(
+                        connection, message_id, delete_invalid, invalid_reports_folder
+                    ):
+                        attempt_store.clear(key)
+                    return
+            parsed_email = parse_report_email(
+                msg_content,
+                config=cfg,
+                keep_alive=connection.keepalive,
+            )
+            _parse_finished(key)
+            report_type = _classify_parsed_email(
+                parsed_email,
+                batch_aggregate_reports,
+                batch_failure_reports,
+                batch_smtp_tls_reports,
+                seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
+                pending_aggregate_keys=pending_aggregate_keys,
+            )
+            if report_type == "aggregate":
+                aggregate_report_msg_uids.append(message_id)
+            elif report_type == "failure":
+                failure_report_msg_uids.append(message_id)
+            elif report_type == "smtp_tls":
+                smtp_tls_msg_uids.append(message_id)
+        except ParserError as error:
+            _parse_finished(key)
+            logger.warning(error.__str__())
+            if not test:
+                _dispose_invalid_message(
+                    connection, message_id, delete_invalid, invalid_reports_folder
+                )
+
     if n_procs > 1 and message_limit > 1:
         from parsedmarc.parallel import _parse_report_email_job, parallel_map
 
@@ -3858,9 +3973,15 @@ def get_dmarc_reports_from_mailbox(
         # parallel_map yields results in submission order, so the oldest
         # queued id always belongs to the next yielded result; popping as
         # results arrive keeps this queue no larger than the in-flight
-        # submission window.
-        fetched_ids: deque[int | str] = deque()
-        invalid_msg_ids: list[int | str] = []
+        # submission window. Each id travels with its attempts-file key
+        # (None when there is no attempts file, or no attempt to clear).
+        fetched_ids: deque[tuple[int | str, str | None]] = deque()
+        invalid_msg_ids: list[tuple[int | str, str | None]] = []
+        # Messages that were being parsed when an earlier run died. That
+        # run had up to a whole submission window in flight, so all of them
+        # are suspects; parsing each alone, after the others, lets the next
+        # crash count against the one message that caused it.
+        suspects: list[tuple[int | str, str]] = []
 
         def _jobs():
             for i in range(message_limit):
@@ -3875,18 +3996,42 @@ def get_dmarc_reports_from_mailbox(
                     # Never submitted, so never yielded and never queued in
                     # fetched_ids; the post-loop disposal handles it.
                     logger.warning(str(msg_content))
-                    invalid_msg_ids.append(message_id)
+                    invalid_msg_ids.append((message_id, None))
                     continue
-                fetched_ids.append(message_id)
+                key: str | None = None
+                if attempt_store is not None:
+                    key = attempt_key(reports_folder, message_id, msg_content)
+                    if 0 < attempt_store.count(key) < MAX_PARSE_ATTEMPTS:
+                        logger.warning(
+                            f"Message UID {message_id} in {reports_folder} "
+                            "was being parsed when parsedmarc last stopped "
+                            "without finishing; parsing it on its own after "
+                            "the rest of the batch"
+                        )
+                        suspects.append((message_id, msg_content))
+                        continue
+                    if _record_parse_attempt(
+                        attempt_store,
+                        key,
+                        message_id,
+                        reports_folder,
+                        delete_invalid,
+                        invalid_reports_folder,
+                        test,
+                    ):
+                        invalid_msg_ids.append((message_id, key))
+                        continue
+                fetched_ids.append((message_id, key))
                 yield msg_content
 
         for result in parallel_map(
             func, _jobs(), n_procs, heartbeat=connection.keepalive
         ):
-            message_id = fetched_ids.popleft()
+            message_id, key = fetched_ids.popleft()
+            _parse_finished(key)
             if isinstance(result, ParserError):
                 logger.warning(str(result))
-                invalid_msg_ids.append(message_id)
+                invalid_msg_ids.append((message_id, None))
             else:
                 report_type = _classify_parsed_email(
                     result,
@@ -3903,14 +4048,20 @@ def get_dmarc_reports_from_mailbox(
                 elif report_type == "smtp_tls":
                     smtp_tls_msg_uids.append(message_id)
 
+        for message_id, msg_content in suspects:
+            _parse_in_process(message_id, msg_content)
+
         if not test:
-            for invalid_message_id in invalid_msg_ids:
-                _dispose_invalid_message(
+            for invalid_message_id, key in invalid_msg_ids:
+                # A set-aside message's entry is cleared only once it has
+                # left the folder, as in _parse_in_process.
+                if _dispose_invalid_message(
                     connection,
                     invalid_message_id,
                     delete_invalid,
                     invalid_reports_folder,
-                )
+                ):
+                    _parse_finished(key)
     else:
         for i in range(message_limit):
             msg_uid = messages[i]
@@ -3918,34 +4069,7 @@ def get_dmarc_reports_from_mailbox(
                 f"Processing message {i + 1} of {message_limit}: UID {msg_uid}"
             )
             message_id, msg_content = _fetch_mailbox_message(connection, msg_uid, test)
-            try:
-                if isinstance(msg_content, ParserError):
-                    raise msg_content
-                parsed_email = parse_report_email(
-                    msg_content,
-                    config=cfg,
-                    keep_alive=connection.keepalive,
-                )
-                report_type = _classify_parsed_email(
-                    parsed_email,
-                    batch_aggregate_reports,
-                    batch_failure_reports,
-                    batch_smtp_tls_reports,
-                    seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
-                    pending_aggregate_keys=pending_aggregate_keys,
-                )
-                if report_type == "aggregate":
-                    aggregate_report_msg_uids.append(message_id)
-                elif report_type == "failure":
-                    failure_report_msg_uids.append(message_id)
-                elif report_type == "smtp_tls":
-                    smtp_tls_msg_uids.append(message_id)
-            except ParserError as error:
-                logger.warning(error.__str__())
-                if not test:
-                    _dispose_invalid_message(
-                        connection, message_id, delete_invalid, invalid_reports_folder
-                    )
+            _parse_in_process(message_id, msg_content)
 
     # Ask the caller whether this batch actually made it to its output
     # destinations before touching a single message. A callback that says
@@ -4130,6 +4254,7 @@ def get_dmarc_reports_from_mailbox(
             n_procs=n_procs,
             save_callback=save_callback,
             max_unsaved_retries=max_unsaved_retries,
+            attempts_file=attempts_file,
             config=cfg,
         )
 
@@ -4164,6 +4289,7 @@ def watch_inbox(
     config_reloading: Callable | None = None,
     n_procs: int = 1,
     max_unsaved_retries: int = 2,
+    attempts_file: str | None = None,
     config: ParserConfig | None = None,
 ):
     """
@@ -4236,6 +4362,12 @@ def watch_inbox(
             moved to the ``Unsaved`` archive subfolder (default 2). Passed
             through to ``get_dmarc_reports_from_mailbox``, where it is
             documented in full. Not part of ``config``; always applies.
+        attempts_file (str | None): A JSON file counting the parse
+            attempts that never finished, so a message that keeps killing
+            the process is set aside as invalid (default ``None``: no
+            record). Passed through to ``get_dmarc_reports_from_mailbox``,
+            where it is documented in full. Not part of ``config``; always
+            applies.
         config (ParserConfig): a single object carrying all parsing and
             enrichment options plus the caches; when provided, it replaces
             the individual parsing and enrichment option keyword arguments
@@ -4244,8 +4376,8 @@ def watch_inbox(
             ignored. The remaining keyword arguments control mailbox
             handling and orchestration rather than parsing (the folder
             names, the ``delete`` options, ``test``, ``since``,
-            ``batch_size``, ``max_unsaved_retries``); they are not part of
-            ``config`` and always apply.
+            ``batch_size``, ``max_unsaved_retries``, ``attempts_file``);
+            they are not part of ``config`` and always apply.
     """
     # Validate before the watch loop starts: raised inside a check, this
     # would be swallowed and endlessly retried by the IMAP and Maildir
@@ -4284,6 +4416,7 @@ def watch_inbox(
             n_procs=n_procs,
             save_callback=callback,
             max_unsaved_retries=max_unsaved_retries,
+            attempts_file=attempts_file,
             config=cfg,
         )
 

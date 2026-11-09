@@ -570,6 +570,7 @@ _DIRECT_FILE_KEYS = frozenset(
         "MSGRAPH_TOKEN_FILE",
         "GMAIL_API_CREDENTIALS_FILE",
         "GMAIL_API_TOKEN_FILE",
+        "MAILBOX_ATTEMPTS_FILE",
     ]
 )
 
@@ -1030,6 +1031,8 @@ def _parse_config(config: ConfigParser, opts):
             opts.mailbox_max_unsaved_retries = mailbox_config.getint(
                 "max_unsaved_retries"
             )
+        if "attempts_file" in mailbox_config:
+            opts.mailbox_attempts_file = _expand_path(mailbox_config["attempts_file"])
         if "since" in mailbox_config:
             opts.mailbox_since = mailbox_config["since"]
 
@@ -3210,6 +3213,7 @@ def _main():
         mailbox_batch_size=10,
         mailbox_check_timeout=30,
         mailbox_max_unsaved_retries=2,
+        mailbox_attempts_file=None,
         mailbox_since=None,
         imap_host=None,
         imap_skip_certificate_verification=False,
@@ -3816,6 +3820,7 @@ def _main():
                 n_procs=n_procs,
                 save_callback=mailbox_save_callback,
                 max_unsaved_retries=mailbox_max_unsaved_retries_value,
+                attempts_file=opts.mailbox_attempts_file,
             )
 
             aggregate_reports += reports["aggregate_reports"]
@@ -3965,6 +3970,7 @@ def _main():
                     config_reloading=lambda: _reload_requested or _shutdown_requested,
                     n_procs=n_procs,
                     max_unsaved_retries=mailbox_max_unsaved_retries_value,
+                    attempts_file=opts.mailbox_attempts_file,
                 )
             except FileExistsError as error:
                 logger.error(f"{error.__str__()}")
