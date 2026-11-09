@@ -2,19 +2,35 @@
 
 from __future__ import annotations
 
+import itertools
 import logging
+import math
+import multiprocessing
+import time
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Future, ProcessPoolExecutor, wait
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
+    from multiprocessing.context import BaseContext
+    from multiprocessing.queues import SimpleQueue
+
     from parsedmarc import ParserError
     from parsedmarc.config import ParserConfig
     from parsedmarc.types import ParsedReport
 
 _J = TypeVar("_J")
 _R = TypeVar("_R")
+
+# How long to wait for a killed worker process, and for the executor's
+# management thread, to exit after a timed-out job's pool is torn down.
+_KILL_JOIN_SECONDS = 5.0
+
+# Set in each worker of a pool built for a parse_timeout, by
+# _init_timed_worker(); _run_timed_job() writes a job's token to it as the
+# job starts, so the parent can start that job's clock.
+_start_queue: SimpleQueue[int] | None = None
 
 
 def _init_worker(
@@ -67,6 +83,62 @@ def _init_worker(
         return
     for log_file in log_files:
         configure_logging(log_level, log_file)
+
+
+def _init_timed_worker(start_queue: SimpleQueue[int], *initargs: Any) -> None:
+    """Pool initializer for a pool whose jobs have a ``parse_timeout``.
+
+    Keeps ``start_queue`` for ``_run_timed_job()`` and then runs
+    ``_init_worker(*initargs)``.
+    """
+    global _start_queue
+    _start_queue = start_queue
+    _init_worker(*initargs)
+
+
+def _run_timed_job(func: Callable[[_J], _R], token: int, job: _J) -> _R:
+    """Worker job that reports ``token`` as started, then returns ``func(job)``.
+
+    The parent cannot tell from the future alone when a job starts:
+    ``ProcessPoolExecutor`` marks a future running when it moves the job to
+    its call queue, which holds one job more than there are workers, so one
+    job can be "running" while it still waits behind a slow neighbour. The
+    token written here, before ``func`` runs, is what starts the job's clock.
+    """
+    if _start_queue is not None:
+        _start_queue.put(token)
+    return func(job)
+
+
+def _email_timeout_result(msg_content: bytes | str, seconds: float) -> ParserError:
+    """Return the ``_parse_report_email_job`` value for a timed-out message.
+
+    Passed to ``parallel_map()`` as ``timeout_result``. The value is a
+    ``ParseTimeoutError``, an ``InvalidDMARCReport``, so the mbox loop warns
+    and continues and the mailbox loop files the message under ``Invalid``,
+    as for any other message that cannot be parsed.
+    """
+    from parsedmarc import ParseTimeoutError
+
+    return ParseTimeoutError(
+        f"Parsing the message took longer than parse_timeout "
+        f"({seconds:g} seconds) and was stopped"
+    )
+
+
+def _file_timeout_result(file_path: str, seconds: float) -> tuple[str, Exception]:
+    """Return the ``_parse_report_file_job`` value for a timed-out file.
+
+    Passed to ``parallel_map()`` as ``timeout_result``. The value pairs
+    ``file_path`` with a ``ParseTimeoutError``, a ``ParserError``, so the CLI
+    logs the failure and, with ``archive_directory`` set, moves the file to
+    ``Invalid``.
+    """
+    from parsedmarc import ParseTimeoutError
+
+    return file_path, ParseTimeoutError(
+        f"Parsing took longer than parse_timeout ({seconds:g} seconds) and was stopped"
+    )
 
 
 def _parse_report_email_job(
@@ -124,6 +196,265 @@ def _parse_report_file_job(
         return file_path, e
 
 
+def _check_parse_timeout(parse_timeout: float) -> None:
+    """Raise ``ValueError`` unless ``parse_timeout`` is finite and >= 0."""
+    if not math.isfinite(parse_timeout) or parse_timeout < 0:
+        raise ValueError(
+            f"parse_timeout must be a finite number of seconds >= 0, "
+            f"got {parse_timeout!r}"
+        )
+
+
+class _Pending(Generic[_J, _R]):
+    """One job in ``parallel_map()``'s submission window under a timeout.
+
+    ``started_at`` is the ``time.monotonic()`` time at which the parent
+    learned that the job started, ``None`` until then. ``future`` is
+    replaced when the job is resubmitted to a new pool, and by an already
+    resolved future holding the ``timeout_result`` value when it times out.
+    """
+
+    __slots__ = ("future", "job", "started_at", "token")
+
+    def __init__(self, job: _J, token: int, future: Future[_R]) -> None:
+        self.job = job
+        self.token = token
+        self.future = future
+        self.started_at: float | None = None
+
+
+class _DeadlinePool(Generic[_J, _R]):
+    """A process pool whose jobs report when they start, and can be killed.
+
+    Each job runs through ``_run_timed_job()``, which writes the job's token
+    to a queue the parent reads in ``stamp_starts()``. ``replace()`` kills
+    every worker process and builds a fresh pool with a fresh queue, since a
+    worker killed while writing to the old queue may leave it unusable.
+    """
+
+    def __init__(
+        self,
+        func: Callable[[_J], _R],
+        n_procs: int,
+        initargs: tuple[Any, ...],
+    ) -> None:
+        self._func = func
+        self._n_procs = n_procs
+        self._initargs = initargs
+        self._tokens = itertools.count()
+        self._by_token: dict[int, _Pending[_J, _R]] = {}
+        self._context: BaseContext = multiprocessing.get_context()
+        self._executor, self._start_queue = self._new_executor()
+
+    def _new_executor(self) -> tuple[ProcessPoolExecutor, SimpleQueue[int]]:
+        start_queue: SimpleQueue[int] = self._context.SimpleQueue()
+        executor = ProcessPoolExecutor(
+            max_workers=self._n_procs,
+            mp_context=self._context,
+            initializer=_init_timed_worker,
+            initargs=(start_queue, *self._initargs),
+        )
+        return executor, start_queue
+
+    def submit(self, job: _J) -> _Pending[_J, _R]:
+        """Submit ``job`` and return its new, not yet started, entry."""
+        pending: _Pending[_J, _R] = _Pending(job, -1, Future())
+        self.resubmit(pending)
+        return pending
+
+    def resubmit(self, pending: _Pending[_J, _R]) -> None:
+        """Submit ``pending``'s job to the current pool, with a new token."""
+        pending.token = next(self._tokens)
+        pending.started_at = None
+        pending.future = self._executor.submit(
+            _run_timed_job, self._func, pending.token, pending.job
+        )
+        self._by_token[pending.token] = pending
+
+    def stamp_starts(self, now: float) -> None:
+        """Set ``started_at`` to ``now`` on each job that has reported starting."""
+        while not self._start_queue.empty():
+            pending = self._by_token.pop(self._start_queue.get(), None)
+            if pending is not None:
+                pending.started_at = now
+
+    def kill(self) -> None:
+        """Kill the worker processes and wait, boundedly, for them to exit.
+
+        ``ProcessPoolExecutor`` has no public way to stop a running job, and
+        ``shutdown()`` waits for it or, with ``wait=False``, leaves it
+        running, so the workers are read from ``_processes``, a private
+        attribute present in every supported Python version. Without it the
+        workers are left to finish on their own and a warning says so.
+        """
+        from parsedmarc.log import logger
+
+        executor = self._executor
+        processes = getattr(executor, "_processes", None)
+        manager_thread = getattr(executor, "_executor_manager_thread", None)
+        if processes is None:
+            logger.warning(
+                "Cannot stop the worker processes of a timed-out parsing job "
+                "on this Python version; they keep running until they finish"
+            )
+            workers = []
+        else:
+            workers = list(processes.values())
+        for worker in workers:
+            worker.kill()
+        executor.shutdown(wait=False, cancel_futures=True)
+        for worker in workers:
+            worker.join(_KILL_JOIN_SECONDS)
+        if manager_thread is not None:
+            manager_thread.join(_KILL_JOIN_SECONDS)
+        self._start_queue.close()
+        self._by_token.clear()
+
+    def replace(self) -> None:
+        """Kill this pool's workers and continue with a fresh pool."""
+        self.kill()
+        self._executor, self._start_queue = self._new_executor()
+
+    def close(self) -> None:
+        """Shut the pool down once every job has finished."""
+        self._executor.shutdown(wait=True)
+        self._start_queue.close()
+
+
+def _resolved(value: _R) -> Future[_R]:
+    future: Future[_R] = Future()
+    future.set_result(value)
+    return future
+
+
+def _expire_overdue(
+    pool: _DeadlinePool[_J, _R],
+    window: deque[_Pending[_J, _R]],
+    now: float,
+    parse_timeout: float,
+    timeout_result: Callable[[_J, float], _R],
+) -> bool:
+    """Stop every job in ``window`` running for ``parse_timeout`` or longer.
+
+    Returns ``False`` when no job is overdue. Otherwise logs one warning per
+    overdue job, records which futures are already done (killing the pool
+    gives every other future ``BrokenProcessPool``), replaces the pool, and
+    then, in window order, keeps each done job's result, gives each overdue
+    job ``timeout_result(job, parse_timeout)``, and resubmits every other
+    job from scratch. Returns ``True``.
+    """
+    from parsedmarc.log import logger
+
+    done = [pending.future.done() for pending in window]
+    overdue = [
+        not finished
+        and pending.started_at is not None
+        and now - pending.started_at >= parse_timeout
+        for pending, finished in zip(window, done)
+    ]
+    if not any(overdue):
+        return False
+    for _ in range(sum(overdue)):
+        logger.warning(
+            f"A parsing job ran longer than parse_timeout ({parse_timeout:g} "
+            f"seconds) and was stopped; restarting the worker processes"
+        )
+    pool.replace()
+    for pending, finished, expired in zip(window, done, overdue):
+        if finished:
+            continue
+        if expired:
+            pending.started_at = None
+            pending.future = _resolved(timeout_result(pending.job, parse_timeout))
+        else:
+            pool.resubmit(pending)
+    return True
+
+
+def _map_with_timeout(
+    func: Callable[[_J], _R],
+    first_job: _J,
+    jobs_iter: Iterator[_J],
+    n_procs: int,
+    window_size: int,
+    initargs: tuple[Any, ...],
+    parse_timeout: float,
+    timeout_result: Callable[[_J, float], _R],
+    heartbeat: Callable[[], None] | None,
+    heartbeat_interval: float,
+    should_stop: Callable[[], bool] | None,
+) -> Iterator[_R]:
+    """``parallel_map()``'s loop when ``parse_timeout`` is set.
+
+    The parent wakes at least every ``min(1.0, parse_timeout / 10,
+    heartbeat_interval)`` seconds (the wait slice), sooner when a deadline
+    or heartbeat falls due, and expires overdue jobs with
+    ``_expire_overdue()``. A ``should_stop`` stop cancels the jobs that have
+    not been handed to a worker and still waits for the others, which are
+    themselves bounded by the timeout. Leaving early (an exception, or the
+    caller closing the iterator) kills the pool instead of waiting for it.
+    """
+    wait_slice = min(1.0, parse_timeout / 10)
+    if heartbeat is not None:
+        wait_slice = min(wait_slice, heartbeat_interval)
+    pool: _DeadlinePool[_J, _R] = _DeadlinePool(func, n_procs, initargs)
+    finished = False
+    try:
+        window: deque[_Pending[_J, _R]] = deque([pool.submit(first_job)])
+        while len(window) < window_size:
+            try:
+                window.append(pool.submit(next(jobs_iter)))
+            except StopIteration:
+                break
+
+        # Absolute, so rebuilding a pool never postpones a heartbeat.
+        next_heartbeat_at = time.monotonic() + heartbeat_interval
+        stopping = False
+        while window:
+            oldest = window[0]
+            while not oldest.future.done():
+                now = time.monotonic()
+                pool.stamp_starts(now)
+                if heartbeat is not None and now >= next_heartbeat_at:
+                    heartbeat()
+                    now = time.monotonic()
+                    next_heartbeat_at = now + heartbeat_interval
+                if _expire_overdue(pool, window, now, parse_timeout, timeout_result):
+                    continue
+                limit = wait_slice
+                started = [
+                    pending.started_at
+                    for pending in window
+                    if pending.started_at is not None and not pending.future.done()
+                ]
+                if started:
+                    limit = min(limit, min(started) + parse_timeout - now)
+                if heartbeat is not None:
+                    limit = min(limit, next_heartbeat_at - now)
+                wait([oldest.future], timeout=max(limit, 0.0))
+
+            window.popleft()
+            yield oldest.future.result()
+
+            if not stopping and should_stop is not None and should_stop():
+                stopping = True
+                for pending in window:
+                    pending.future.cancel()
+                window = deque(p for p in window if not p.future.cancelled())
+            if stopping:
+                continue
+            try:
+                window.append(pool.submit(next(jobs_iter)))
+            except StopIteration:
+                continue
+        finished = True
+    finally:
+        if finished:
+            pool.close()
+        else:
+            pool.kill()
+
+
 def parallel_map(
     func: Callable[[_J], _R],
     jobs: Iterable[_J],
@@ -133,6 +464,8 @@ def parallel_map(
     heartbeat: Callable[[], None] | None = None,
     heartbeat_interval: float = 30.0,
     should_stop: Callable[[], bool] | None = None,
+    parse_timeout: float = 0.0,
+    timeout_result: Callable[[_J, float], _R] | None = None,
 ) -> Iterator[_R]:
     """Map ``func`` over ``jobs`` using a bounded-window process pool.
 
@@ -170,12 +503,35 @@ def parallel_map(
     every worker by the pool initializer, so IP enrichment and base-domain
     lookups match what the parent configured under every start method.
 
+    If ``parse_timeout`` is greater than zero, a job that runs that many
+    seconds is stopped and ``timeout_result(job, parse_timeout)`` is
+    yielded in its place, in its position. ``ProcessPoolExecutor`` cannot
+    stop one job, so every worker process is killed and a fresh pool is
+    started; the other unfinished jobs in the window start again from
+    scratch, and finished results are kept. A job's clock starts when its
+    worker reports that it began, so a job waiting behind a slow
+    neighbour is not charged for the wait; the parent checks at least
+    every ``min(1.0, parse_timeout / 10, heartbeat_interval)`` seconds (the
+    wait slice), so a job may run up to one wait slice past its timeout.
+    One timeout therefore costs ``parse_timeout``, one wait slice and one
+    pool start, plus a re-run of the neighbours that were still running,
+    and P jobs that all time out cost at most
+    ``ceil(P / n_procs) * (parse_timeout + wait slice + pool start)``. With
+    ``parse_timeout`` set, ``should_stop`` cancels the jobs not yet handed
+    to a worker and waits for the rest, each still bounded by the timeout.
+    With ``parse_timeout`` at 0 (the default) jobs have no time limit.
+
     Raises:
-        ValueError: If ``n_procs`` is less than 1. Raised eagerly at the
-            call itself (not on first iteration of the returned iterator).
+        ValueError: If ``n_procs`` is less than 1, if ``parse_timeout`` is
+            negative or not finite, or if ``parse_timeout`` is set without
+            ``timeout_result``. Raised eagerly at the call itself (not on
+            first iteration of the returned iterator).
     """
     if n_procs < 1:
         raise ValueError(f"n_procs must be at least 1, got {n_procs}")
+    _check_parse_timeout(parse_timeout)
+    if parse_timeout and timeout_result is None:
+        raise ValueError("parse_timeout requires a timeout_result")
 
     def _generate() -> Iterator[_R]:
         jobs_iter = iter(jobs)
@@ -195,13 +551,30 @@ def parallel_map(
         ]
         ip_worker_state = utils._get_ip_worker_state()
         psl_overrides = list(utils.psl_overrides)
+        initargs = (log_level, log_files, ip_worker_state, psl_overrides)
 
         window_size = max(window_factor * n_procs, 1)
+
+        if parse_timeout and timeout_result is not None:
+            yield from _map_with_timeout(
+                func,
+                first_job,
+                jobs_iter,
+                n_procs,
+                window_size,
+                initargs,
+                parse_timeout,
+                timeout_result,
+                heartbeat,
+                heartbeat_interval,
+                should_stop,
+            )
+            return
 
         with ProcessPoolExecutor(
             max_workers=n_procs,
             initializer=_init_worker,
-            initargs=(log_level, log_files, ip_worker_state, psl_overrides),
+            initargs=initargs,
         ) as executor:
             window: deque[Future[_R]] = deque()
             window.append(executor.submit(func, first_job))

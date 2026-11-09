@@ -8481,6 +8481,167 @@ class TestParseConfigGeneral(unittest.TestCase):
         self.assertFalse(hasattr(opts, "archive_directory"))
 
 
+class TestParseTimeoutOption(unittest.TestCase):
+    """``[general] parse_timeout``: read as seconds, rejected unless it is a
+    finite number 0 or greater, 0 by default, and passed to every parsing
+    call _main() makes, including watch_inbox() after a SIGHUP reload."""
+
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self.addCleanup(setattr, _logger, "disabled", False)
+        for stream in ("sys.stdout", "sys.stderr"):
+            patcher = patch(stream, new_callable=io.StringIO)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+
+    def test_parse_timeout_is_read_as_seconds(self):
+        from parsedmarc.cli import _parse_config
+
+        for value, expected in (("2.5", 2.5), ("300", 300.0), ("0", 0.0)):
+            with self.subTest(value=value):
+                opts = _opts()
+                _parse_config(_config_with("general", {"parse_timeout": value}), opts)
+                self.assertEqual(opts.parse_timeout, expected)
+
+    def test_parse_timeout_rejects_negative_and_non_numeric_values(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        for value in ("-1", "abc", "", "nan", "inf"):
+            with self.subTest(value=value):
+                config = _config_with("general", {"parse_timeout": value})
+                with self.assertRaises(ConfigurationError) as ctx:
+                    _parse_config(config, _opts())
+                self.assertIn("parse_timeout", str(ctx.exception))
+
+    def _write_config(self, text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _one_shot_mailbox_kwargs(self, general_lines):
+        cfg_path = self._write_config(
+            "\n".join(["[general]", "silent = true", "offline = true", *general_lines])
+            + "\n\n[imap]\nhost = imap.example.com\nuser = user\npassword = pass\n"
+        )
+        with (
+            patch("parsedmarc.cli.get_dmarc_reports_from_mailbox") as mock_get_reports,
+            patch("parsedmarc.cli.IMAPConnection") as mock_imap,
+        ):
+            mock_imap.return_value = object()
+            mock_get_reports.return_value = {
+                "aggregate_reports": [],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+                parsedmarc.cli._main()
+        return mock_get_reports.call_args.kwargs
+
+    def test_mailbox_run_gets_zero_by_default_and_the_configured_value(self):
+        self.assertEqual(self._one_shot_mailbox_kwargs([])["parse_timeout"], 0.0)
+        kwargs = self._one_shot_mailbox_kwargs(["parse_timeout = 45"])
+        self.assertEqual(kwargs["parse_timeout"], 45.0)
+
+    def test_report_files_and_mbox_are_parsed_with_the_timeout(self):
+        """The report file goes through parallel_map's timeout loop (real
+        worker processes) and is parsed; the mbox call gets the value."""
+        from parsedmarc.parallel import _file_timeout_result
+        from parsedmarc.parallel import parallel_map as real_parallel_map
+
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        output_dir = os.path.join(tmp_dir, "output")
+        mbox_path = os.path.join(tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            box.add(mailbox.mboxMessage(message.read()))
+        box.close()
+        cfg_path = self._write_config(
+            "[general]\noffline = True\nsilent = True\n"
+            f"output = {output_dir}\nparse_timeout = 30\n"
+        )
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        calls = []
+
+        def recording_parallel_map(func, jobs, n_procs, **kwargs):
+            calls.append(kwargs)
+            return real_parallel_map(func, jobs, n_procs, **kwargs)
+
+        with (
+            patch("parsedmarc.cli.parallel_map", recording_parallel_map),
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mbox",
+                return_value={
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ) as mock_mbox,
+            patch.object(
+                sys, "argv", ["parsedmarc", "-c", cfg_path, sample, mbox_path]
+            ),
+        ):
+            parsedmarc.cli._main()
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["parse_timeout"], 30.0)
+        self.assertIs(calls[0]["timeout_result"], _file_timeout_result)
+        self.assertEqual(mock_mbox.call_args.kwargs["parse_timeout"], 30.0)
+        with open(os.path.join(output_dir, "aggregate.json")) as f:
+            self.assertEqual(len(json.load(f)), 1)
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    def test_watch_gets_the_reloaded_value_after_sighup(self):
+        def config(parse_timeout):
+            parser = ConfigParser()
+            parser.read_string(
+                "[general]\nsilent = true\noffline = true\n"
+                f"parse_timeout = {parse_timeout}\n\n"
+                "[imap]\nhost = imap.example.com\nuser = user\npassword = pass\n\n"
+                "[mailbox]\nwatch = true\n"
+            )
+            return parser
+
+        cfg_path = self._write_config("[general]\n")
+        seen = []
+
+        def watch_side_effect(**kwargs):
+            seen.append(kwargs["parse_timeout"])
+            if len(seen) == 1:
+                os.kill(os.getpid(), signal.SIGHUP)
+                return
+            raise FileExistsError("stop-watch-loop")
+
+        with (
+            patch("parsedmarc.cli._load_config", side_effect=[config(5), config(7.5)]),
+            patch("parsedmarc.cli._init_output_clients", return_value={}),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                return_value={
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ),
+            patch("parsedmarc.cli.watch_inbox", side_effect=watch_side_effect),
+            patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]),
+        ):
+            with self.assertRaises(SystemExit):
+                parsedmarc.cli._main()
+
+        self.assertEqual(seen, [5.0, 7.5])
+
+
 class TestParseConfigElasticsearch(unittest.TestCase):
     def test_elasticsearch_basic(self):
         from parsedmarc.cli import _parse_config

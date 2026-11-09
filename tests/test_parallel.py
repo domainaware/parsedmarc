@@ -2,18 +2,25 @@
 
 import functools
 import logging
+import math
+import multiprocessing
 import os
 import tempfile
+import time
 import unittest
+from concurrent.futures import ProcessPoolExecutor
 from unittest.mock import patch
 
 import parsedmarc
 from parsedmarc.parallel import (
+    _email_timeout_result,
+    _file_timeout_result,
     _init_worker,
     _parse_report_email_job,
     _parse_report_file_job,
     parallel_map,
 )
+from tests.timing import budget
 
 # Stable sample files reused from tests/test_cli.py's TestDirectoryFilePaths,
 # plus a third plain aggregate sample, so parity/order tests exercise more
@@ -376,6 +383,183 @@ class TestParseReportEmailJob(_ParallelTestCase):
             b"not a valid email", config=parsedmarc.ParserConfig(offline=True)
         )
         self.assertIsInstance(result, parsedmarc.ParserError)
+
+
+# parse_timeout tests: a job that sleeps _SLOW seconds stands in for a parse
+# that never ends, and _TIMEOUT is far below it, so a test that finishes in
+# about _TIMEOUT seconds shows the job was stopped rather than waited for.
+_TIMEOUT = 0.5
+_SLOW = 5.0
+
+
+def _sleep_job(seconds):
+    """Sleep ``seconds`` and return it. Module-level so it pickles."""
+    time.sleep(seconds)
+    return seconds
+
+
+def _timeout_value(job, seconds):
+    return ("timed out", job, seconds)
+
+
+class TestParallelMapParseTimeout(unittest.TestCase):
+    """parse_timeout stops a job that runs too long and yields
+    timeout_result(job, parse_timeout) in its place.
+
+    Without a timeout each _SLOW job holds the run for its full 5 s. With a
+    0.5 s timeout one stop costs the timeout, a wait slice (0.05 s here)
+    and one pool start (about 0.3 s under spawn on the workstation, a few
+    milliseconds under fork), so every bound below allows for two pool
+    starts and stays far under the 5 s the job would take.
+    """
+
+    def _run(self, jobs, n_procs, **kwargs):
+        kwargs.setdefault("parse_timeout", _TIMEOUT)
+        kwargs.setdefault("timeout_result", _timeout_value)
+        start = time.monotonic()
+        results = list(parallel_map(_sleep_job, jobs, n_procs, **kwargs))
+        return results, time.monotonic() - start
+
+    def test_timed_out_job_yields_timeout_value_in_order(self):
+        results, elapsed = self._run([0.0, _SLOW, 0.1, 0.2], n_procs=2)
+        self.assertEqual(results, [0.0, ("timed out", _SLOW, _TIMEOUT), 0.1, 0.2])
+        self.assertLess(elapsed, budget(4))
+
+    def test_timeout_of_first_job_resubmits_the_rest(self):
+        """With one worker the later jobs are still queued when the first
+        times out; the pool they were queued in is killed, so they must be
+        submitted again to the new pool."""
+        results, elapsed = self._run([_SLOW, 0.0, 0.1], n_procs=1)
+        self.assertEqual(results, [("timed out", _SLOW, _TIMEOUT), 0.0, 0.1])
+        self.assertLess(elapsed, budget(4))
+
+    def test_two_consecutive_timeouts_with_one_process(self):
+        """The second slow job times out in the rebuilt pool too, and its
+        clock starts only once it runs, so the run takes at least two
+        timeouts."""
+        results, elapsed = self._run([_SLOW, _SLOW, 0.0], n_procs=1)
+        timed_out = ("timed out", _SLOW, _TIMEOUT)
+        self.assertEqual(results, [timed_out, timed_out, 0.0])
+        self.assertGreaterEqual(elapsed, 2 * _TIMEOUT)
+        self.assertLess(elapsed, budget(6))
+
+    def test_job_waiting_behind_a_slow_neighbour_is_not_charged_for_the_wait(self):
+        """ProcessPoolExecutor marks one job more than it has workers as
+        running, so with one worker the second job reads as running from the
+        start. Both jobs here finish within the timeout; timing the second
+        from when its future first reads as running stopped it after 1.0 s,
+        0.3 s before it would have finished."""
+        results, elapsed = self._run([0.7, 0.7], n_procs=1, parse_timeout=1.0)
+        self.assertEqual(results, [0.7, 0.7])
+        self.assertLess(elapsed, budget(4))
+
+    def test_heartbeat_is_called_during_a_long_job(self):
+        beats = []
+        results, elapsed = self._run(
+            [1.0],
+            n_procs=1,
+            parse_timeout=3.0,
+            heartbeat=lambda: beats.append(time.monotonic()),
+            heartbeat_interval=0.1,
+        )
+        self.assertEqual(results, [1.0])
+        # About ten in the 1 s the job runs; five leaves room for a slow
+        # pool start, which no heartbeat waits on.
+        self.assertGreaterEqual(len(beats), 5)
+        self.assertLess(elapsed, budget(4))
+
+    def test_zero_timeout_means_no_deadline(self):
+        """With parse_timeout 0 a job longer than any timeout used here
+        finishes, through the pool that never kills a job."""
+        with patch("parsedmarc.parallel._DeadlinePool") as deadline_pool:
+            results, elapsed = self._run([1.0], n_procs=1, parse_timeout=0.0)
+        self.assertEqual(results, [1.0])
+        deadline_pool.assert_not_called()
+        self.assertGreaterEqual(elapsed, 1.0)
+
+    def test_invalid_timeout_arguments_raise_eagerly(self):
+        for parse_timeout in (-1.0, math.nan, math.inf):
+            with self.subTest(parse_timeout=parse_timeout):
+                with self.assertRaises(ValueError):
+                    parallel_map(
+                        _sleep_job,
+                        [0.0],
+                        1,
+                        parse_timeout=parse_timeout,
+                        timeout_result=_timeout_value,
+                    )
+        with self.assertRaises(ValueError):
+            parallel_map(_sleep_job, [0.0], 1, parse_timeout=_TIMEOUT)
+
+    def test_timed_out_workers_are_reaped_under_every_start_method(self):
+        """The killed worker is gone when parallel_map returns, rather than
+        sleeping on for the rest of its 5 s. Stopping it needs the
+        executor's private ``_processes`` mapping; if a Python version drops
+        it, this test fails instead of the worker silently surviving."""
+        self.assertIsInstance(ProcessPoolExecutor(max_workers=1)._processes, dict)
+        original_method = multiprocessing.get_start_method()
+        self.addCleanup(multiprocessing.set_start_method, original_method, force=True)
+        before = set(multiprocessing.active_children())
+        for method in multiprocessing.get_all_start_methods():
+            with self.subTest(start_method=method):
+                multiprocessing.set_start_method(method, force=True)
+                results, elapsed = self._run([_SLOW], n_procs=1)
+                self.assertEqual(results, [("timed out", _SLOW, _TIMEOUT)])
+                self.assertLess(elapsed, budget(3))
+                self.assertLessEqual(set(multiprocessing.active_children()), before)
+
+    def test_should_stop_ends_iteration_early_with_a_timeout(self):
+        jobs = _CountingIterable(20)
+        results = list(
+            parallel_map(
+                _echo_job,
+                jobs,
+                2,
+                should_stop=lambda: True,
+                parse_timeout=_TIMEOUT,
+                timeout_result=_timeout_value,
+            )
+        )
+        self.assertLess(len(results), 20)
+        self.assertLess(jobs.pulled, 20)
+        self.assertEqual(results, list(range(len(results))))
+
+    def test_leaving_early_kills_the_pool(self):
+        """An exception out of the loop (here from the heartbeat) ends the
+        run at once instead of waiting for the running job."""
+        before = set(multiprocessing.active_children())
+
+        def failing_heartbeat():
+            raise RuntimeError("connection lost")
+
+        start = time.monotonic()
+        with self.assertRaises(RuntimeError):
+            self._run(
+                [_SLOW],
+                n_procs=1,
+                parse_timeout=30.0,
+                heartbeat=failing_heartbeat,
+                heartbeat_interval=0.1,
+            )
+        self.assertLess(time.monotonic() - start, budget(3))
+        self.assertLessEqual(set(multiprocessing.active_children()), before)
+
+
+class TestTimeoutResults(unittest.TestCase):
+    """The values parallel_map yields for a timed-out email or file job have
+    the shapes the callers handle for an unparseable input."""
+
+    def test_email_timeout_result_is_an_invalid_dmarc_report(self):
+        result = _email_timeout_result(b"message", 300.0)
+        self.assertIsInstance(result, parsedmarc.ParseTimeoutError)
+        self.assertIsInstance(result, parsedmarc.InvalidDMARCReport)
+        self.assertIn("300 seconds", str(result))
+
+    def test_file_timeout_result_pairs_the_path_with_the_error(self):
+        file_path, error = _file_timeout_result("reports/a.xml", 2.5)
+        self.assertEqual(file_path, "reports/a.xml")
+        self.assertIsInstance(error, parsedmarc.ParseTimeoutError)
+        self.assertIn("2.5 seconds", str(error))
 
 
 if __name__ == "__main__":
