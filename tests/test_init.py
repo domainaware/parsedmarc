@@ -5854,16 +5854,29 @@ class TestGetDmarcReportsFromMailboxMaildirSaveCallback(unittest.TestCase):
 
 # Read by the worker job below, which runs in another process and so
 # cannot be handed the test's temporary path any other way.
-_WORKER_ATTEMPTS_FILE_VARIABLE = "TEST_ATTEMPTS_FILE_FOR_PARSE_WORKERS"
+# The header that carries the attempts file's path to the worker job inside
+# the message itself, the one input that reaches a worker under every start
+# method (a spawned or forkserver worker inherits no environment changes or
+# patches made in the test process). The parser ignores an unknown header.
+_ATTEMPTS_FILE_HEADER = "X-Test-Attempts-File"
+
+
+def _with_attempts_file_header(content, path):
+    """Return ``content`` with the ``_ATTEMPTS_FILE_HEADER`` line before it."""
+    return f"{_ATTEMPTS_FILE_HEADER}: {path}\n{content}"
 
 
 def _job_requiring_recorded_attempt(msg_content, *, config):
     """A parallel parse job that parses only a message whose attempt is
-    already in the attempts file, and rejects any other as invalid.
+    already in the attempts file its ``_ATTEMPTS_FILE_HEADER`` names, and
+    rejects any other as invalid.
 
     Module level so a process pool can pickle it under every start method.
     """
-    with open(os.environ[_WORKER_ATTEMPTS_FILE_VARIABLE], encoding="utf-8") as f:
+    text = msg_content if isinstance(msg_content, str) else msg_content.decode()
+    first_line = text.split("\n", 1)[0]
+    path = first_line.removeprefix(f"{_ATTEMPTS_FILE_HEADER}: ")
+    with open(path, encoding="utf-8") as f:
         attempts = json.load(f)["attempts"]
     digest = attempt_key("", "", msg_content).rsplit("\x1f", 1)[1]
     if not any(
@@ -6124,14 +6137,16 @@ class TestCrashedMessageAttempts(unittest.TestCase):
 
     def test_parallel_path_records_each_attempt_before_submitting_it(self):
         conn = _InMemoryIMAPConnection(
-            {1: self.samples[self.AGGREGATE], 2: self.samples[self.SMTP_TLS]}
+            {
+                1: _with_attempts_file_header(self.samples[self.AGGREGATE], self.path),
+                2: _with_attempts_file_header(self.samples[self.SMTP_TLS], self.path),
+            }
         )
-        with patch.dict(os.environ, {_WORKER_ATTEMPTS_FILE_VARIABLE: self.path}):
-            with patch(
-                "parsedmarc.parallel._parse_report_email_job",
-                _job_requiring_recorded_attempt,
-            ):
-                result = self._run(conn, n_procs=2)
+        with patch(
+            "parsedmarc.parallel._parse_report_email_job",
+            _job_requiring_recorded_attempt,
+        ):
+            result = self._run(conn, n_procs=2)
 
         # The job rejects a message whose attempt was not yet on disk, which
         # would have sent it to Invalid.
