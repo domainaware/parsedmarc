@@ -261,8 +261,11 @@ The full set of configuration options is:
     the process that runs it. When a parse times out, every worker
     process is stopped and new ones are started, and the other
     messages or files that were still being parsed start again from
-    the beginning. A parse may run up to one second past the timeout
-    before it is stopped. Choose a value well above the time your
+    the beginning. parsedmarc checks the time only while it waits for
+    a parse result, so a parse is stopped within one second of
+    parsedmarc next waiting for a result after its time is up; while
+    parsedmarc is busy between results (moving messages, for example)
+    a parse can run on past the timeout. Choose a value well above the time your
     largest legitimate reports take, including DNS lookups, each of
     which can take up to `dns_timeout` seconds per try.
     :::

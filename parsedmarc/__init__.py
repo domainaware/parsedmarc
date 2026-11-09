@@ -204,7 +204,10 @@ class ParseTimeoutError(InvalidDMARCReport):
 
     An ``InvalidDMARCReport``, so a timed-out message is handled like any
     other message that cannot be parsed: the mbox loop warns and continues,
-    and the mailbox loop moves it to the ``Invalid`` archive folder.
+    and the mailbox loop moves it to the ``Invalid`` archive folder. It is
+    the value for every timed-out input, including one that would have
+    been an SMTP TLS report or not a report at all, since a parse that was
+    stopped cannot tell what the input held.
     """
 
 

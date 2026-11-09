@@ -414,9 +414,10 @@ def _map_with_timeout(
 ) -> Iterator[_R]:
     """``parallel_map()``'s loop when ``parse_timeout`` is set.
 
-    The parent wakes at least every ``min(1.0, parse_timeout / 10,
-    heartbeat_interval)`` seconds (the wait slice), sooner when a deadline
-    or heartbeat falls due, and expires overdue jobs with
+    While it waits for a result, the parent wakes at least every
+    ``min(1.0, parse_timeout / 10, heartbeat_interval)`` seconds (the wait
+    slice), sooner when a deadline or heartbeat falls due, and expires
+    overdue jobs with
     ``_expire_overdue()``. A ``should_stop`` stop cancels the jobs that have
     not been handed to a worker and still waits for the others, which are
     themselves bounded by the timeout. Leaving early (an exception, or the
@@ -538,13 +539,20 @@ def parallel_map(
     started; the other unfinished jobs in the window start again from
     scratch, and finished results are kept. A job's clock starts when its
     worker reports that it began, so a job waiting behind a slow
-    neighbour is not charged for the wait; the parent checks at least
-    every ``min(1.0, parse_timeout / 10, heartbeat_interval)`` seconds (the
-    wait slice), so a job may run up to one wait slice past its timeout.
-    One timeout therefore costs ``parse_timeout``, one wait slice and one
-    pool start, plus a re-run of the neighbours that were still running,
-    and P jobs that all time out cost at most
-    ``ceil(P / n_procs) * (parse_timeout + wait slice + pool start)``. With
+    neighbour is not charged for the wait. The parent checks the clocks
+    only while it waits for a result, at least every ``min(1.0,
+    parse_timeout / 10, heartbeat_interval)`` seconds (the wait slice), so
+    a job is stopped within one wait slice after the parent next waits for
+    a result; time the caller spends between results is not counted, and a
+    job can run past its timeout during it. One timeout costs
+    ``parse_timeout``, up to one wait slice and one pool start, plus a
+    re-run of the neighbours that were still running. A neighbour that is
+    itself a slow job loses its partial run and starts again, so P jobs
+    that all time out cost at most ``(ceil(P / n_procs) + 1) *
+    (parse_timeout + wait slice + pool start)``, plus, for each expiry, up
+    to ``(n_procs + 1) * _KILL_JOIN_SECONDS`` spent joining the killed
+    workers and the pool's management thread, during which no heartbeat is
+    sent. With
     ``parse_timeout`` set, ``should_stop`` cancels the jobs not yet handed
     to a worker and waits for the rest, each still bounded by the timeout.
     With ``parse_timeout`` at 0 (the default) jobs have no time limit.

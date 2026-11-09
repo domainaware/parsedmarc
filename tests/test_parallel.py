@@ -7,6 +7,7 @@ import multiprocessing
 import os
 import tempfile
 import time
+import types
 import unittest
 from concurrent.futures import ProcessPoolExecutor
 from unittest.mock import patch
@@ -406,6 +407,16 @@ def _sleep_job(seconds):
     return seconds
 
 
+def _start_queue_unset_job(seconds):
+    """Sleep ``seconds``, then report whether the worker has no start queue,
+    which only a pool built for a ``parse_timeout`` gives it. Module-level
+    so it pickles."""
+    from parsedmarc import parallel
+
+    time.sleep(seconds)
+    return parallel._start_queue is None
+
+
 def _timeout_value(job, seconds):
     return ("timed out", job, seconds)
 
@@ -421,11 +432,11 @@ class TestParallelMapParseTimeout(unittest.TestCase):
     starts and stays far under the 5 s the job would take.
     """
 
-    def _run(self, jobs, n_procs, **kwargs):
+    def _run(self, jobs, n_procs, job=_sleep_job, **kwargs):
         kwargs.setdefault("parse_timeout", _TIMEOUT)
         kwargs.setdefault("timeout_result", _timeout_value)
         start = time.monotonic()
-        results = list(parallel_map(_sleep_job, jobs, n_procs, **kwargs))
+        results = list(parallel_map(job, jobs, n_procs, **kwargs))
         return results, time.monotonic() - start
 
     def test_timed_out_job_yields_timeout_value_in_order(self):
@@ -477,13 +488,18 @@ class TestParallelMapParseTimeout(unittest.TestCase):
         self.assertLess(elapsed, budget(4))
 
     def test_zero_timeout_means_no_deadline(self):
-        """With parse_timeout 0 a job longer than any timeout used here
-        finishes, through the pool that never kills a job."""
-        with patch("parsedmarc.parallel._DeadlinePool") as deadline_pool:
-            results, elapsed = self._run([1.0], n_procs=1, parse_timeout=0.0)
-        self.assertEqual(results, [1.0])
-        deadline_pool.assert_not_called()
-        self.assertGreaterEqual(elapsed, 1.0)
+        """With parse_timeout 0 a job runs in the plain pool, whose workers
+        never get a start queue, and finishes; the same probe under a
+        timeout reads the queue, so it can tell the two pools apart."""
+        results, elapsed = self._run(
+            [0.3], n_procs=1, job=_start_queue_unset_job, parse_timeout=0.0
+        )
+        self.assertEqual(results, [True])
+        self.assertGreaterEqual(elapsed, 0.3)
+        results, _ = self._run(
+            [0.3], n_procs=1, job=_start_queue_unset_job, parse_timeout=30.0
+        )
+        self.assertEqual(results, [False])
 
     def test_invalid_timeout_arguments_raise_eagerly(self):
         for parse_timeout in (-1.0, math.nan, math.inf):
@@ -551,6 +567,40 @@ class TestParallelMapParseTimeout(unittest.TestCase):
             )
         self.assertLess(time.monotonic() - start, budget(3))
         self.assertLessEqual(set(multiprocessing.active_children()), before)
+
+    def test_closing_the_iterator_kills_the_pool(self):
+        """A caller that stops reading and closes the iterator ends the run
+        at once: the workers still running a slow job are killed instead
+        of waited for, and the pool's start queue is closed."""
+        from parsedmarc.parallel import _DeadlinePool
+
+        start_queues = []
+        new_executor = _DeadlinePool._new_executor
+
+        def recording_new_executor(pool):
+            executor, start_queue = new_executor(pool)
+            start_queues.append(start_queue)
+            return executor, start_queue
+
+        before = set(multiprocessing.active_children())
+        with patch.object(_DeadlinePool, "_new_executor", recording_new_executor):
+            results = parallel_map(
+                _sleep_job,
+                [0.0, _SLOW, _SLOW],
+                2,
+                parse_timeout=30.0,
+                timeout_result=_timeout_value,
+            )
+            # parallel_map is typed to return an Iterator; it is a generator.
+            assert isinstance(results, types.GeneratorType)
+            self.assertEqual(next(results), 0.0)
+            start = time.monotonic()
+            results.close()
+        self.assertLess(time.monotonic() - start, budget(3))
+        self.assertLessEqual(set(multiprocessing.active_children()), before)
+        self.assertEqual(len(start_queues), 1)
+        self.assertTrue(start_queues[0]._reader.closed)
+        self.assertTrue(start_queues[0]._writer.closed)
 
 
 class TestTimeoutResults(unittest.TestCase):
