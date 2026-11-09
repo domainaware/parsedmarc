@@ -3442,8 +3442,8 @@ def _record_parse_attempt(
     else:
         action = f"moving it to {invalid_reports_folder} without parsing it"
     logger.error(
-        f"Message UID {message_id} in {reports_folder} has crashed parsedmarc "
-        f"{count - 1} time(s) before it could be parsed; {action}"
+        f"Message UID {message_id} in {reports_folder} has {count} unfinished "
+        f"parse attempts (more than {MAX_PARSE_ATTEMPTS}); {action}"
     )
     return True
 
@@ -3793,9 +3793,9 @@ def get_dmarc_reports_from_mailbox(
             counted. A message that has died ``MAX_PARSE_ATTEMPTS`` (2)
             times is logged at error level and disposed of as invalid
             (moved to ``Invalid``, or deleted under ``delete_invalid``)
-            without being parsed again. With ``n_procs > 1``, a message
-            that was being parsed when an earlier run died is parsed on its
-            own after the others (in this process, or with
+            without being parsed again. With ``n_procs > 1`` or
+            ``parse_timeout`` set, a message that was being parsed when an
+            earlier run died is parsed on its own after the others (in this process, or with
             ``parse_timeout`` in a worker pool of its own, so the timeout
             still applies), so the messages parsed beside it are not blamed
             for it. ``None`` (the default) keeps
@@ -4040,8 +4040,9 @@ def get_dmarc_reports_from_mailbox(
         fetched_ids: deque[tuple[int | str, str | None]] = deque()
         invalid_msg_ids: list[tuple[int | str, str | None]] = []
         # Messages that were being parsed when an earlier run died. That
-        # run had up to a whole submission window in flight, so all of them
-        # are suspects; parsing each alone, after the others, lets the next
+        # run had up to a whole submission window in flight (with n_procs
+        # above 1, or with parse_timeout set, which takes this path even
+        # with one process), so all of them are suspects; parsing each alone, after the others, lets the next
         # crash count against the one message that caused it.
         suspects: list[tuple[int | str, str]] = []
 

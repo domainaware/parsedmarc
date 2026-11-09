@@ -1260,7 +1260,8 @@ moved, so moving it back into the reports folder tries it again from the
 start; if the move fails, the entry stays and the next run tries the move
 again. Two attempts are allowed so that one crash for an unrelated reason
 (a reboot, a deployment) never sets a message aside. With `n_procs` above
-1, several messages are parsed at once, so every message that was being
+1, or with `parse_timeout` set (which parses in worker processes even with
+`n_procs = 1`), several messages are parsed at once, so every message that was being
 parsed when a run died has an entry; on the next run each of them is
 parsed on its own after the rest of its batch, so a second crash counts
 against the one message that caused it. It is parsed in the main process,
@@ -1285,7 +1286,10 @@ file is written atomically, readable by its owner only, and entries older
 than 30 days are dropped. A file that is not a valid attempts file is
 logged as a warning and replaced. If the file cannot be written, an error
 is logged and the protection is off for the rest of that batch; reports are
-still processed. In `test` mode messages are recorded and set aside as
+still processed. If the write that removes an entry after a successful
+parse is the one that fails, the entry stays (and the protection is off
+for the rest of that batch), so a healthy message can be set aside as
+invalid after two such failures; the write error is logged each time. In `test` mode messages are recorded and set aside as
 usual but never moved.
 
 ## Environment variable configuration
@@ -1406,7 +1410,8 @@ services:
 
 Note that a small set of config keys whose own names already end in
 `_file` (`[general] log_file`, `[msgraph] token_file`,
-`[gmail_api] credentials_file`, `[gmail_api] token_file`) keep their
+`[gmail_api] credentials_file`, `[gmail_api] token_file`,
+`[mailbox] attempts_file`) keep their
 pre-existing meaning when set via `PARSEDMARC_..._FILE` — that env var is
 the path itself, not a wrapper around a file containing the path. To pass
 *those* paths via a Docker secret, double up the suffix
@@ -1661,7 +1666,7 @@ for that batch have completed. The following settings are reloaded:
 - DNS and GeoIP settings (`nameservers`, `dns_timeout`, `ip_db_path`,
   `ipinfo_url`, `offline`, etc.)
 - Processing flags (`strip_attachment_payloads`, `batch_size`,
-  `check_timeout`, `parse_timeout`, etc.)
+  `check_timeout`, `parse_timeout`, `attempts_file`, etc.)
 - Log level (`debug`, `verbose`, `warnings`, `silent`)
 
 Mailbox connection settings (IMAP host/credentials, Microsoft Graph,

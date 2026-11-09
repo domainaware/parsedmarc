@@ -6014,9 +6014,9 @@ class TestCrashedMessageAttempts(unittest.TestCase):
                 self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
                 self.assertEqual(list(conn.folders["Archive/SMTP-TLS"]), [2])
                 self.assertIn(
-                    "Message UID 1 in INBOX has crashed parsedmarc 2 time(s) "
-                    "before it could be parsed; moving it to Archive/Invalid "
-                    "without parsing it",
+                    "Message UID 1 in INBOX has 3 unfinished parse attempts "
+                    "(more than 2); moving it to Archive/Invalid without "
+                    "parsing it",
                     "\n".join(cm.output),
                 )
                 self.assertNotIn(crashed, parsed)
@@ -6050,8 +6050,8 @@ class TestCrashedMessageAttempts(unittest.TestCase):
                 self.assertEqual(conn.folders["Archive/Invalid"], {})
                 self.assertEqual(conn.folders["Archive/Aggregate"], {})
                 self.assertIn(
-                    "has crashed parsedmarc 2 time(s) before it could be "
-                    "parsed; deleting it without parsing it",
+                    "has 3 unfinished parse attempts (more than 2); deleting "
+                    "it without parsing it",
                     "\n".join(cm.output),
                 )
                 self.assertEqual(self._attempts(), {})
@@ -6072,28 +6072,36 @@ class TestCrashedMessageAttempts(unittest.TestCase):
         self.assertEqual(conn.folders["Archive/Invalid"], {})
 
     def test_test_mode_records_and_clears_but_moves_nothing(self):
+        """In the serial path and the parallel one (n_procs 2), the message
+        at the cap is logged and left in place, not parsed or moved."""
         crashed = self.samples[self.AGGREGATE]
         healthy = self.samples[self.SMTP_TLS]
         junk = "From: noise@example.com\nSubject: not a report\n\nplain text\n"
-        self._seed(1, crashed, count=2)
-        conn = _InMemoryIMAPConnection({1: crashed, 2: healthy, 3: junk})
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                self._seed(1, crashed, count=2)
+                conn = _InMemoryIMAPConnection({1: crashed, 2: healthy, 3: junk})
 
-        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
-            result = self._run(conn, test=True)
+                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                    result = self._run(conn, test=True, n_procs=n_procs)
 
-        self.assertEqual(result["aggregate_reports"], [])
-        self.assertEqual(len(result["smtp_tls_reports"]), 1)
-        self.assertEqual(sorted(conn.folders["INBOX"]), [1, 2, 3])
-        self.assertNotIn("Archive/Invalid", conn.folders)
-        self.assertIn(
-            "leaving it in place without parsing it (test mode)",
-            "\n".join(cm.output),
-        )
-        # The set-aside message is still in the folder, so its count stays;
-        # the parsed and the unparseable ones were recorded and cleared.
-        attempts = self._attempts()
-        self.assertEqual(list(attempts), [attempt_key("INBOX", 1, crashed)])
-        self.assertEqual(attempts[attempt_key("INBOX", 1, crashed)]["count"], 3)
+                self.assertEqual(result["aggregate_reports"], [])
+                self.assertEqual(len(result["smtp_tls_reports"]), 1)
+                self.assertEqual(sorted(conn.folders["INBOX"]), [1, 2, 3])
+                self.assertNotIn("Archive/Invalid", conn.folders)
+                self.assertIn(
+                    "Message UID 1 in INBOX has 3 unfinished parse attempts "
+                    "(more than 2); leaving it in place without parsing it "
+                    "(test mode)",
+                    "\n".join(cm.output),
+                )
+                # The set-aside message is still in the folder, so its count
+                # stays; the parsed and the unparseable ones were recorded
+                # and cleared.
+                attempts = self._attempts()
+                key = attempt_key("INBOX", 1, crashed)
+                self.assertEqual(list(attempts), [key])
+                self.assertEqual(attempts[key]["count"], 3)
 
     def test_parallel_path_records_each_attempt_before_submitting_it(self):
         conn = _InMemoryIMAPConnection(
