@@ -1176,6 +1176,26 @@ class TestSaveFailureReport(unittest.TestCase):
         search.execute.assert_not_called()
         mock_save.assert_not_called()
 
+    def test_header_with_empty_name_is_left_out(self):
+        """An empty header name is not a valid field name, so the header is
+        skipped and the others are still saved. mail-parser drops a header
+        line that starts with ":" before it reaches the sample, so the
+        parsed sample is built directly."""
+        report = _failure_report()
+        report["parsed_sample"]["headers"][""] = "orphan value"
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=_empty_search()),
+            patch("parsedmarc.opensearch.Index"),
+            patch.object(
+                opensearch_module._FailureReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_failure_report_to_opensearch(report)
+        mock_save.assert_called_once()
+        headers = mock_save.call_args.args[0].sample.headers
+        self.assertNotIn("", headers)
+        self.assertEqual(headers["subject"], "Test")
+
     def test_keyerror_wraps_to_invalid_failure_report(self):
         """A malformed failure report (missing a required field) is
         surfaced as InvalidFailureReport so the caller can route it

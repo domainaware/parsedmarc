@@ -1386,6 +1386,9 @@ def save_failure_report_to_opensearch(
         # header named "Subject.x" would turn sample.headers.subject into an
         # object and reject every later sample with a Subject header.
         header_name = original_header.lower().replace(".", "_")
+        if not header_name:
+            # An empty name is not a valid field name for the cluster.
+            continue
         headers[header_name] = original_headers[original_header]
 
     # arrival_date_utc is a UTC wall-clock string; without assume_utc the
