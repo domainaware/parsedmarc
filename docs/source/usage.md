@@ -1251,31 +1251,36 @@ attempts_file = /var/lib/parsedmarc/attempts.json
 parsedmarc then writes an entry to that file before it parses each
 message, and removes the entry as soon as the parse returns, whether it
 found a report or rejected the message as invalid. An entry that is still
-there on a later run belongs to a message whose parse never finished.
-Once a message has two such unfinished attempts, the next run logs an
-error naming the folder, the message and the count, and moves the message
-to `<archive_folder>/Invalid` without parsing it (or deletes it, if
+there on a later run belongs to a message whose parse never finished. Once
+a message has two such unfinished attempts, the next run logs an error
+naming the folder, the message and the count, and moves the message to
+`<archive_folder>/Invalid` without parsing it (or deletes it, if
 `delete_invalid` is set). Its entry is removed once the message has been
 moved, so moving it back into the reports folder tries it again from the
 start; if the move fails, the entry stays and the next run tries the move
-again. Two attempts are allowed so that one crash for an unrelated reason
-(a reboot, a deployment) never sets a message aside. With `n_procs` above
-1, or with `parse_timeout` set (which parses in worker processes even with
-`n_procs = 1`), several messages are parsed at once, so every message
-that was being parsed or waiting for a worker when a run died has an
-entry; on the next run each of them is
-parsed on its own after the rest of its batch, so a second crash counts
-against the one message that caused it. It is parsed in the main process,
-or, when `parse_timeout` is set, in a worker process of its own, so the
-timeout still applies to it. If a worker process dies while it parses (the
-out-of-memory killer can end a worker without ending parsedmarc), the
-batch ends with a logged error. A one-shot run saves the reports parsed
-before it and exits with status 1. In watch mode the IMAP and Maildir
-watchers log it as a warning and check the mailbox again, so the process
-keeps running, while the Microsoft Graph and Gmail watchers exit with
-status 1. Either way the entries of the messages that were being parsed
-or waiting for a worker stay in the file, so the next run or check parses
-each of them on its own in the same way.
+again. A message that has been set aside is not recorded again, so its
+entry is not refreshed and is dropped after 30 days, after which the
+message is parsed up to twice more before it is set aside again; the same
+holds for a message left in place in `test` mode. Two attempts are allowed
+so that one crash for an unrelated reason (a reboot, a deployment) never
+sets a message aside. With `n_procs` above 1, or with `parse_timeout` set
+(which parses in worker processes even with `n_procs = 1`), several
+messages are parsed at once, so every message that was being parsed or
+waiting for a worker when a run died has an entry; on the next run each of
+them is parsed on its own after the rest of its batch, so a second crash
+counts against the one message that caused it. It is parsed in the main
+process, or, when `parse_timeout` is set, in a worker process of its own,
+so the timeout still applies to it. If a worker process dies while it
+parses (the out-of-memory killer can end a worker without ending
+parsedmarc), the batch ends with a logged error. A one-shot run saves the
+reports parsed from report files and mbox files before it and exits with
+status 1; for a mailbox, earlier batches are saved and the batch in
+progress stays in the mailbox. In watch mode the IMAP and Maildir watchers
+log it as a warning and check the mailbox again, so the process keeps
+running, while the Microsoft Graph and Gmail watchers exit with status 1.
+Either way the entries of the messages that were being parsed or waiting
+for a worker stay in the file, so the next run or check parses each of
+them on its own in the same way.
 
 This count is separate from the in-memory failed-save counts of
 `max_unsaved_retries` above: an entry is removed when the parse
@@ -1294,8 +1299,8 @@ is logged and the protection is off for the rest of that batch; reports are
 still processed. If the write that removes an entry after a successful
 parse is the one that fails, the entry stays (and the protection is off
 for the rest of that batch), so a healthy message can be set aside as
-invalid after two such failures; the write error is logged each time. In `test` mode messages are recorded and set aside as
-usual but never moved.
+invalid after two such failures; the write error is logged each time. In
+`test` mode messages are recorded and set aside as usual but never moved.
 
 ## Environment variable configuration
 
