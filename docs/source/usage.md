@@ -1258,10 +1258,10 @@ naming the folder, the message and the count, and moves the message to
 `delete_invalid` is set). Its entry is removed once the message has been
 moved, so moving it back into the reports folder tries it again from the
 start; if the move fails, the entry stays and the next run tries the move
-again. A message that has been set aside is not recorded again, so its
-entry is not refreshed and is dropped after 30 days, after which the
-message is parsed up to twice more before it is set aside again; the same
-holds for a message left in place in `test` mode. Two attempts are allowed
+again. A set-aside message whose move failed, or one left in place in
+`test` mode, is not recorded again, so its entry is not refreshed and is
+dropped after 30 days, after which the message is parsed up to twice more
+before it is set aside again. Two attempts are allowed
 so that one crash for an unrelated reason (a reboot, a deployment) never
 sets a message aside. With `n_procs` above 1, or with `parse_timeout` set
 (which parses in worker processes even with `n_procs = 1`), several
