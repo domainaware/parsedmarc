@@ -1012,5 +1012,20 @@ class TestPostgreSQLWithSamples(unittest.TestCase):
         self.assertGreater(saved, 0, "Expected at least one SMTP TLS sample")
 
 
+class TestEnsureUtcSuffixNonString(unittest.TestCase):
+    """GHSA-4272-4r8g-6c5h: ``_ensure_utc_suffix(5)`` raised ``TypeError``
+    (``"+" in 5``) outside the save's ``psycopg.Error`` handler, so an SMTP
+    TLS report with ``"start-datetime": 5`` escaped the CLI. A non-string
+    is now returned unchanged, for PostgreSQL to accept or reject."""
+
+    def test_non_string_is_returned_unchanged(self):
+        for value in (5, 1.5, ["2024-01-01"]):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    _ensure_utc_suffix(value),  # pyright: ignore[reportArgumentType]
+                    value,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

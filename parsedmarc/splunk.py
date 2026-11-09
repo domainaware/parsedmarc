@@ -215,16 +215,18 @@ class HECClient(object):
 
         data = self._common_data.copy()
         json_lines: list[str] = []
-        for report in reports:
-            data["sourcetype"] = "smtp:tls"
-            timestamp = human_timestamp_to_unix_timestamp(report["begin_date"])
-            data["time"] = timestamp
-            data["event"] = report.copy()
-            json_lines.append(f"{json.dumps(data)}\n")
-
         if not self.verify:
             logger.debug("Skipping certificate verification for Splunk HEC")
         try:
+            # Inside the try so a report date that does not convert raises
+            # SplunkError like any other failed save.
+            for report in reports:
+                data["sourcetype"] = "smtp:tls"
+                timestamp = human_timestamp_to_unix_timestamp(report["begin_date"])
+                data["time"] = timestamp
+                data["event"] = report.copy()
+                json_lines.append(f"{json.dumps(data)}\n")
+
             response = self.session.post(
                 self.url, content="".join(json_lines), timeout=self.timeout
             )

@@ -24,8 +24,9 @@ from elasticsearch.dsl import (
 from elasticsearch.helpers import reindex
 
 from parsedmarc import InvalidFailureReport
+from parsedmarc.constants import MAX_INDEXES_PER_REPORT
 from parsedmarc.log import logger
-from parsedmarc.utils import human_timestamp_to_datetime
+from parsedmarc.utils import human_timestamp_to_datetime, sanitize_for_log
 
 
 class ElasticsearchError(Exception):
@@ -58,6 +59,102 @@ _READY_DATA_STREAMS: set[str] = set()
 # priority higher than 500 for custom templates whose patterns overlap them. The template's ``index_patterns`` is the
 # exact stream name, so an overlap is unlikely in the first place.
 _DATA_STREAM_TEMPLATE_PRIORITY = 501
+
+# Mappings ``create_indexes`` and ``create_data_streams`` install on the
+# indexes and templates they create. Without them the cluster infers every
+# field's type from the first document that holds it, with date detection
+# on, so a crafted report could make a string field a date (report_id
+# "2026-11-09") or use up index.mapping.total_fields.limit with invented
+# sample header names, and every later report into that index would then
+# be rejected (GHSA-qpcg-29vr-jwm3). Date detection is off; the fields that
+# hold dates are declared as dates instead, the type they got before.
+# Everything else stays dynamic and object-mapped, which the shipped
+# dashboards need (see create_indexes).
+_DATE_FIELD: dict[str, Any] = {"type": "date"}
+
+# The type Elasticsearch's dynamic mapping gives a JSON string, so a header
+# declared here has the same type as in indexes created before.
+_DYNAMIC_STRING_FIELD: dict[str, Any] = {
+    "type": "text",
+    "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+}
+
+# The failure sample headers indexed for search: every header the shipped
+# dashboards (dashboards/) reference, plus cc.
+# Header names are stored lower-cased. The other headers stay in _source
+# but are not indexed (``dynamic: False``).
+_FAILURE_SAMPLE_INDEXED_HEADERS = (
+    "authentication-results",
+    "auto-submitted",
+    "cc",
+    "content-transfer-encoding",
+    "content-type",
+    "date",
+    "from",
+    "in-reply-to",
+    "message-id",
+    "mime-version",
+    "received",
+    "references",
+    "reply-to",
+    "return-path",
+    "subject",
+    "thread-index",
+    "thread-topic",
+    "to",
+    "x-auto-response-suppress",
+    "x-exclaimer-md-config",
+    "x-linkedin-fe",
+    "x-mailer",
+    "x-ms-exchange-generated-message-source",
+    "x-ms-exchange-inbox-rules-loop",
+    "x-ms-exchange-parent-message-id",
+    "x-ms-exchange-transport-fromentityheader",
+    "x-ms-has-attach",
+    "x-ms-tnef-correlator",
+    "x-onpremexternalip",
+)
+
+_AGGREGATE_MAPPINGS: dict[str, Any] = {
+    "date_detection": False,
+    "properties": {
+        "@timestamp": _DATE_FIELD,
+        "date_range": _DATE_FIELD,
+        "date_begin": _DATE_FIELD,
+        "date_end": _DATE_FIELD,
+    },
+}
+
+_FAILURE_MAPPINGS: dict[str, Any] = {
+    "date_detection": False,
+    "properties": {
+        "@timestamp": _DATE_FIELD,
+        "arrival_date": _DATE_FIELD,
+        "sample": {
+            "properties": {
+                "date": _DATE_FIELD,
+                "headers": {
+                    "type": "object",
+                    "dynamic": False,
+                    "properties": {
+                        name: _DYNAMIC_STRING_FIELD
+                        for name in _FAILURE_SAMPLE_INDEXED_HEADERS
+                    },
+                },
+            }
+        },
+    },
+}
+
+_SMTP_TLS_MAPPINGS: dict[str, Any] = {
+    "date_detection": False,
+    "properties": {
+        "@timestamp": _DATE_FIELD,
+        "date_range": _DATE_FIELD,
+        "date_begin": _DATE_FIELD,
+        "date_end": _DATE_FIELD,
+    },
+}
 
 # Guard query for the dkim_results_combined/spf_results_combined backfill
 # (see ``migrate_indexes``). Matches only documents that have at least one
@@ -677,15 +774,45 @@ def _effective_index_settings(settings: dict[str, Any] | None) -> dict[str, Any]
     return dict(settings)
 
 
-def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
+def _with_timestamp_mapping(mappings: dict[str, Any] | None) -> dict[str, Any]:
+    """Return a copy of ``mappings`` that also maps ``@timestamp`` as a date.
+
+    A data stream rejects documents unless ``@timestamp`` is a date field,
+    so the data stream template always declares it.
+
+    Args:
+        mappings (dict | None): A mappings body, or ``None``.
+
+    Returns:
+        dict: The mappings body with ``properties["@timestamp"]`` set; the
+        argument is not modified.
+    """
+    result = dict(mappings) if mappings else {}
+    result["properties"] = {
+        **result.get("properties", {}),
+        "@timestamp": {"type": "date"},
+    }
+    return result
+
+
+def create_indexes(
+    names: list[str],
+    settings: dict[str, Any] | None = None,
+    mappings: dict[str, Any] | None = None,
+):
     """
     Create Elasticsearch indexes
+
+    An index that already exists is left as it is, mappings included.
 
     Args:
         names (list): A list of index names
         settings (dict): Index settings. In Serverless mode, keys in
             ``_SERVERLESS_REJECTED_SETTINGS`` are filtered out and the
             remaining keys are passed through; defaults are skipped entirely.
+        mappings (dict | None): The mappings body to create each index
+            with, such as ``_AGGREGATE_MAPPINGS``; ``None`` leaves every
+            field to dynamic mapping.
     """
     effective_settings = _effective_index_settings(settings)
 
@@ -698,22 +825,30 @@ def create_indexes(names: list[str], settings: dict[str, Any] | None = None):
             # fields, Vega can run nested aggregations but does not render
             # tables, and Grafana's nested bucket aggregation (9.4+) lacks
             # reverse_nested for parent-level metrics like message_count —
-            # so the dynamic `object` mapping produced by a bare create is
-            # load-bearing for the shipped dashboards. _AggregateReportDoc
-            # still declares dkim_results/spf_results with Nested(...), but
-            # that is only the DSL's in-memory shape for building documents
-            # — it is never installed as a mapping. See issue #169 and the
+            # so the dynamic `object` mapping of those fields (the mappings
+            # body declares none of them) is load-bearing for the shipped
+            # dashboards. _AggregateReportDoc still declares
+            # dkim_results/spf_results with Nested(...), but that is only
+            # the DSL's in-memory shape for building documents — it is
+            # never installed as a mapping. See issue #169 and the
             # *_combined fields on _AggregateReportDoc.
             if not index.exists():
                 logger.debug(f"Creating Elasticsearch index: {name}")
+                body: dict[str, Any] = {}
                 if effective_settings:
-                    index.settings(**effective_settings)
-                index.create()
+                    body["settings"] = effective_settings
+                if mappings:
+                    body["mappings"] = mappings
+                connections.get_connection().indices.create(index=name, body=body)
         except Exception as e:
             raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
 
 
-def create_data_streams(names: list[str], settings: dict[str, Any] | None = None):
+def create_data_streams(
+    names: list[str],
+    settings: dict[str, Any] | None = None,
+    mappings: dict[str, Any] | None = None,
+):
     """
     Create Elasticsearch data streams and their index templates
 
@@ -727,14 +862,17 @@ def create_data_streams(names: list[str], settings: dict[str, Any] | None = None
     the stream, so edits made to that template directly do not last. Each
     name is set up once per process; ``set_hosts`` resets that.
 
-    The template maps only ``@timestamp``. Like ``create_indexes``, it
-    deliberately installs no mappings for the report fields themselves (see
-    issue #169), so they keep their dynamic ``object`` mapping.
+    The template maps ``@timestamp`` as a date, on top of ``mappings``.
+    Like ``create_indexes``, it declares no ``nested`` fields (see issue
+    #169), so the report fields keep their ``object`` mapping.
 
     Args:
         names (list): A list of data stream names
         settings (dict): Index settings for the stream's backing indices,
             adjusted for Serverless the same way ``create_indexes`` does.
+        mappings (dict | None): The mappings body for the stream's backing
+            indices, such as ``_AGGREGATE_MAPPINGS``; ``None`` maps only
+            ``@timestamp``.
 
     Raises:
         ElasticsearchError: A concrete index or alias already holds one of
@@ -742,6 +880,7 @@ def create_data_streams(names: list[str], settings: dict[str, Any] | None = None
             is not remembered, so the next save retries it.
     """
     effective_settings = _effective_index_settings(settings)
+    template_mappings = _with_timestamp_mapping(mappings)
 
     for name in names:
         if name in _READY_DATA_STREAMS:
@@ -773,7 +912,7 @@ def create_data_streams(names: list[str], settings: dict[str, Any] | None = None
                     priority=_DATA_STREAM_TEMPLATE_PRIORITY,
                     template={
                         "settings": effective_settings,
-                        "mappings": {"properties": {"@timestamp": {"type": "date"}}},
+                        "mappings": template_mappings,
                     },
                     meta={
                         "description": (
@@ -1119,6 +1258,10 @@ def save_aggregate_report_to_elasticsearch(
         discovery_method=aggregate_report["policy_published"].get("discovery_method"),
     )
 
+    # Distinct dated indexes this report has used, in first-use order.
+    report_indexes: dict[str, None] = {}
+    routed_records = 0
+
     for record in aggregate_report["records"]:
         begin_date = human_timestamp_to_datetime(
             record["interval_begin"], to_utc=True, assume_utc=True
@@ -1202,14 +1345,24 @@ def save_aggregate_report_to_elasticsearch(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
         if use_data_streams:
-            create_data_streams([index], index_settings)
+            create_data_streams([index], index_settings, _AGGREGATE_MAPPINGS)
         else:
             if monthly_indexes:
                 index_date = begin_date.strftime("%Y-%m")
             else:
                 index_date = begin_date.strftime("%Y-%m-%d")
             index = f"{index}-{index_date}"
-            create_indexes([index], index_settings)
+            if (
+                index not in report_indexes
+                and len(report_indexes) >= MAX_INDEXES_PER_REPORT
+            ):
+                # Each new index costs a shard; send the overflow to the
+                # report's first index, keeping the record's own dates.
+                index = next(iter(report_indexes))
+                routed_records += 1
+            else:
+                report_indexes[index] = None
+                create_indexes([index], index_settings, _AGGREGATE_MAPPINGS)
         agg_doc.meta.index = index  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
 
         try:
@@ -1218,6 +1371,34 @@ def save_aggregate_report_to_elasticsearch(
             agg_doc.save(op_type="create")
         except Exception as e:
             raise ElasticsearchError(f"Elasticsearch error: {e.__str__()}")
+
+    if routed_records:
+        logged_report_id = sanitize_for_log(
+            str(aggregate_report["report_metadata"]["report_id"])
+        )
+        logger.warning(
+            f"{routed_records} records of report {logged_report_id} were saved to "
+            f"{next(iter(report_indexes))} instead of their own dated index: a "
+            f"report may create at most {MAX_INDEXES_PER_REPORT} indexes"
+        )
+
+
+def _flatten_address_header(addresses: Any) -> str | None:
+    """Flatten a failure sample's address-list header to its first address.
+
+    mail-parser gives ``From``, ``To`` and ``Reply-To`` as a list of
+    ``[display name, address]`` pairs, and as an empty list when the header
+    holds no address: an empty ``From:``, or ``To: undisclosed-recipients:;``
+    (an RFC 5322 §3.4 group with no members). Returns ``"Name <address>"``,
+    the bare address when the display name is empty, or ``None`` for an
+    empty list.
+    """
+    if not addresses:
+        return None
+    first = addresses[0]
+    if first[0] == "":
+        return first[1]
+    return " <".join(first) + ">"
 
 
 def save_failure_report_to_elasticsearch(
@@ -1261,7 +1442,11 @@ def save_failure_report_to_elasticsearch(
     original_headers = failure_report["parsed_sample"]["headers"]
     headers: dict[str, Any] = {}
     for original_header in original_headers:
-        headers[original_header.lower()] = original_headers[original_header]
+        # A "." in a field name is an object path to the cluster, so a
+        # header named "Subject.x" would turn sample.headers.subject into an
+        # object and reject every later sample with a Subject header.
+        header_name = original_header.lower().replace(".", "_")
+        headers[header_name] = original_headers[original_header]
 
     # arrival_date_utc is a UTC wall-clock string; without assume_utc the
     # naive .timestamp() below would interpret it as local time and skew
@@ -1287,40 +1472,26 @@ def save_failure_report_to_elasticsearch(
     from_ = None
     to_ = None
     subject = None
+    # From, To and Reply-To are flattened to their first address so they
+    # can be displayed and aggregated as strings. A header with no address
+    # is left out of the document; From and To also feed the dedup query.
+    for address_header in ("from", "to", "reply-to"):
+        if address_header in headers:
+            flattened = _flatten_address_header(headers[address_header])
+            if flattened is None:
+                del headers[address_header]
+            else:
+                headers[address_header] = flattened
     if "from" in headers:
-        # We convert the FROM header from a string list to a flat string.
-        headers["from"] = headers["from"][0]
-        if headers["from"][0] == "":
-            headers["from"] = headers["from"][1]
-        else:
-            headers["from"] = " <".join(headers["from"]) + ">"
-
         from_ = dict()
         from_["sample.headers.from"] = headers["from"]
         from_query = Q(dict(match_phrase=from_))  # pyright: ignore[reportArgumentType]
         q = q & from_query
     if "to" in headers:
-        # We convert the TO header from a string list to a flat string.
-        headers["to"] = headers["to"][0]
-        if headers["to"][0] == "":
-            headers["to"] = headers["to"][1]
-        else:
-            headers["to"] = " <".join(headers["to"]) + ">"
-
         to_ = dict()
         to_["sample.headers.to"] = headers["to"]
         to_query = Q(dict(match_phrase=to_))  # pyright: ignore[reportArgumentType]
         q = q & to_query
-    if "reply-to" in headers:
-        # Flatten the Reply-To header to a string so it can be displayed
-        # and aggregated like From/To. Only the first address is used,
-        # matching the From/To handling above. Not part of the dedup
-        # query.
-        headers["reply-to"] = headers["reply-to"][0]
-        if headers["reply-to"][0] == "":
-            headers["reply-to"] = headers["reply-to"][1]
-        else:
-            headers["reply-to"] = " <".join(headers["reply-to"]) + ">"
     if "subject" in headers:
         subject = headers["subject"]
         subject_query = {"match_phrase": {"sample.headers.subject": subject}}
@@ -1401,14 +1572,14 @@ def save_failure_report_to_elasticsearch(
             number_of_shards=number_of_shards, number_of_replicas=number_of_replicas
         )
         if use_data_streams:
-            create_data_streams([index], index_settings)
+            create_data_streams([index], index_settings, _FAILURE_MAPPINGS)
         else:
             if monthly_indexes:
                 index_date = arrival_date.strftime("%Y-%m")
             else:
                 index_date = arrival_date.strftime("%Y-%m-%d")
             index = f"{index}-{index_date}"
-            create_indexes([index], index_settings)
+            create_indexes([index], index_settings, _FAILURE_MAPPINGS)
         failure_doc.meta.index = index  # pyright: ignore[reportAttributeAccessIssue, reportOptionalMemberAccess]
         try:
             # Data streams accept only op_type=create. No _id is set, so
@@ -1599,9 +1770,9 @@ def save_smtp_tls_report_to_elasticsearch(
         smtp_tls_doc.policies.append(policy_doc)
 
     if use_data_streams:
-        create_data_streams([index], index_settings)
+        create_data_streams([index], index_settings, _SMTP_TLS_MAPPINGS)
     else:
-        create_indexes([index], index_settings)
+        create_indexes([index], index_settings, _SMTP_TLS_MAPPINGS)
     smtp_tls_doc.meta.index = index  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
 
     try:

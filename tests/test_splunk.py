@@ -538,5 +538,24 @@ class TestSplunkBackwardCompatAlias(unittest.TestCase):
         )
 
 
+class TestSmtpTlsTimestampErrorIsSplunkError(unittest.TestCase):
+    """GHSA-4272-4r8g-6c5h: the SMTP TLS save converted ``begin_date``
+    outside its ``try``, so a wrong-typed date (``"start-datetime": 5`` in
+    the report) raised a bare ``AttributeError`` that the CLI did not catch.
+    Parsing now rejects such a report; the save still raises
+    ``SplunkError`` for a value that does not convert."""
+
+    def test_unconvertible_begin_date_raises_splunk_error(self):
+        client = _client()
+        client.session = MagicMock()
+        for begin_date in (5, "not a date"):
+            report = _smtp_tls_report()
+            report["begin_date"] = begin_date
+            with self.subTest(begin_date=begin_date):
+                with self.assertRaises(SplunkError):
+                    client.save_smtp_tls_reports_to_splunk([report])
+        client.session.post.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

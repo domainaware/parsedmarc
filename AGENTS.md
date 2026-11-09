@@ -78,7 +78,7 @@ The parser detects an RFC 9990 report from the `urn:ietf:params:xml:ns:dmarc-2.0
 
 RFC 9990's `PolicyOverrideType` enumeration is `{local_policy, mailing_list, other, policy_test_mode, trusted_forwarder}`. `policy_test_mode` is new (emitted when `t=y` suppresses enforcement); `forwarded` and `sampled_out` were removed. Override types are stored as-is and warned about on mismatch.
 
-Several elements (`extra_contact_info`, `error`, `comment`, `human_result`) are `langAttrString` in RFC 9990 — i.e. xs:string with an optional `lang` attribute. When the reporter sends the attribute, xmltodict turns the element into `{"#text": "...", "@lang": "en"}`; the parser unwraps that to a plain string via `_text()`.
+Several elements (`extra_contact_info`, `error`, `comment`, `human_result`) are `langAttrString` in RFC 9990 — i.e. xs:string with an optional `lang` attribute. xmltodict would turn such an element into `{"#text": "...", "@lang": "en"}`, but the report is parsed with `xml_attribs=False`, so no attribute reaches the parser, and `_scalar()` coerces every single-valued field the schema types as a string (`extra_contact_info`, `comment`, `human_result` among them) to a string or `None` (a child element's dict gives its `#text`, a repeated element `None`), so no dict or list reaches the outputs in place of a string and changes a field's mapping (GHSA-qpcg-29vr-jwm3). `error` may repeat, so it goes through `_text()` item by item instead: a repeated one stays a list of strings, and `_text()` now only meets dicts made by child elements.
 
 Failure reports (RFC 9991): `Identity-Alignment` and `Auth-Failure` are split on CFWS-aware commas (each token stripped per the RFC 9991 ABNF), and a warning is logged when either REQUIRED field is missing.
 
@@ -126,7 +126,7 @@ IP address info cached for 4 hours, seen aggregate report IDs cached for 1 hour 
 
 ### Regular expressions on untrusted input
 
-Assume every regex in the package runs on content a remote sender controls (message bodies, headers, attachments inflated to the 100 MiB decompression cap), so a pattern that backtracks super-linearly is a remote CPU-exhaustion bug, not a style nit (GHSA-7grx-mj6g-qxmc: a cubic pattern on whitespace; GHSA-4h9r-c435-j834: a quadratic `.*>` that a 194 KB gzip attachment could turn into days of CPU). Before adding or editing a pattern:
+Assume every regex in the package runs on content a remote sender controls (message bodies, headers, attachments inflated to the 32 MiB decompression cap), so a pattern that backtracks super-linearly is a remote CPU-exhaustion bug, not a style nit (GHSA-7grx-mj6g-qxmc: a cubic pattern on whitespace; GHSA-4h9r-c435-j834: a quadratic `.*>` that a 194 KB gzip attachment could turn into days of CPU). Before adding or editing a pattern:
 
 - **Adjacent quantifiers must not overlap.** `\s*([a-zA-Z\s]+)` lets both parts consume the same whitespace, so every split is retried. Make neighbouring classes disjoint (`[ \t]*` next to `[A-Za-z]`).
 - **A repeated class must exclude the delimiter it stops on.** Write `\([^()]*\)` and `<tag[^<>]*>`, never `\(.*\)` or `<tag.*>`: a greedy `.*` scans to end of line and backtracks for every occurrence, which is quadratic whenever the closer is missing, and also matches past the *first* closer (the old schema-tag regex deleted a whole minified report that way).

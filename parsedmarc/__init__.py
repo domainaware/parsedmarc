@@ -39,6 +39,7 @@ import mailparser
 import xmltodict
 from expiringdict import ExpiringDict
 from mailsuite.smtp import send_email
+from mailsuite.utils import MessageLimitExceeded, check_message_limits
 from tqdm import tqdm
 
 from parsedmarc.config import (
@@ -50,6 +51,11 @@ from parsedmarc.config import (
 from parsedmarc.constants import (
     DEFAULT_DNS_MAX_RETRIES,
     DEFAULT_DNS_TIMEOUT,
+    MAX_NORMALIZED_RECORDS,
+    MAX_REPORT_SPAN_DAYS,
+    MAX_XML_DEPTH,
+    MAX_XML_NODES,
+    MAX_XML_TAG_LENGTH,
     __version__,
 )
 from parsedmarc.log import logger
@@ -75,6 +81,7 @@ from parsedmarc.utils import (
     get_filename_safe_string,
     get_ip_address_info,
     human_timestamp_to_datetime,
+    human_timestamp_to_unix_timestamp,
     is_outlook_msg,
     parse_email,
     sanitize_for_log,
@@ -135,15 +142,18 @@ MAGIC_XML_TAG = b"\x3c"  # '<' - XML starting with an element tag (no declaratio
 MAGIC_JSON = b"\x7b"
 
 # Maximum size, in bytes, of the data extracted from one compressed report
-# attachment. Real reports compress at roughly 10:1, but the attachment's
+# attachment, and of an uncompressed report or report file measured as UTF-8
+# (_exceeds_size_cap()), so a non-ASCII text cannot be four times the cap in
+# bytes. Real reports compress at roughly 10:1, but the attachment's
 # content is chosen by whoever sent it, and deflate (used by both gzip and
-# zip) reaches about 1000:1 on degenerate input, so a 100 KB attachment from
-# any sender a monitored mailbox accepts could inflate to 100 MB -- and the
+# zip) reaches about 1000:1 on degenerate input, so a 32 KB attachment from
+# any sender a monitored mailbox accepts could inflate to 32 MB -- and the
 # decoded str coexists with the decompressed bytes, so the peak is roughly
-# twice that. Deliberately not configurable: real DMARC aggregate, failure,
-# and SMTP TLS reports are orders of magnitude smaller than 100 MB, so no
-# legitimate deployment needs to change it.
-MAX_DECOMPRESSED_REPORT_SIZE = 100 * 1024 * 1024
+# twice that. Deliberately not configurable: an aggregate report is a day of
+# one reporter's traffic, the largest sample is 909 KB, and the XML node
+# limit (MAX_XML_NODES, 1,000,000 nodes at the samples' 35 nodes per KB)
+# already rejects a report of more than about 28 MB (GHSA-q7gm-8cj9-94hr).
+MAX_DECOMPRESSED_REPORT_SIZE = 32 * 1024 * 1024
 
 # Per-message count of consecutive failed saves, keyed on
 # ``(reports_folder, str(message_uid))``. Populated only when
@@ -233,7 +243,144 @@ class _NoDoctypeExpat:
     def ParserCreate(*args: Any, **kwargs: Any) -> Any:
         parser = expat.ParserCreate(*args, **kwargs)
         parser.StartDoctypeDeclHandler = _raise_doctype_found
-        return parser
+        return _LimitedExpatParser(parser)
+
+
+class _XMLLimitExceeded(Exception):
+    """Raised by :class:`_LimitedExpatParser` as soon as a document goes over
+    ``MAX_XML_DEPTH`` or ``MAX_XML_NODES``."""
+
+
+class _LimitedExpatParser:
+    """Wraps an expat parser so that the element handlers xmltodict installs
+    count nesting depth and nodes (elements plus attributes), and raise
+    :class:`_XMLLimitExceeded` over ``MAX_XML_DEPTH`` or ``MAX_XML_NODES``.
+
+    xmltodict keeps one stack entry per open element, so a document of
+    millions of unclosed ``<a>`` tags, or of millions of siblings, could cost
+    gigabytes before expat reported the error at the end of the input
+    (GHSA-q7gm-8cj9-94hr). The check runs before xmltodict's handler, so the
+    tree never grows past the limits.
+
+    pyexpat parser objects cannot be subclassed, and xmltodict assigns its
+    handlers after ``ParserCreate()`` returns, so this proxy wraps the
+    handlers in ``__setattr__`` and forwards every other attribute. The
+    wrappers keep their counts in a :class:`_XMLCounts`, not on the proxy:
+    a wrapper referring to the proxy would close a reference cycle through
+    the parser and keep xmltodict's whole tree alive until the cyclic
+    garbage collector ran, doubling peak memory across the two parses.
+    """
+
+    def __init__(self, parser: Any) -> None:
+        object.__setattr__(self, "_parser", parser)
+        object.__setattr__(self, "_counts", _XMLCounts())
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._parser, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "StartElementHandler":
+            value = _limit_start(value, self._counts)
+        elif name == "EndElementHandler":
+            value = _limit_end(value, self._counts)
+        setattr(self._parser, name, value)
+
+
+class _XMLCounts:
+    """The open-element depth and node count of one expat parse."""
+
+    def __init__(self) -> None:
+        self.depth = 0
+        self.nodes = 0
+
+
+def _limit_start(handler: Callable[..., Any], counts: _XMLCounts) -> Callable[..., Any]:
+    """Wrap an expat start-element handler so that it counts depth and
+    nodes in ``counts`` and raises :class:`_XMLLimitExceeded` over the
+    limits before ``handler`` runs."""
+
+    def start(name: str, attributes: list[str]) -> Any:
+        depth = counts.depth + 1
+        # xmltodict sets ordered_attributes, so expat passes attributes as
+        # a flat [name, value, name, value, ...] list.
+        nodes = counts.nodes + 1 + len(attributes) // 2
+        if depth > MAX_XML_DEPTH:
+            raise _XMLLimitExceeded(
+                f"elements nested more than {MAX_XML_DEPTH} levels deep"
+            )
+        if nodes > MAX_XML_NODES:
+            raise _XMLLimitExceeded(
+                f"more than {MAX_XML_NODES:,} elements and attributes"
+            )
+        counts.depth = depth
+        counts.nodes = nodes
+        return handler(name, attributes)
+
+    return start
+
+
+def _limit_end(handler: Callable[..., Any], counts: _XMLCounts) -> Callable[..., Any]:
+    """Wrap an expat end-element handler so that it decrements the depth in
+    ``counts``."""
+
+    def end(name: str) -> Any:
+        counts.depth -= 1
+        return handler(name)
+
+    return end
+
+
+class _LxmlNodeCounter:
+    """An lxml parser target that counts elements, attributes and namespace
+    declarations without building a tree, and raises
+    :class:`_XMLLimitExceeded` past ``MAX_XML_NODES``.
+
+    It runs before the lxml recovery parse, whose tree would otherwise cost
+    gigabytes for a wide document behind a malformed XML declaration
+    (GHSA-q7gm-8cj9-94hr). Depth is not counted here: libxml2 stops at 256
+    levels without ``huge_tree``, and the second ``xmltodict.parse()``
+    enforces ``MAX_XML_DEPTH`` on the recovered document.
+    """
+
+    def __init__(self) -> None:
+        self.nodes = 0
+
+    def _add(self, count: int) -> None:
+        self.nodes += count
+        if self.nodes > MAX_XML_NODES:
+            raise _XMLLimitExceeded(
+                f"more than {MAX_XML_NODES:,} elements and attributes"
+            )
+
+    def start(self, tag: str, attrib: dict[str, str]) -> None:
+        self._add(1 + len(attrib))
+
+    def start_ns(self, prefix: str | None, uri: str) -> None:
+        # xmltodict, which does not process namespaces, sees each xmlns
+        # declaration as an attribute.
+        self._add(1)
+
+    def end(self, tag: str) -> None:
+        pass
+
+    def close(self) -> int:
+        return self.nodes
+
+
+def _parse_xml_with_recovery(xml: bytes) -> Any:
+    """Parse ``xml`` with lxml in recovery mode and return the tree, after a
+    counting pass that raises :class:`_XMLLimitExceeded` over
+    ``MAX_XML_NODES``, so the tree is only built for a document within the
+    limit."""
+    etree.parse(
+        BytesIO(xml),
+        etree.XMLParser(
+            recover=True, resolve_entities=False, target=_LxmlNodeCounter()
+        ),
+    )
+    return etree.parse(
+        BytesIO(xml), etree.XMLParser(recover=True, resolve_entities=False)
+    )
 
 
 def _resolve_config(
@@ -317,16 +464,15 @@ def _exc_origin(error: BaseException) -> str:
 
 
 def _text(value: Any) -> str | None:
-    """Unwrap a possibly-langAttrString value parsed by xmltodict.
+    """Unwrap a value parsed by xmltodict that may be a dict.
 
     RFC 9990 changed several aggregate-report elements (extra_contact_info,
-    error, comment, human_result) to type ``langAttrString`` — an
-    xs:simpleContent string with an optional ``lang`` attribute. When the
-    attribute is present, xmltodict parses the element as
-    ``{"#text": "...", "@lang": "en"}`` instead of a plain string. Returns
-    the text payload for both shapes, ``None`` for unset values, and leaves
-    other scalar shapes untouched so callers can preserve whatever the
-    reporter sent.
+    error, comment, human_result) to type ``langAttrString``, a string with
+    an optional ``lang`` attribute. xmltodict parses the report without
+    attributes (``xml_attribs=False``), so such an element arrives as a
+    string; a dict now arises only from child elements, and gives its
+    ``#text``. Returns ``None`` for unset values and leaves other scalar
+    shapes untouched.
     """
     if value is None:
         return None
@@ -338,9 +484,9 @@ def _text(value: Any) -> str | None:
 
 def _normalize_result_word(value: Any) -> Any:
     """Lowercase a reporter-supplied enum word; RFC 7489 Appendix C and
-    RFC 9990 define result/disposition types as lowercase tokens. Non-string
-    values (e.g. xmltodict dicts from attribute-bearing elements) pass
-    through unchanged.
+    RFC 9990 define result/disposition types as lowercase tokens. Its
+    callers pass strings or ``None`` (``_scalar()`` has already run), and a
+    non-string passes through unchanged.
     """
     return value.lower() if isinstance(value, str) else value
 
@@ -526,6 +672,71 @@ def _append_parsed_record(
         records.append(new_rec)
 
 
+def _scalar(value: Any) -> str | None:
+    """Return the string an element the schema types as a string should hold.
+
+    A string is returned as it is. A dict (an element with child elements,
+    possibly beside text) gives its ``#text`` or ``None``; a list (a
+    repeated element) or any other value gives ``None``. Without this a
+    child element reached Elasticsearch and OpenSearch as an object and
+    mapped the field as one (GHSA-qpcg-29vr-jwm3).
+    """
+    if value is None or isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        text = value.get("#text")
+        return text if isinstance(text, str) else None
+    return None
+
+
+def _scalar_fields(mapping: Any, keys: tuple[str, ...]) -> None:
+    """Replace each of ``keys`` present in ``mapping`` with its
+    :func:`_scalar` value, in place; a ``mapping`` that is not a dict is
+    left to the caller's own error handling."""
+    if not isinstance(mapping, dict):
+        return
+    for key in keys:
+        if key in mapping:
+            mapping[key] = _scalar(mapping[key])
+
+
+_REPORT_METADATA_SCALARS = (
+    "org_name",
+    "email",
+    "extra_contact_info",
+    "report_id",
+    "generator",
+)
+_POLICY_PUBLISHED_SCALARS = (
+    "domain",
+    "adkim",
+    "aspf",
+    "p",
+    "sp",
+    "pct",
+    "fo",
+    "np",
+    "testing",
+    "discovery_method",
+)
+
+
+def _scalarize_report(report: dict[str, Any]) -> None:
+    """Make the report-level fields the schema types as strings strings or
+    ``None``, in place: ``version``, the ``report_metadata`` strings and
+    every ``policy_published`` field of the RFC 7489 and RFC 9990 schemas
+    (other children are not copied to the output). Records are handled by
+    :func:`_parse_report_record`. Anything that is not a dict is left to
+    the caller's own error handling."""
+    if not isinstance(report, dict):
+        return
+    _scalar_fields(report, ("version",))
+    _scalar_fields(report.get("report_metadata"), _REPORT_METADATA_SCALARS)
+    policies = report.get("policy_published")
+    for policy in policies if isinstance(policies, list) else [policies]:
+        _scalar_fields(policy, _POLICY_PUBLISHED_SCALARS)
+
+
 def _parse_report_record(
     record: dict[str, Any],
     *,
@@ -547,6 +758,9 @@ def _parse_report_record(
     """
     record = record.copy()
     new_record: dict[str, Any] = {}
+    # Fields the schema types as strings become strings or None
+    # (GHSA-qpcg-29vr-jwm3); see _scalar().
+    _scalar_fields(record["row"], ("source_ip",))
     if record["row"]["source_ip"] is None:
         raise ValueError("Source IP address is empty")
     new_record_source = get_ip_address_info(
@@ -565,8 +779,11 @@ def _parse_report_record(
         psl_overrides_url=config.psl_overrides_url,
     )
     new_record["source"] = new_record_source
-    new_record["count"] = int(record["row"]["count"])
+    # A <count> with no text of its own (child elements only, or repeated)
+    # becomes "", so int() raises the ValueError of a non-numeric count.
+    new_record["count"] = int(_scalar(record["row"]["count"]) or "")
     policy_evaluated = record["row"]["policy_evaluated"].copy()
+    _scalar_fields(policy_evaluated, ("disposition", "dkim", "spf"))
     new_policy_evaluated: dict[str, Any] = {
         "disposition": "none",
         "dkim": "fail",
@@ -600,9 +817,13 @@ def _parse_report_record(
         else:
             reasons = [policy_evaluated["reason"]]
     for reason in reasons:
-        # `comment` is langAttrString in RFC 9990 — unwrap {"#text": ..., "@lang": ...}
-        reason["comment"] = _text(reason.get("comment"))
-        reason_type = reason.get("type")
+        # `comment` and `type` are strings in both schemas, but a sender can
+        # give them child elements (a dict) or repeat them (a list), and the
+        # CSV writer joins them as strings (GHSA-4272-4r8g-6c5h). They follow
+        # the rule of every other string field: see _scalar().
+        reason["comment"] = _scalar(reason.get("comment"))
+        reason["type"] = _scalar(reason.get("type"))
+        reason_type = reason["type"]
         if is_rfc_9990 and reason_type in RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES:
             logger.warning(
                 "Policy override reason type %r was removed in RFC 9990; "
@@ -627,6 +848,9 @@ def _parse_report_record(
         new_record["identifiers"] = record["identities"].copy()
     else:
         new_record["identifiers"] = record["identifiers"].copy()
+    _scalar_fields(
+        new_record["identifiers"], ("header_from", "envelope_from", "envelope_to")
+    )
     new_record["auth_results"] = {"dkim": [], "spf": []}
     if type(new_record["identifiers"]["header_from"]) is str:
         lowered_from = new_record["identifiers"]["header_from"].lower()
@@ -645,6 +869,7 @@ def _parse_report_record(
     if not isinstance(auth_results["dkim"], list):
         auth_results["dkim"] = [auth_results["dkim"]]
     for result in auth_results["dkim"]:
+        _scalar_fields(result, ("domain", "selector", "result", "human_result"))
         if "domain" in result and result["domain"] is not None:
             new_result: dict[str, Any] = {"domain": result["domain"]}
             if "selector" in result and result["selector"] is not None:
@@ -667,6 +892,7 @@ def _parse_report_record(
     if not isinstance(auth_results["spf"], list):
         auth_results["spf"] = [auth_results["spf"]]
     for result in auth_results["spf"]:
+        _scalar_fields(result, ("domain", "scope", "result", "human_result"))
         if "domain" in result and result["domain"] is not None:
             new_result: dict[str, Any] = {"domain": result["domain"]}
             if "scope" in result and result["scope"] is not None:
@@ -722,11 +948,108 @@ def _non_blank(value: Any) -> Any:
     return value
 
 
+# RFC 8460 §4.4 gives every SMTP TLS report date as an RFC 3339 date-time,
+# which is at most about 35 characters even with a long fractional second.
+# dateutil's parser is super-linear on a long run of digits (12.4 s for
+# 1,000,000 of them, Python 3.14), so a longer value is rejected unparsed.
+_SMTP_TLS_MAX_DATETIME_LENGTH = 64
+
+
+def _smtp_tls_string(value: Any, field: str) -> str:
+    """Return ``value`` if it is a string, as RFC 8460 §4.4 requires of
+    ``field``; raise ``InvalidSMTPTLSReport`` otherwise."""
+    if not isinstance(value, str):
+        raise InvalidSMTPTLSReport(
+            f"{field} must be a string, not {type(value).__name__}"
+        )
+    _smtp_tls_check_utf8(value, field)
+    return value
+
+
+def _smtp_tls_check_utf8(value: str, field: str) -> None:
+    """Raise ``InvalidSMTPTLSReport`` when ``value`` holds a lone surrogate
+    (JSON ``"\\ud800"``). RFC 8460 §4 reports are I-JSON, whose RFC 7493
+    §2.1 forbids surrogate code points, and the outputs cannot encode one."""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as error:
+        raise InvalidSMTPTLSReport(f"{field} is not valid UTF-8 text") from error
+
+
+def _smtp_tls_string_list(value: Any, field: str) -> list[str]:
+    """Return ``value`` if it is a list of strings (RFC 8460 §4.4's "JSON
+    array of strings"); raise ``InvalidSMTPTLSReport`` otherwise."""
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise InvalidSMTPTLSReport(f"{field} must be a list of strings")
+    for item in value:
+        _smtp_tls_check_utf8(item, field)
+    return value
+
+
+def _smtp_tls_mx_host_patterns(value: Any, field: str) -> list[str]:
+    """Return a policy's MX host patterns as a list of strings.
+
+    RFC 8460 §4.4 describes the value as "a JSON array of strings", but its
+    Appendix B example gives one pattern as a plain string, so a string
+    becomes a one-element list. ``null`` and an empty string give an empty
+    list; any other type raises ``InvalidSMTPTLSReport``.
+    """
+    if value is None or value == "":
+        return []
+    if isinstance(value, str):
+        return [_smtp_tls_string(value, field)]
+    return _smtp_tls_string_list(value, field)
+
+
+def _smtp_tls_count(value: Any, field: str) -> int | None:
+    """Return ``value`` if it is an integer or null.
+
+    RFC 8460 §4.4 encodes each session count as "an integer, encoded as a
+    JSON number". ``null`` is tolerated as an unreported count. A JSON
+    ``true``/``false`` is rejected even though ``bool`` subclasses ``int``.
+    """
+    if value is None or (isinstance(value, int) and not isinstance(value, bool)):
+        return value
+    raise InvalidSMTPTLSReport(
+        f"{field} must be an integer, not {type(value).__name__}"
+    )
+
+
+def _smtp_tls_datetime(value: Any, field: str) -> str:
+    """Return ``value`` if it is a date-time string every output can convert.
+
+    RFC 8460 §4.4 gives ``start-datetime`` and ``end-datetime`` as strings in
+    RFC 3339 format. The value is checked with the conversions the
+    Elasticsearch, OpenSearch and S3 outputs (a UTC ``datetime``) and the
+    Splunk output (a UNIX timestamp) make later. dateutil also accepts a
+    partial date such as ``"2016"``, which PostgreSQL may still reject; that
+    failure is raised as ``PostgreSQLError`` and recorded as an output
+    error. Raises ``InvalidSMTPTLSReport`` otherwise.
+    """
+    value = _smtp_tls_string(value, field)
+    if len(value) > _SMTP_TLS_MAX_DATETIME_LENGTH:
+        raise InvalidSMTPTLSReport(
+            f"{field} is longer than {_SMTP_TLS_MAX_DATETIME_LENGTH} characters"
+        )
+    try:
+        human_timestamp_to_datetime(value, to_utc=True)
+        human_timestamp_to_unix_timestamp(value)
+    except (ValueError, OverflowError) as e:
+        raise InvalidSMTPTLSReport(
+            f"{field} is not a valid date-time: {sanitize_for_log(value)}"
+        ) from e
+    return value
+
+
 def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
     try:
         new_failure_details: dict[str, Any] = {
-            "result_type": failure_details["result-type"],
-            "failed_session_count": failure_details["failed-session-count"],
+            "result_type": _smtp_tls_string(
+                failure_details["result-type"], "result-type"
+            ),
+            "failed_session_count": _smtp_tls_count(
+                failure_details["failed-session-count"], "failed-session-count"
+            ),
         }
 
         optional_fields = [
@@ -739,7 +1062,7 @@ def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
         for src_key, dest_key in optional_fields:
             value = _non_blank(failure_details.get(src_key))
             if value is not None:
-                new_failure_details[dest_key] = value
+                new_failure_details[dest_key] = _smtp_tls_string(value, src_key)
 
         # RFC 8460 §4.4 names the JSON key "additional-information" (its
         # value is described as an "additional-info-uri"). Some reporters
@@ -750,7 +1073,9 @@ def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
         if additional_info_uri is None:
             additional_info_uri = _non_blank(failure_details.get("additional-info-uri"))
         if additional_info_uri is not None:
-            new_failure_details["additional_info_uri"] = additional_info_uri
+            new_failure_details["additional_info_uri"] = _smtp_tls_string(
+                additional_info_uri, "additional-information"
+            )
 
         return new_failure_details
 
@@ -765,8 +1090,10 @@ def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
 def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
     policy_types = ["tlsa", "sts", "no-policy-found"]
     try:
-        policy_domain = policy["policy"]["policy-domain"]
-        policy_type = policy["policy"]["policy-type"]
+        policy_domain = _smtp_tls_string(
+            policy["policy"]["policy-domain"], "policy-domain"
+        )
+        policy_type = _smtp_tls_string(policy["policy"]["policy-type"], "policy-type")
         failure_details = []
         if policy_type not in policy_types:
             raise InvalidSMTPTLSReport(
@@ -776,22 +1103,38 @@ def _parse_smtp_tls_report_policy(policy: dict[str, Any]):
             "policy_domain": policy_domain,
             "policy_type": policy_type,
         }
-        if "policy-string" in policy["policy"]:
-            if isinstance(policy["policy"]["policy-string"], list):
-                if len(policy["policy"]["policy-string"]) > 0:
-                    new_policy["policy_strings"] = policy["policy"]["policy-string"]
+        if policy["policy"].get("policy-string") is not None:
+            policy_strings = _smtp_tls_string_list(
+                policy["policy"]["policy-string"], "policy-string"
+            )
+            if len(policy_strings) > 0:
+                new_policy["policy_strings"] = policy_strings
 
-        if "mx-host-pattern" in policy["policy"]:
-            if isinstance(policy["policy"]["mx-host-pattern"], list):
-                if len(policy["policy"]["mx-host-pattern"]) > 0:
-                    new_policy["mx_host_patterns"] = policy["policy"]["mx-host-pattern"]
-        new_policy["successful_session_count"] = policy["summary"][
-            "total-successful-session-count"
-        ]
-        new_policy["failed_session_count"] = policy["summary"][
-            "total-failure-session-count"
-        ]
+        # RFC 8460 §4.4 keys the policy's MX host patterns "mx-host";
+        # "mx-host-pattern" names its value type, not a key, but was read as
+        # the key before and is kept as a fallback (issue #942).
+        mx_host_patterns = _smtp_tls_mx_host_patterns(
+            policy["policy"].get("mx-host"), "mx-host"
+        )
+        if not mx_host_patterns:
+            mx_host_patterns = _smtp_tls_mx_host_patterns(
+                policy["policy"].get("mx-host-pattern"), "mx-host-pattern"
+            )
+        if mx_host_patterns:
+            new_policy["mx_host_patterns"] = mx_host_patterns
+        new_policy["successful_session_count"] = _smtp_tls_count(
+            policy["summary"]["total-successful-session-count"],
+            "total-successful-session-count",
+        )
+        new_policy["failed_session_count"] = _smtp_tls_count(
+            policy["summary"]["total-failure-session-count"],
+            "total-failure-session-count",
+        )
         if "failure-details" in policy:
+            if not isinstance(policy["failure-details"], list) or not all(
+                isinstance(details, dict) for details in policy["failure-details"]
+            ):
+                raise InvalidSMTPTLSReport("failure-details must be a list of objects")
             for details in policy["failure-details"]:
                 failure_details.append(_parse_smtp_tls_failure_details(details))
             new_policy["failure_details"] = failure_details
@@ -814,6 +1157,10 @@ def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
         "policies",
     ]
 
+    if _exceeds_size_cap(report):
+        # json.loads() holds the whole document at several times its size
+        # (GHSA-q7gm-8cj9-94hr).
+        raise InvalidSMTPTLSReport(_size_cap_text(report))
     try:
         if isinstance(report, bytes):
             report = report.decode("utf-8", errors="replace")
@@ -829,12 +1176,26 @@ def parse_smtp_tls_report_json(report: str | bytes) -> SMTPTLSReport:
         for policy in report_dict["policies"]:
             policies.append(_parse_smtp_tls_report_policy(policy))
 
+        # RFC 8460 §4.4 gives contact-info as one string; some reporters
+        # send a list of them, which is kept as it is.
+        contact_info = report_dict["contact-info"]
+        if isinstance(contact_info, str):
+            contact_info = _smtp_tls_string(contact_info, "contact-info")
+        else:
+            contact_info = _smtp_tls_string_list(contact_info, "contact-info")
+
         new_report: SMTPTLSReport = {
-            "organization_name": report_dict["organization-name"],
-            "begin_date": report_dict["date-range"]["start-datetime"],
-            "end_date": report_dict["date-range"]["end-datetime"],
-            "contact_info": report_dict["contact-info"],
-            "report_id": report_dict["report-id"],
+            "organization_name": _smtp_tls_string(
+                report_dict["organization-name"], "organization-name"
+            ),
+            "begin_date": _smtp_tls_datetime(
+                report_dict["date-range"]["start-datetime"], "start-datetime"
+            ),
+            "end_date": _smtp_tls_datetime(
+                report_dict["date-range"]["end-datetime"], "end-datetime"
+            ),
+            "contact_info": contact_info,
+            "report_id": _smtp_tls_string(report_dict["report-id"], "report-id"),
             "policies": policies,
         }
 
@@ -965,6 +1326,267 @@ def parsed_smtp_tls_reports_to_csv(
     return csv_file_object.getvalue()
 
 
+# No field of an aggregate report carries an attribute parsedmarc keeps, and
+# an attribute xmltodict kept (<p a="1">none</p> as {"@a": "1", "#text":
+# "none"}) would reach Elasticsearch or OpenSearch as an object and map the
+# field as one (GHSA-qpcg-29vr-jwm3). With xml_attribs=False xmltodict builds
+# no attribute keys, while expat still hands the attributes to the start
+# handler, so _LimitedExpatParser counts them.
+def _parse_limited_xml(xml: str) -> Any:
+    """Parse ``xml`` with xmltodict through the limited expat parser, without
+    attributes, and raise ``InvalidAggregateReport`` when it goes over
+    ``MAX_XML_DEPTH`` or ``MAX_XML_NODES``."""
+    try:
+        return xmltodict.parse(xml, expat=_NoDoctypeExpat, xml_attribs=False)
+    except _XMLLimitExceeded as error:
+        raise InvalidAggregateReport(f"Invalid XML: {error}") from error
+
+
+def _recover_xml(xml: str) -> str:
+    """Return ``xml`` repaired by lxml's recovery parser, for a document
+    expat rejected: ``""`` when nothing is recoverable, ``"<a/>"`` when the
+    recovery itself fails. Raises ``InvalidAggregateReport`` for a document
+    over the node limit or holding a DOCTYPE."""
+    has_doctype = False
+    try:
+        tree = _parse_xml_with_recovery(xml.encode("utf-8"))
+        root = tree.getroot()
+        if root is None:
+            # Nothing recoverable; the second parse reports it as
+            # invalid XML.
+            return ""
+        # The first parse can fail before expat reaches a DOCTYPE (e.g. on
+        # a malformed XML declaration, which is only rewritten later), so
+        # the recovered tree gets the same DOCTYPE check, made before
+        # serializing. The rejection is raised after this try, which would
+        # otherwise swallow it.
+        has_doctype = bool(tree.docinfo.doctype) or (
+            tree.docinfo.internalDTD is not None
+        )
+        if not has_doctype:
+            # Serializing the root element rather than the tree leaves any
+            # internal DTD subset out of the XML handed to the second parse.
+            # str() is a no-op at runtime; lxml ships no type stubs, so
+            # pyright would widen the result to str | bytes.
+            return str(etree.tostring(root, encoding="unicode"))
+    except _XMLLimitExceeded as limit:
+        raise InvalidAggregateReport(f"Invalid XML: {limit}") from limit
+    except Exception:
+        return "<a/>"
+    raise InvalidAggregateReport(_DOCTYPE_ERROR)
+
+
+def _size_cap_text(content: str | bytes) -> str:
+    """Return the reason a report over the size cap is rejected: bytes are
+    measured as they are, text as UTF-8."""
+    size = f"{MAX_DECOMPRESSED_REPORT_SIZE // 2**20} MiB"
+    if isinstance(content, bytes):
+        return f"the report is larger than {size}"
+    return f"the report is larger than {size} of UTF-8"
+
+
+def _exceeds_size_cap(content: str | bytes) -> bool:
+    """Return whether ``content`` is more than ``MAX_DECOMPRESSED_REPORT_SIZE``
+    bytes, a ``str`` measured as UTF-8, as the cap on a compressed report
+    measures its decompressed bytes. ASCII text and text too long or too
+    short to matter are decided by length; other text is encoded 1 MiB of
+    characters at a time, so the measure needs no full copy."""
+    cap = MAX_DECOMPRESSED_REPORT_SIZE
+    if isinstance(content, bytes) or len(content) > cap:
+        return len(content) > cap
+    # A character is at most 4 bytes of UTF-8.
+    if len(content) <= cap // 4 or content.isascii():
+        return False
+    size = 0
+    for offset in range(0, len(content), 2**20):
+        size += len(content[offset : offset + 2**20].encode("utf-8", "surrogatepass"))
+        if size > cap:
+            return True
+    return False
+
+
+def _report_text(xml: str | bytes) -> str:
+    """Return the report as text, after :func:`_check_xml_text`; bytes over
+    the size cap are rejected before they are decoded (errors ignored)."""
+    if isinstance(xml, bytes):
+        if _exceeds_size_cap(xml):
+            raise InvalidAggregateReport(f"Invalid XML: {_size_cap_text(xml)}")
+        xml = xml.decode(errors="ignore")
+    _check_xml_text(xml)
+    return xml
+
+
+def _check_xml_text(xml: str) -> None:
+    """Reject, before any parser reads it, an aggregate report whose text
+    alone would make parsing it too costly (GHSA-q7gm-8cj9-94hr): more than
+    ``MAX_DECOMPRESSED_REPORT_SIZE`` bytes of UTF-8 (an uncompressed
+    attachment or file is held to the cap a compressed one is), more
+    attributes than ``MAX_XML_NODES``, or a tag longer than
+    ``MAX_XML_TAG_LENGTH``. Raises ``InvalidAggregateReport``."""
+    if _exceeds_size_cap(xml):
+        raise InvalidAggregateReport(f"Invalid XML: {_size_cap_text(xml)}")
+    # The = count is one C pass, so it runs before the slower tag scan.
+    _check_attribute_count(xml)
+    _check_tag_lengths(xml)
+
+
+def _check_tag_lengths(xml: str) -> None:
+    """Raise ``InvalidAggregateReport`` when any text between a ``<`` and
+    the next ``>`` is longer than ``MAX_XML_TAG_LENGTH``, before a parser
+    builds the tag's attribute list (GHSA-q7gm-8cj9-94hr).
+
+    One linear pass without a regex; the text after the last ``>`` is
+    checked too, so an unterminated tag is caught. A comment or CDATA
+    section is treated as a tag, which is harmless at this length. XML
+    allows a raw ``>`` inside a quoted attribute value, which ends a piece
+    early, so this scan does not bound how many attributes a tag holds;
+    :func:`_check_attribute_count` does.
+    """
+    # The text is split on ">" one chunk at a time: one split of the whole
+    # text made a string per tag, +1,318 MiB for 100 MiB of "<a/>". A
+    # chunk's pieces are measured with max() before any is examined, and
+    # the unfinished last piece is carried into the next chunk from its
+    # last "<", so memory stays near one chunk.
+    carry = ""
+    for offset in range(0, len(xml), _TAG_SCAN_CHUNK):
+        pieces = (carry + xml[offset : offset + _TAG_SCAN_CHUNK]).split(">")
+        carry = pieces.pop()
+        if max(map(len, pieces), default=0) > MAX_XML_TAG_LENGTH:
+            for piece in pieces:
+                _check_tag_piece(piece)
+        carry = _check_tag_piece(carry)
+
+
+def _check_attribute_count(xml: str) -> None:
+    """Raise ``InvalidAggregateReport`` when ``xml`` holds more ``=``
+    characters than ``MAX_XML_NODES``: every attribute needs one, and
+    expat and libxml2 build a tag's attribute list before the node counter
+    sees it (GHSA-q7gm-8cj9-94hr). ``str.count`` is one linear pass."""
+    if xml.count("=") > MAX_XML_NODES:
+        raise InvalidAggregateReport(
+            f"Invalid XML: more than {MAX_XML_NODES:,} `=` characters, so more "
+            "attributes than the node limit allows"
+        )
+
+
+def _check_tag_piece(piece: str) -> str:
+    """Raise the tag-length error when the text of ``piece`` from its last
+    ``<`` is longer than ``MAX_XML_TAG_LENGTH``; return that text, or ``""``
+    when ``piece`` holds no ``<``."""
+    start = piece.rfind("<")
+    if start < 0:
+        return ""
+    if len(piece) - start > MAX_XML_TAG_LENGTH:
+        raise InvalidAggregateReport(
+            f"Invalid XML: a tag is longer than {MAX_XML_TAG_LENGTH:,} characters"
+        )
+    return piece[start:]
+
+
+_TAG_SCAN_CHUNK = 1 << 16
+
+
+def _check_report_span(span_seconds: int) -> None:
+    """Raise ``InvalidAggregateReport`` when a report's date range is negative
+    or longer than ``MAX_REPORT_SPAN_DAYS``, before normalization splits it
+    into one record per day (GHSA-p85v-578x-3wcf). The message holds no
+    number from the report, whose dates can be thousands of digits long."""
+    if span_seconds < 0:
+        raise InvalidAggregateReport("Report date range is negative")
+    if span_seconds > MAX_REPORT_SPAN_DAYS * 86400:
+        raise InvalidAggregateReport(
+            f"Report date range spans more than {MAX_REPORT_SPAN_DAYS} days"
+        )
+
+
+def _days_touched(begin: datetime, end: datetime) -> int:
+    """Return how many calendar days of ``begin``'s timezone the interval
+    [begin, end) touches: the number of buckets ``_bucket_interval_by_day()``
+    makes, before it drops the buckets that receive no messages."""
+    day_start = datetime(begin.year, begin.month, begin.day, tzinfo=begin.tzinfo)
+    return max(0, -(-int((end - day_start).total_seconds()) // 86400))
+
+
+def _normalize_within_limit(
+    normalize: bool,
+    xml_records: Any,
+    begin_dt: datetime,
+    end_dt: datetime,
+    report_id: str,
+) -> bool:
+    """Return whether per-day normalization stays enabled for a report.
+
+    Normalization makes one record per record and day, so a report whose
+    records times days exceed ``MAX_NORMALIZED_RECORDS`` keeps its records
+    whole, over the report's own range, and one warning is logged
+    (GHSA-p85v-578x-3wcf).
+    """
+    if not normalize:
+        return False
+    record_count = len(xml_records) if isinstance(xml_records, list) else 1
+    days = _days_touched(begin_dt, end_dt)
+    if record_count * days <= MAX_NORMALIZED_RECORDS:
+        return True
+    logger.warning(
+        f"Report {sanitize_for_log(str(report_id))} is not normalized to daily "
+        f"records: {record_count} records over {days} days would make "
+        f"{record_count * days} records, more than {MAX_NORMALIZED_RECORDS}"
+    )
+    return False
+
+
+def _parse_report_records(
+    xml_records: Any,
+    *,
+    config: ParserConfig,
+    is_rfc_9990: bool,
+    begin_dt: datetime,
+    end_dt: datetime,
+    normalize: bool,
+    keep_alive: Callable | None,
+) -> list[dict[str, Any]]:
+    """Parse an aggregate report's ``<record>`` elements (a list, or one
+    record) into output records, split per day when ``normalize`` is set.
+    A record of a list that fails to parse is skipped with a warning."""
+    records: list[dict[str, Any]] = []
+    if type(xml_records) is list:
+        for i in range(len(xml_records)):
+            if keep_alive is not None and i > 0 and i % 20 == 0:
+                logger.debug("Sending keepalive cmd")
+                keep_alive()
+                logger.debug(f"Processed {i}/{len(xml_records)}")
+            try:
+                report_record = _parse_report_record(
+                    xml_records[i],
+                    config=config,
+                    is_rfc_9990=is_rfc_9990,
+                )
+                _append_parsed_record(
+                    parsed_record=report_record,
+                    records=records,
+                    begin_dt=begin_dt,
+                    end_dt=end_dt,
+                    normalize=normalize,
+                )
+            except Exception as e:
+                logger.warning(f"Could not parse record: {sanitize_for_log(str(e))}")
+
+    else:
+        report_record = _parse_report_record(
+            xml_records,
+            config=config,
+            is_rfc_9990=is_rfc_9990,
+        )
+        _append_parsed_record(
+            parsed_record=report_record,
+            records=records,
+            begin_dt=begin_dt,
+            end_dt=end_dt,
+            normalize=normalize,
+        )
+    return records
+
+
 def parse_aggregate_report_xml(
     xml: str | bytes,
     *,
@@ -1020,8 +1642,7 @@ def parse_aggregate_report_xml(
     )
     errors = []
     # Parse XML and recover from errors
-    if isinstance(xml, bytes):
-        xml = xml.decode(errors="ignore")
+    xml = _report_text(xml)
 
     # Detect the XML namespace before any rewriting strips it. The dmarc-2.0
     # namespace is one of the indicators for an RFC 9990 report but it is
@@ -1037,42 +1658,23 @@ def parse_aggregate_report_xml(
     if namespace_match:
         xml_namespace = namespace_match.group(1)
 
+    first_error: str | None = None
     try:
-        xmltodict.parse(xml, expat=_NoDoctypeExpat)["feedback"]
+        xmltodict.parse(xml, expat=_NoDoctypeExpat, xml_attribs=False)["feedback"]
     except _XMLDoctypeFound as e:
         raise InvalidAggregateReport(_DOCTYPE_ERROR) from e
+    except _XMLLimitExceeded as e:
+        # Rejected outright: the lxml recovery below would be a second pass
+        # over the same oversized document.
+        raise InvalidAggregateReport(f"Invalid XML: {e}") from e
     except Exception as e:
-        errors.append(f"Invalid XML: {e.__str__()}")
-        has_doctype = False
-        try:
-            tree = etree.parse(
-                BytesIO(xml.encode("utf-8")),
-                etree.XMLParser(recover=True, resolve_entities=False),
-            )
-            root = tree.getroot()
-            if root is None:
-                # Nothing recoverable; the second parse reports it as
-                # invalid XML.
-                xml = ""
-            else:
-                # The first parse can fail before expat reaches a DOCTYPE
-                # (e.g. on a malformed XML declaration, which is only
-                # rewritten below), so the recovered tree gets the same
-                # DOCTYPE check, made before serializing. The rejection is
-                # raised after this try, which would otherwise swallow it.
-                has_doctype = bool(tree.docinfo.doctype) or (
-                    tree.docinfo.internalDTD is not None
-                )
-                if not has_doctype:
-                    # Serializing the root element rather than the tree
-                    # leaves any internal DTD subset out of the XML handed to
-                    # the second parse. str() is a no-op at runtime; lxml ships
-                    # no type stubs, so pyright would widen xml to str | bytes.
-                    xml = str(etree.tostring(root, encoding="unicode"))
-        except Exception:
-            xml = "<a/>"
-        if has_doctype:
-            raise InvalidAggregateReport(_DOCTYPE_ERROR) from e
+        first_error = f"Invalid XML: {e.__str__()}"
+    # The recovery runs after the except block, not inside it: while a
+    # handler runs, the handled exception's traceback keeps the failed
+    # parse's frames, and with them its partial tree, alive.
+    if first_error is not None:
+        errors.append(first_error)
+        xml = _recover_xml(xml)
 
     try:
         # Replace XML header (sometimes they are invalid)
@@ -1081,19 +1683,15 @@ def parse_aggregate_report_xml(
         # Remove invalid schema tags
         xml = xml_schema_regex.sub("", xml)
 
-        report = xmltodict.parse(xml, expat=_NoDoctypeExpat)["feedback"]
+        report = _parse_limited_xml(xml)["feedback"]
+        _scalarize_report(report)
         report_metadata = report["report_metadata"]
-        # <email> is xs:string in both RFC 7489 and RFC 9990, but defensive
-        # parsing in the wild: some reporters emit it with an xml:lang or
-        # similar attribute, which xmltodict turns into a dict.
-        if isinstance(report_metadata.get("email"), dict):
-            unwrapped = _text(report_metadata["email"])
-            if unwrapped is None:
-                logger.debug(
-                    "Discarding malformed <email> in report_metadata: %r",
-                    report_metadata["email"],
-                )
-            report_metadata["email"] = unwrapped
+        # The report_metadata strings are strings or None here:
+        # xmltodict kept no xml:lang attribute (xml_attribs=False) and
+        # _scalarize_report() any child element. Text in place of the
+        # section's elements is a missing section.
+        if not isinstance(report_metadata, dict):
+            raise AttributeError("report_metadata holds no elements")
         schema = "draft"
         if "version" in report:
             schema = report["version"]
@@ -1119,7 +1717,7 @@ def parse_aggregate_report_xml(
         new_report_metadata["org_name"] = org_name
         new_report_metadata["org_email"] = report_metadata["email"]
         # extra_contact_info is langAttrString in RFC 9990 (xs:string in
-        # RFC 7489) — unwrap {"#text": ..., "@lang": ...} if present.
+        # RFC 7489); its lang attribute is dropped when the report is parsed.
         extra = _text(report_metadata.get("extra_contact_info"))
         new_report_metadata["org_extra_contact_info"] = extra
         new_report_metadata["report_id"] = report_metadata["report_id"]
@@ -1131,6 +1729,7 @@ def parse_aggregate_report_xml(
         begin_ts = int(date_range["begin"].split(".")[0])
         end_ts = int(date_range["end"].split(".")[0])
         span_seconds = end_ts - begin_ts
+        _check_report_span(span_seconds)
 
         normalize_timespan = (
             span_seconds > cfg.normalize_timespan_threshold_hours * 3600
@@ -1160,13 +1759,11 @@ def parse_aggregate_report_xml(
                 raw_errors = [raw_errors]
             errors = [text for text in (_text(e) for e in raw_errors) if text]
         new_report_metadata["errors"] = errors
-        # <generator> is a plain xs:string in RFC 9990 but apply _text() so
-        # a malformed reporter that decorates it with attributes still
-        # yields a string instead of breaking downstream consumers.
+        # <generator> is a plain xs:string in RFC 9990; attributes and child
+        # elements are already removed, and _text() keeps it a string.
         generator = _text(report_metadata.get("generator"))
         new_report_metadata["generator"] = generator
         new_report["report_metadata"] = new_report_metadata
-        records = []
         policy_published = report["policy_published"]
         if type(policy_published) is list:
             policy_published = policy_published[0]
@@ -1238,48 +1835,29 @@ def parse_aggregate_report_xml(
         new_policy_published["discovery_method"] = discovery_method
         new_report["policy_published"] = new_policy_published
 
-        if type(report["record"]) is list:
-            for i in range(len(report["record"])):
-                if keep_alive is not None and i > 0 and i % 20 == 0:
-                    logger.debug("Sending keepalive cmd")
-                    keep_alive()
-                    logger.debug("Processed {}/{}".format(i, len(report["record"])))
-                try:
-                    report_record = _parse_report_record(
-                        report["record"][i],
-                        config=cfg,
-                        is_rfc_9990=is_rfc_9990,
-                    )
-                    _append_parsed_record(
-                        parsed_record=report_record,
-                        records=records,
-                        begin_dt=begin_dt,
-                        end_dt=end_dt,
-                        normalize=normalize_timespan,
-                    )
-                except Exception as e:
-                    logger.warning(
-                        f"Could not parse record: {sanitize_for_log(str(e))}"
-                    )
+        normalize_timespan = _normalize_within_limit(
+            normalize_timespan, report["record"], begin_dt, end_dt, report_id
+        )
+        new_report_metadata["timespan_requires_normalization"] = normalize_timespan
 
-        else:
-            report_record = _parse_report_record(
-                report["record"],
-                config=cfg,
-                is_rfc_9990=is_rfc_9990,
-            )
-            _append_parsed_record(
-                parsed_record=report_record,
-                records=records,
-                begin_dt=begin_dt,
-                end_dt=end_dt,
-                normalize=normalize_timespan,
-            )
+        records = _parse_report_records(
+            report["record"],
+            config=cfg,
+            is_rfc_9990=is_rfc_9990,
+            begin_dt=begin_dt,
+            end_dt=end_dt,
+            normalize=normalize_timespan,
+            keep_alive=keep_alive,
+        )
 
         new_report["records"] = records
 
         return cast(AggregateReport, new_report)
 
+    except InvalidAggregateReport:
+        # Already specific (an XML or date range limit); do not re-wrap it
+        # as an "Unexpected error" below.
+        raise
     except expat.ExpatError as error:
         raise InvalidAggregateReport(f"Invalid XML: {error.__str__()}") from error
 
@@ -1425,7 +2003,13 @@ def extract_report(content: bytes | str | BinaryIO) -> str:
             or header[: len(MAGIC_XML_TAG)] == MAGIC_XML_TAG
             or header[: len(MAGIC_JSON)] == MAGIC_JSON
         ):
-            report = file_object.read().decode(errors="ignore")
+            # An uncompressed report is held to the decompressed cap, read
+            # at most one byte past it rather than decoded whole.
+            limit = MAX_DECOMPRESSED_REPORT_SIZE
+            data = file_object.read(limit + 1)
+            if len(data) > limit:
+                raise ParserError(f"Report exceeds the {limit} byte limit")
+            report = data.decode(errors="ignore")
         else:
             raise ParserError("Not a valid zip, gzip, json, or xml file")
 
@@ -1616,13 +2200,13 @@ def parsed_aggregate_reports_to_csv_rows(
             row["disposition"] = record["policy_evaluated"]["disposition"]
             policy_override_reasons = list(
                 map(
-                    lambda r_: r_["type"] or "none",
+                    lambda r_: r_.get("type") or "none",
                     record["policy_evaluated"]["policy_override_reasons"],
                 )
             )
             policy_override_comments = list(
                 map(
-                    lambda r_: r_["comment"] or "none",
+                    lambda r_: r_.get("comment") or "none",
                     record["policy_evaluated"]["policy_override_reasons"],
                 )
             )
@@ -1952,6 +2536,9 @@ def parse_failure_report(
     except KeyError as error:
         raise InvalidFailureReport(f"Missing value: {error.__str__()}") from error
 
+    except MessageLimitExceeded as error:
+        raise InvalidFailureReport(f"Sample message rejected: {error}") from error
+
     except Exception as error:
         raise InvalidFailureReport(
             f"Unexpected error: {error.__str__()}{_exc_origin(error)}"
@@ -2222,6 +2809,9 @@ def parse_report_email(
         else:
             input_str = input_data
 
+        # Reject a message whose structure makes parsing slow before any
+        # parser builds its tree (GHSA-qcc2-4x3v-v4g7)
+        check_message_limits(input_str)
         msg = mailparser.parse_from_string(input_str)
         msg_headers = json.loads(msg.headers_json)
         if "Date" in msg_headers:
@@ -2229,12 +2819,16 @@ def parse_report_email(
         date = email.utils.format_datetime(msg_date)
         msg = email.message_from_string(input_str)
 
+    except MessageLimitExceeded as e:
+        raise InvalidDMARCReport(f"Message rejected: {e}") from e
     except Exception as e:
         raise ParserError(e.__str__() + _exc_origin(e)) from e
     subject_text = "None"
     feedback_report = None
     smtp_tls_report = None
     sample = None
+    # id() of every sample candidate and every part inside one
+    sample_parts: set[int] = set()
     is_feedback_report: bool = False
     if "From" in msg_headers:
         logger.info(
@@ -2255,17 +2849,45 @@ def parse_report_email(
     # mailbox batch (GHSA-qxwv-2vwj-v828).
     try:
         for part in msg.walk():
+            if id(part) in sample_parts:
+                # The sample is the reported message, spoofer's content
+                # included; an attachment inside it is not a report.
+                continue
             content_type = part.get_content_type().lower()
             payload_obj = part.get_payload()
             if not isinstance(payload_obj, list):
                 payload_obj = [payload_obj]
+            if content_type.startswith("multipart/") or content_type == "text/html":
+                continue
+            # A part is serialized only where its text is used: str() of a
+            # composite part renders its whole subtree, and walk() visits
+            # every level, so serializing each one was quadratic in the
+            # nesting (98 multiparts around a 20 MiB leaf took 26.6 s;
+            # GHSA-qcc2-4x3v-v4g7).
+            if is_feedback_report and content_type in EMAIL_SAMPLE_CONTENT_TYPES:
+                # A feedback report has one sample (RFC 6591 §3.1); a message
+                # nested inside it belongs to it and must not replace it.
+                if sample is None:
+                    sample = _decode_mime_payload(part, str(payload_obj[0]))
+                # A later candidate is not read as the sample, and neither
+                # are the parts inside it.
+                sample_parts.update(id(sample_part) for sample_part in part.walk())
+                continue
+            if content_type == "message/feedback-report" and is_feedback_report:
+                # A feedback report has one message/feedback-report part
+                # (RFC 6591 §3); a nested one must not be rendered again.
+                continue
+            if content_type != "message/feedback-report" and isinstance(
+                payload_obj[0], email.message.Message
+            ):
+                # Another message/* body; walk() visits its parts.
+                continue
             payload = str(payload_obj[0])
-            if content_type.startswith("multipart/"):
-                continue
-            if content_type == "text/html":
-                continue
-            elif content_type == "message/feedback-report":
+            if content_type == "message/feedback-report":
                 is_feedback_report = True
+                # The RFC 6591 part wins over a legacy text report read
+                # earlier; its sample follows it.
+                sample = None
                 decoded_payload = _decode_mime_payload(part, payload)
                 try:
                     if "Feedback-Type" in decoded_payload:
@@ -2277,8 +2899,6 @@ def parse_report_email(
                     feedback_report = feedback_report.replace("\\n", "\n")
                 except (ValueError, TypeError, binascii.Error):
                     feedback_report = decoded_payload
-            elif is_feedback_report and content_type in EMAIL_SAMPLE_CONTENT_TYPES:
-                sample = _decode_mime_payload(part, payload)
             elif content_type == "application/tlsrpt+json":
                 if not payload.strip().startswith("{"):
                     payload = b64decode(payload).decode("utf-8", errors="replace")
@@ -2289,7 +2909,14 @@ def parse_report_email(
                 smtp_tls_report = parse_smtp_tls_report_json(payload)
                 return {"report_type": "smtp_tls", "report": smtp_tls_report}
             elif content_type == "text/plain":
-                if "A message claiming to be from you has failed" in payload:
+                # A legacy text report has no message/feedback-report part.
+                # Once one is read, a text part (which may sit inside the
+                # sample, the spoofer's own text) must not replace the
+                # report's Source-IP or its sample.
+                if (
+                    not is_feedback_report
+                    and "A message claiming to be from you has failed" in payload
+                ):
                     try:
                         parts = payload.split("detected.", 1)
                         field_matches = text_report_regex.findall(parts[0])
@@ -2394,11 +3021,21 @@ def _looks_like_email(text: str) -> bool:
     return _email_header_regex.match(first_line) is not None
 
 
+def _leading_text(content: str | bytes) -> str:
+    """Return the start of ``content`` (512 characters at most) without
+    leading whitespace, to sniff its format."""
+    if isinstance(content, (bytes, bytearray, memoryview)):
+        sniff = bytes(content)[:512].decode("utf-8", errors="replace")
+    else:
+        sniff = content[:512]
+    return sniff.lstrip()
+
+
 def _describe_parse_failure(
     content: str | bytes,
-    aggregate_error: InvalidAggregateReport,
-    smtp_tls_error: InvalidSMTPTLSReport,
-    email_error: InvalidDMARCReport,
+    aggregate_error: str,
+    smtp_tls_error: str,
+    email_error: str,
 ) -> str:
     """Builds a human-readable reason for a parse_report_file failure.
 
@@ -2409,11 +3046,7 @@ def _describe_parse_failure(
     "not an email". Sniff the leading non-whitespace byte to surface the single
     relevant reason.
     """
-    if isinstance(content, (bytes, bytearray, memoryview)):
-        sniff = bytes(content)[:512].decode("utf-8", errors="replace")
-    else:
-        sniff = content[:512]
-    sniff = sniff.lstrip()
+    sniff = _leading_text(content)
 
     if sniff.startswith("<"):
         return f"Invalid aggregate report: {aggregate_error}"
@@ -2515,40 +3148,56 @@ def parse_report_file(
     if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
         content = extract_report(content)
 
-    results: ParsedReport | None = None
-
     # parse_report_file tries the three report formats in turn. When all three
-    # reject the input, keep each format's specific error so the final message
+    # reject the input, keep each format's error text so the final message
     # can explain *why* the file is invalid instead of a bare "Not a valid
-    # report" (see _describe_parse_failure).
+    # report" (see _describe_parse_failure). Only the text is kept: an
+    # exception's traceback holds the failed parser's frames, and with them
+    # its partial tree, while the next parser runs (GHSA-q7gm-8cj9-94hr).
+    aggregate_message = smtp_tls_message = email_message = ""
     try:
         report = parse_aggregate_report_file(
             content,
             config=cfg,
             keep_alive=keep_alive,
         )
-        results = {"report_type": "aggregate", "report": report}
+        return {"report_type": "aggregate", "report": report}
     except InvalidAggregateReport as aggregate_error:
+        aggregate_message = str(aggregate_error)
+    leading = _leading_text(content)
+    if leading.startswith("<"):
+        # JSON never begins with "<", and parse_smtp_tls_report_json() would
+        # first decode the whole content.
+        smtp_tls_message = "not JSON"
+    else:
         try:
             report = parse_smtp_tls_report_json(content)
-            results = {"report_type": "smtp_tls", "report": report}
+            return {"report_type": "smtp_tls", "report": report}
         except InvalidSMTPTLSReport as smtp_tls_error:
-            try:
-                results = parse_report_email(
-                    content,
-                    config=cfg,
-                    keep_alive=keep_alive,
-                )
-            except InvalidDMARCReport as email_error:
-                raise ParserError(
-                    _describe_parse_failure(
-                        content, aggregate_error, smtp_tls_error, email_error
-                    )
-                ) from email_error
-
-    if results is None:
-        raise ParserError("Not a valid report")
-    return results
+            smtp_tls_message = str(smtp_tls_error)
+    if leading.startswith(("<", "{")):
+        # An RFC 822 message begins with a header line, never "<" or "{";
+        # such a file's failure is reported as the aggregate or SMTP TLS
+        # error, so no email reason is needed.
+        pass
+    elif _exceeds_size_cap(content):
+        # The email parser has no size cap of its own.
+        email_message = _size_cap_text(content)
+    else:
+        try:
+            return parse_report_email(content, config=cfg, keep_alive=keep_alive)
+        except InvalidDMARCReport as email_error:
+            email_message = str(email_error)
+    message = _describe_parse_failure(
+        content, aggregate_message, smtp_tls_message, email_message
+    )
+    # The cause is a fresh exception with the relevant format's text, so the
+    # chain is kept without the failed parse's traceback.
+    if leading.startswith("<"):
+        raise ParserError(message) from InvalidAggregateReport(aggregate_message)
+    if leading.startswith("{"):
+        raise ParserError(message) from InvalidSMTPTLSReport(smtp_tls_message)
+    raise ParserError(message) from InvalidDMARCReport(email_message)
 
 
 _ASCII_UPPER_TO_LOWER = str.maketrans(

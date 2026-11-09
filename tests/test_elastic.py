@@ -8,18 +8,27 @@ construction, index naming, deduplication queries, error wrapping —
 without needing a running Elasticsearch cluster.
 """
 
+import copy
+import json
+import re
 import time
 import unittest
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import cast
 from unittest.mock import MagicMock, call, patch
 
 from elasticsearch import NotFoundError
 
 import parsedmarc.elastic as elastic_module
-from parsedmarc import InvalidFailureReport, parse_report_file
+from parsedmarc import (
+    InvalidFailureReport,
+    parse_aggregate_report_xml,
+    parse_report_email,
+    parse_report_file,
+)
 from parsedmarc.elastic import (
     AlreadySaved,
     ElasticsearchError,
@@ -320,32 +329,40 @@ class TestSetHosts(unittest.TestCase):
 
 class TestCreateIndexes(unittest.TestCase):
     def test_creates_missing_index_with_default_settings(self):
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            mock_index = mock_index_cls.return_value
-            mock_index.exists.return_value = False
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
             create_indexes(["dmarc_aggregate-2024-01-15"])
-        mock_index.settings.assert_called_once_with(
-            number_of_shards=1, number_of_replicas=0
+        mock_get_conn.return_value.indices.create.assert_called_once_with(
+            index="dmarc_aggregate-2024-01-15",
+            body={"settings": {"number_of_shards": 1, "number_of_replicas": 0}},
         )
-        mock_index.create.assert_called_once()
 
     def test_creates_with_custom_settings(self):
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            mock_index = mock_index_cls.return_value
-            mock_index.exists.return_value = False
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
             create_indexes(
                 ["idx"], settings={"number_of_shards": 3, "refresh_interval": "5s"}
             )
-        mock_index.settings.assert_called_once_with(
-            number_of_shards=3, refresh_interval="5s"
+        body = mock_get_conn.return_value.indices.create.call_args.kwargs["body"]
+        self.assertEqual(
+            body, {"settings": {"number_of_shards": 3, "refresh_interval": "5s"}}
         )
 
     def test_skips_existing_index(self):
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            mock_index = mock_index_cls.return_value
-            mock_index.exists.return_value = True
-            create_indexes(["idx"])
-        mock_index.create.assert_not_called()
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = True
+            create_indexes(["idx"], mappings={"date_detection": False})
+        mock_get_conn.return_value.indices.create.assert_not_called()
+        mock_get_conn.return_value.indices.put_mapping.assert_not_called()
 
     def test_wraps_sdk_error(self):
         with patch("parsedmarc.elastic.Index") as mock_index_cls:
@@ -372,37 +389,36 @@ class TestCreateIndexesServerless(unittest.TestCase):
     def tearDown(self):
         elastic_module._SERVERLESS = self._original
 
+    def _created_body(self, **kwargs):
+        with (
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            create_indexes(["idx"], **kwargs)
+        create = mock_get_conn.return_value.indices.create
+        create.assert_called_once()
+        return create.call_args.kwargs["body"]
+
     def test_serverless_default_skips_settings_entirely(self):
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            mock_index = mock_index_cls.return_value
-            mock_index.exists.return_value = False
-            create_indexes(["idx"])
-        mock_index.settings.assert_not_called()
-        mock_index.create.assert_called_once()
+        self.assertEqual(self._created_body(), {})
 
     def test_serverless_filters_rejected_keys_and_passes_others_through(self):
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            mock_index = mock_index_cls.return_value
-            mock_index.exists.return_value = False
-            create_indexes(
-                ["idx"],
-                settings={
-                    "number_of_shards": 3,
-                    "number_of_replicas": 2,
-                    "refresh_interval": "5s",
-                },
-            )
-        mock_index.settings.assert_called_once_with(refresh_interval="5s")
+        body = self._created_body(
+            settings={
+                "number_of_shards": 3,
+                "number_of_replicas": 2,
+                "refresh_interval": "5s",
+            },
+        )
+        self.assertEqual(body, {"settings": {"refresh_interval": "5s"}})
 
     def test_serverless_skips_settings_when_only_rejected_keys(self):
-        with patch("parsedmarc.elastic.Index") as mock_index_cls:
-            mock_index = mock_index_cls.return_value
-            mock_index.exists.return_value = False
-            create_indexes(
-                ["idx"], settings={"number_of_shards": 3, "number_of_replicas": 2}
-            )
-        mock_index.settings.assert_not_called()
-        mock_index.create.assert_called_once()
+        body = self._created_body(
+            settings={"number_of_shards": 3, "number_of_replicas": 2},
+            mappings={"date_detection": False},
+        )
+        self.assertEqual(body, {"mappings": {"date_detection": False}})
 
 
 # ---------------------------------------------------------------------------
@@ -1629,7 +1645,7 @@ class TestCreateDataStreams(_DataStreamTestCase):
             name="dmarc_aggregate"
         )
         # No concrete index is created for a stream.
-        mock_index_cls.return_value.create.assert_not_called()
+        client.indices.create.assert_not_called()
         self.assertIn("dmarc_aggregate", elastic_module._READY_DATA_STREAMS)
 
     def test_default_settings_are_one_shard_no_replicas(self):
@@ -1803,7 +1819,7 @@ class TestSaveToDataStreams(_DataStreamTestCase):
         client.indices.create_data_stream.assert_called_once_with(
             name="cust_dmarc_aggregate_tenant_a"
         )
-        mock_index_cls.return_value.create.assert_not_called()
+        client.indices.create.assert_not_called()
         # The dedup search still uses the wildcard, which matches the
         # stream as well as dated indexes written before the switch.
         self.assertEqual(
@@ -1824,7 +1840,7 @@ class TestSaveToDataStreams(_DataStreamTestCase):
             index_call["body"]["@timestamp"],
             datetime(2024, 1, 15, tzinfo=timezone.utc),
         )
-        mock_index_cls.return_value.create.assert_called_once()
+        client.indices.create.assert_called_once()
         client.indices.put_index_template.assert_not_called()
         client.indices.create_data_stream.assert_not_called()
 
@@ -1843,7 +1859,7 @@ class TestSaveToDataStreams(_DataStreamTestCase):
             datetime(2024, 1, 1, tzinfo=timezone.utc),
         )
         client.indices.create_data_stream.assert_called_once_with(name="dmarc_failure")
-        mock_index_cls.return_value.create.assert_not_called()
+        client.indices.create.assert_not_called()
         self.assertEqual(
             mock_search_cls.call_args.kwargs["index"],
             "dmarc_failure*,dmarc_forensic*",
@@ -1877,7 +1893,7 @@ class TestSaveToDataStreams(_DataStreamTestCase):
             datetime(2024, 2, 3, tzinfo=timezone.utc),
         )
         client.indices.create_data_stream.assert_called_once_with(name="cust_smtp_tls")
-        mock_index_cls.return_value.create.assert_not_called()
+        client.indices.create.assert_not_called()
         self.assertEqual(mock_search_cls.call_args.kwargs["index"], "cust_smtp_tls*")
 
     def test_smtp_tls_report_dated_mode_unchanged_apart_from_timestamp_and_op_type(
@@ -1964,8 +1980,557 @@ class TestBackwardCompatAlias(unittest.TestCase):
         )
 
 
+class TestMappingGuards(_DataStreamTestCase):
+    """New indexes and data stream templates carry explicit mappings
+    (GHSA-qpcg-29vr-jwm3).
+
+    Before 11.2.2 they were created with settings only, so the cluster
+    inferred every field's type from the first document, with
+    ``date_detection`` on: an aggregate report with ``report_id``
+    ``2026-11-09`` mapped ``report_id`` as a date for its day, a failure
+    sample header ``Subject.x`` mapped ``sample.headers.subject`` as an
+    object, and invented header names used up the 1,000-field limit, after
+    which legitimate reports for that index were rejected.
+    """
+
+    def _save_dated(self, save_function, report):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Search") as mock_search_cls,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            mock_search_cls.return_value.execute.return_value = []
+            mock_index_cls.return_value.exists.return_value = False
+            save_function(report)
+        client.indices.create.assert_called_once()
+        return client
+
+    def _created_mappings(self, save_function, report):
+        client = self._save_dated(save_function, report)
+        return client.indices.create.call_args.kwargs["body"]["mappings"]
+
+    def _template_mappings(self, save_function, report):
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Search") as mock_search_cls,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            mock_search_cls.return_value.execute.return_value = []
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            save_function(report, use_data_streams=True)
+        template = client.indices.put_index_template.call_args.kwargs
+        return template["template"]["mappings"]
+
+    def _assert_dates_declared(self, mappings, names):
+        for name in names:
+            self.assertEqual(mappings["properties"][name], {"type": "date"}, name)
+
+    def test_aggregate_index_turns_date_detection_off(self):
+        mappings = self._created_mappings(
+            save_aggregate_report_to_elasticsearch, _aggregate_report()
+        )
+        self.assertIs(mappings["date_detection"], False)
+        self._assert_dates_declared(
+            mappings, ["@timestamp", "date_range", "date_begin", "date_end"]
+        )
+        self.assertNotIn("sample", mappings["properties"])
+        # report_id stays dynamic: with date detection off a date-shaped
+        # value maps it as a string, not a date.
+        self.assertNotIn("report_id", mappings["properties"])
+
+    def test_smtp_tls_index_turns_date_detection_off(self):
+        mappings = self._created_mappings(
+            save_smtp_tls_report_to_elasticsearch, _smtp_tls_report()
+        )
+        self.assertIs(mappings["date_detection"], False)
+        self._assert_dates_declared(
+            mappings, ["@timestamp", "date_range", "date_begin", "date_end"]
+        )
+        self.assertNotIn("sample", mappings["properties"])
+
+    def test_failure_index_maps_sample_headers_without_dynamic_fields(self):
+        mappings = self._created_mappings(
+            save_failure_report_to_elasticsearch, _failure_report()
+        )
+        self.assertIs(mappings["date_detection"], False)
+        self._assert_dates_declared(mappings, ["@timestamp", "arrival_date"])
+        sample = mappings["properties"]["sample"]["properties"]
+        self.assertEqual(sample["date"], {"type": "date"})
+        headers = sample["headers"]
+        self.assertEqual(headers["type"], "object")
+        self.assertIs(headers["dynamic"], False)
+        string_field = {
+            "type": "text",
+            "fields": {"keyword": {"type": "keyword", "ignore_above": 256}},
+        }
+        for name in ("from", "to", "subject", "date", "message-id", "cc"):
+            self.assertEqual(headers["properties"][name], string_field, name)
+        for name in headers["properties"]:
+            # Stored names are lower-cased with "." replaced, so a declared
+            # name must be in that form or no stored header can match it.
+            self.assertEqual(name, name.lower().replace(".", "_"), name)
+
+    def test_failure_mapping_declares_every_header_the_dashboards_query(self):
+        dashboards = Path(__file__).resolve().parent.parent / "dashboards"
+        referenced = set()
+        for path in dashboards.rglob("*"):
+            if path.is_file() and path.suffix in (".json", ".ndjson", ".xml"):
+                text = path.read_text(encoding="utf-8")
+                for match in re.finditer(r"sample\.headers\.([A-Za-z0-9_-]+)", text):
+                    referenced.add(match.group(1).lower())
+        self.assertIn("x-mailer", referenced)
+        mappings = self._created_mappings(
+            save_failure_report_to_elasticsearch, _failure_report()
+        )
+        declared = mappings["properties"]["sample"]["properties"]["headers"][
+            "properties"
+        ]
+        self.assertLessEqual(referenced, set(declared))
+
+    def test_data_stream_templates_carry_the_mappings(self):
+        for save_function, report, has_sample in (
+            (save_aggregate_report_to_elasticsearch, _aggregate_report(), False),
+            (save_failure_report_to_elasticsearch, _failure_report(), True),
+            (save_smtp_tls_report_to_elasticsearch, _smtp_tls_report(), False),
+        ):
+            case = save_function.__name__
+            elastic_module._READY_DATA_STREAMS.clear()
+            mappings = self._template_mappings(save_function, report)
+            self.assertIs(mappings["date_detection"], False, case)
+            self.assertEqual(
+                mappings["properties"]["@timestamp"], {"type": "date"}, case
+            )
+            self.assertEqual("sample" in mappings["properties"], has_sample, case)
+            if has_sample:
+                headers = mappings["properties"]["sample"]["properties"]["headers"]
+                self.assertIs(headers["dynamic"], False, case)
+                self.assertIn("subject", headers["properties"], case)
+
+    def test_data_stream_template_adds_timestamp_without_changing_the_argument(
+        self,
+    ):
+        mappings = {"date_detection": False, "properties": {"x": {"type": "long"}}}
+        with (
+            _registered_client() as client,
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+        ):
+            client.indices.get_data_stream.side_effect = _not_found()
+            mock_index_cls.return_value.exists.return_value = False
+            create_data_streams(["s"], mappings=mappings)
+        template = client.indices.put_index_template.call_args.kwargs
+        self.assertEqual(
+            template["template"]["mappings"],
+            {
+                "date_detection": False,
+                "properties": {"x": {"type": "long"}, "@timestamp": {"type": "date"}},
+            },
+        )
+        self.assertEqual(
+            mappings, {"date_detection": False, "properties": {"x": {"type": "long"}}}
+        )
+
+    def test_dotted_header_name_is_stored_with_an_underscore(self):
+        report = _failure_report()
+        report["parsed_sample"] = dict(report["parsed_sample"])
+        report["parsed_sample"]["headers"] = {
+            "From": [["", "sender@example.com"]],
+            "Subject.x": "v",
+            "X.Y.Z": "w",
+        }
+        client = self._save_dated(save_failure_report_to_elasticsearch, report)
+        headers = client.index.call_args.kwargs["body"]["sample"]["headers"]
+        self.assertEqual(headers["subject_x"], "v")
+        self.assertEqual(headers["x_y_z"], "w")
+        self.assertNotIn("subject.x", headers)
+        self.assertNotIn("subject", headers)
+        # The address headers are still flattened under their usual keys.
+        self.assertEqual(headers["from"], "sender@example.com")
+
+
 # Silence unused-import lint in the test module preamble.
 _ = call
+
+
+class TestAggregateIndexCap(unittest.TestCase):
+    """One report may create at most MAX_INDEXES_PER_REPORT dated indexes;
+    the overflow records are saved to the report's first index."""
+
+    DAYS = 40
+
+    def _report(self):
+        report = _aggregate_report()
+        template = report["records"][0]
+        report["records"] = []
+        for day in range(self.DAYS):
+            record = copy.deepcopy(template)
+            begin = datetime(2024, 1, 1, tzinfo=timezone.utc) + timedelta(days=day)
+            end = begin + timedelta(days=1)
+            record["interval_begin"] = begin.strftime("%Y-%m-%d %H:%M:%S")
+            record["interval_end"] = end.strftime("%Y-%m-%d %H:%M:%S")
+            report["records"].append(record)
+        return report
+
+    def _save(self, **kwargs):
+        """Save the report; return created index names, the (index,
+        date_begin) of each saved document and the logger mock."""
+        saved = []
+
+        def capture(doc, *args, **save_kwargs):
+            saved.append((doc.meta.index, doc.date_begin))
+
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection") as mock_get_conn,
+            patch("parsedmarc.elastic.logger") as mock_logger,
+            patch("parsedmarc.elastic.create_data_streams") as mock_streams,
+            patch.object(
+                elastic_module._AggregateReportDoc,
+                "save",
+                autospec=True,
+                side_effect=capture,
+            ),
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            save_aggregate_report_to_elasticsearch(self._report(), **kwargs)
+            created = [
+                c.kwargs["index"]
+                for c in mock_get_conn.return_value.indices.create.call_args_list
+            ]
+        return created, saved, mock_logger, mock_streams
+
+    def test_daily_indexes_are_capped_and_overflow_goes_to_the_first(self):
+        created, saved, mock_logger, _ = self._save()
+        expected = [f"dmarc_aggregate-2024-01-{d:02d}" for d in range(1, 32)]
+        self.assertEqual(sorted(set(created)), expected)
+        self.assertEqual(len(saved), self.DAYS)
+        self.assertEqual([index for index, _ in saved[:31]], expected)
+        self.assertEqual(
+            [index for index, _ in saved[31:]], ["dmarc_aggregate-2024-01-01"] * 9
+        )
+        # The overflow records keep their own dates.
+        begins = [begin for _, begin in saved]
+        self.assertEqual(begins[31], datetime(2024, 2, 1, tzinfo=timezone.utc))
+        self.assertEqual(begins[39], datetime(2024, 2, 9, tzinfo=timezone.utc))
+        mock_logger.warning.assert_called_once()
+        self.assertIn("9 records", mock_logger.warning.call_args.args[0])
+
+    def test_routing_warning_escapes_the_report_id(self):
+        """The report ID is sender-controlled; a CR/LF in it must not forge
+        a log line."""
+        report = self._report()
+        report["report_metadata"]["report_id"] = "poc\r\nforged"
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection"),
+            patch("parsedmarc.elastic.logger") as mock_logger,
+            patch.object(elastic_module._AggregateReportDoc, "save", autospec=True),
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            save_aggregate_report_to_elasticsearch(report)
+        message = mock_logger.warning.call_args.args[0]
+        self.assertIn("poc\\r\\nforged", message)
+        self.assertNotIn("\n", message)
+
+    def test_monthly_indexes_are_not_affected(self):
+        created, saved, mock_logger, _ = self._save(monthly_indexes=True)
+        self.assertEqual(
+            sorted(set(created)), ["dmarc_aggregate-2024-01", "dmarc_aggregate-2024-02"]
+        )
+        self.assertEqual(
+            [index for index, _ in saved],
+            ["dmarc_aggregate-2024-01"] * 31 + ["dmarc_aggregate-2024-02"] * 9,
+        )
+        mock_logger.warning.assert_not_called()
+
+    def test_data_streams_are_not_affected(self):
+        created, saved, mock_logger, mock_streams = self._save(use_data_streams=True)
+        self.assertEqual(created, [])
+        self.assertEqual({index for index, _ in saved}, {"dmarc_aggregate"})
+        self.assertEqual(len(saved), self.DAYS)
+        self.assertEqual(mock_streams.call_count, self.DAYS)
+        mock_logger.warning.assert_not_called()
+
+
+class TestSaveFailureReportEmptyAddressHeaders(unittest.TestCase):
+    """GHSA-4272-4r8g-6c5h: a failure sample whose From, To or Reply-To
+    header holds no address made the save index ``headers[...][0]`` of
+    mail-parser's empty list and raise ``IndexError``, which escaped the
+    CLI and stopped the mailbox run. The header is now left out of the
+    document and of the duplicate query."""
+
+    # An empty From: and Reply-To:, and To: undisclosed-recipients:; (an
+    # RFC 5322 §3.4 group with no members, which legitimate mail uses).
+    ARF = (
+        "From: dmarc@reporter.example\n"
+        "To: ruf@example.com\n"
+        "Date: Mon, 01 Jan 2024 00:00:00 +0000\n"
+        "Subject: DMARC Failure Report\n"
+        "MIME-Version: 1.0\n"
+        'Content-Type: multipart/report; report-type=feedback-report; boundary="b"\n'
+        "\n"
+        "--b\n"
+        "Content-Type: text/plain\n"
+        "\n"
+        "Authentication failure report.\n"
+        "--b\n"
+        "Content-Type: message/feedback-report\n"
+        "\n"
+        "Feedback-Type: auth-failure\n"
+        "User-Agent: test/1.0\n"
+        "Version: 1\n"
+        "Original-Mail-From: user@example.com\n"
+        "Arrival-Date: Mon, 01 Jan 2024 00:00:00 +0000\n"
+        "Source-IP: 192.0.2.1\n"
+        "Reported-Domain: example.com\n"
+        "Authentication-Results: mx; dmarc=fail\n"
+        "\n"
+        "--b\n"
+        "Content-Type: text/rfc822-headers\n"
+        "\n"
+        "From:\n"
+        "To: undisclosed-recipients:;\n"
+        "Reply-To:\n"
+        "Subject: spoofed\n"
+        "Date: Mon, 01 Jan 2024 00:00:00 +0000\n"
+        "--b--\n"
+    )
+
+    def test_empty_address_headers_are_left_out(self):
+        parsed = parse_report_email(self.ARF, offline=True)
+        self.assertEqual(parsed["report_type"], "failure")
+        report = cast(dict, parsed["report"])
+        headers = report["parsed_sample"]["headers"]
+        self.assertEqual(
+            (headers["From"], headers["To"], headers["Reply-To"]), ([], [], [])
+        )
+        search = _empty_search()
+        with (
+            patch("parsedmarc.elastic.Search", return_value=search),
+            patch("parsedmarc.elastic.Index"),
+            patch.object(
+                elastic_module._FailureReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_failure_report_to_elasticsearch(report)
+        doc = mock_save.call_args.args[0]
+        self.assertEqual(doc.sample.headers["subject"], "spoofed")
+        for header in ("from", "to", "reply-to"):
+            self.assertNotIn(header, doc.sample.headers)
+        query = json.dumps(search.query.to_dict())
+        self.assertIn("sample.headers.subject", query)
+        self.assertNotIn("sample.headers.from", query)
+        self.assertNotIn("sample.headers.to", query)
+
+
+class TestAggregateAttributesDoNotReachTheDocument(unittest.TestCase):
+    """GHSA-qpcg-29vr-jwm3: an XML attribute on a scalar element reached the
+    document as an object and mapped the field as one."""
+
+    def test_document_holds_no_object_for_attributed_fields(self):
+        attribute = ' a="1"'
+        xml = (
+            f"<feedback><version{attribute}>1.0</version><report_metadata>"
+            "<org_name>example.net</org_name><email>a@example.net</email>"
+            "<report_id>r</report_id><date_range><begin>1704067200</begin>"
+            "<end>1704153599</end></date_range></report_metadata>"
+            "<policy_published><domain>example.com</domain>"
+            f"<p{attribute}>none</p><fo{attribute}>1</fo></policy_published>"
+            "<record><row><source_ip>192.0.2.1</source_ip><count>1</count>"
+            f"<policy_evaluated><disposition{attribute}>none</disposition>"
+            "<dkim>pass</dkim><spf>pass</spf></policy_evaluated></row>"
+            "<identifiers><header_from>example.com</header_from>"
+            f"<envelope_to{attribute}>example.org</envelope_to></identifiers>"
+            "<auth_results><spf><domain>example.com</domain><result>pass</result>"
+            "</spf></auth_results></record></feedback>"
+        )
+        report = parse_aggregate_report_xml(xml, offline=True)
+        docs = []
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection"),
+            patch.object(
+                elastic_module._AggregateReportDoc,
+                "save",
+                autospec=True,
+                side_effect=lambda doc, *args, **kwargs: docs.append(doc.to_dict()),
+            ),
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            save_aggregate_report_to_elasticsearch(cast(dict, report))
+        doc = docs[0]
+        self.assertEqual(doc["xml_schema"], "1.0")
+        self.assertEqual(doc["disposition"], "none")
+        self.assertEqual(doc["envelope_to"], "example.org")
+        self.assertEqual(doc["published_policy"]["p"], "none")
+        self.assertEqual(doc["published_policy"]["fo"], "1")
+
+
+# Every element of an aggregate report that the schema types as a string,
+# with its plain value; {name} placeholders take a variant.
+_SCALAR_FIELD_VALUES = {
+    "version": "1.0",
+    "org_name": "reporter.example",
+    "email": "dmarc@reporter.example",
+    "extra_contact_info": "https://reporter.example/dmarc",
+    "report_id": "scalar-test",
+    "generator": "reporter/1.0",
+    "domain": "example.com",
+    "adkim": "r",
+    "aspf": "s",
+    "p": "none",
+    "sp": "quarantine",
+    "pct": "100",
+    "fo": "1",
+    "np": "reject",
+    "testing": "n",
+    "discovery_method": "psl",
+    "source_ip": "192.0.2.1",
+    "count": "3",
+    "disposition": "none",
+    "dkim": "pass",
+    "spf": "fail",
+    "header_from": "example.com",
+    "envelope_from": "bounce.example.com",
+    "envelope_to": "example.org",
+    "dkim_domain": "example.com",
+    "selector": "s1",
+    "dkim_result": "pass",
+    "dkim_human_result": "good signature",
+    "spf_domain": "bounce.example.com",
+    "scope": "mfrom",
+    "spf_result": "fail",
+    "spf_human_result": "not listed",
+}
+_SCALAR_FIELD_TEMPLATE = (
+    "<feedback><version>{version}</version><report_metadata>"
+    "<org_name>{org_name}</org_name><email>{email}</email>"
+    "<extra_contact_info>{extra_contact_info}</extra_contact_info>"
+    "<report_id>{report_id}</report_id><generator>{generator}</generator>"
+    "<date_range><begin>1704067200</begin><end>1704153599</end></date_range>"
+    "</report_metadata><policy_published><domain>{domain}</domain>"
+    "<adkim>{adkim}</adkim><aspf>{aspf}</aspf><p>{p}</p><sp>{sp}</sp>"
+    "<pct>{pct}</pct><fo>{fo}</fo><np>{np}</np><testing>{testing}</testing>"
+    "<discovery_method>{discovery_method}</discovery_method></policy_published>"
+    "<record><row><source_ip>{source_ip}</source_ip><count>{count}</count>"
+    "<policy_evaluated><disposition>{disposition}</disposition>"
+    "<dkim>{dkim}</dkim><spf>{spf}</spf>"
+    "<reason><type>other</type><comment>c</comment></reason>"
+    "</policy_evaluated></row><identifiers><header_from>{header_from}</header_from>"
+    "<envelope_from>{envelope_from}</envelope_from>"
+    "<envelope_to>{envelope_to}</envelope_to></identifiers><auth_results>"
+    "<dkim><domain>{dkim_domain}</domain><selector>{selector}</selector>"
+    "<result>{dkim_result}</result><human_result>{dkim_human_result}</human_result>"
+    "</dkim><spf><domain>{spf_domain}</domain><scope>{scope}</scope>"
+    "<result>{spf_result}</result><human_result>{spf_human_result}</human_result>"
+    "</spf></auth_results></record></feedback>"
+)
+
+
+def _scalar_field_xml(**variants: str) -> str:
+    """The report with each named field's value replaced by its variant."""
+    return _SCALAR_FIELD_TEMPLATE.format(**{**_SCALAR_FIELD_VALUES, **variants})
+
+
+# Fields whose element can hold child elements without the report being
+# rejected.
+_OPTIONAL_SCALAR_FIELDS = tuple(
+    name
+    for name in _SCALAR_FIELD_VALUES
+    if name
+    not in (
+        "org_name",
+        "report_id",
+        "domain",
+        "p",
+        "source_ip",
+        "count",
+        "header_from",
+        "dkim_domain",
+        "spf_domain",
+    )
+)
+
+
+# The fields of an aggregate report document that hold objects or lists;
+# "[]" stands for a list item. Every other field must be a scalar.
+_AGGREGATE_DOC_CONTAINERS = {
+    "date_range",
+    "published_policy",
+    "policy_overrides",
+    "policy_overrides[]",
+    "dkim_results",
+    "dkim_results[]",
+    "dkim_results_combined",
+    "spf_results",
+    "spf_results[]",
+    "spf_results_combined",
+    "errors",
+}
+
+
+def _container_paths(value, path=""):
+    """Yield the path of every dict and list inside ``value``."""
+    if isinstance(value, dict):
+        if path:
+            yield path
+        for key, item in value.items():
+            yield from _container_paths(item, f"{path}.{key}" if path else key)
+    elif isinstance(value, list):
+        yield path
+        for item in value:
+            yield from _container_paths(item, f"{path}[]")
+
+
+# A second <policy_published> makes the field a list; the first one's <p>
+# holds a child element.
+_REPEATED_POLICY_VARIANTS = {
+    "p": "<x>1</x>",
+    "discovery_method": (
+        "psl</discovery_method></policy_published><policy_published>"
+        "<domain>example.com</domain><p>none</p><discovery_method>psl"
+    ),
+}
+
+
+class TestAggregateScalarFieldsReachTheDocumentAsScalars(unittest.TestCase):
+    """GHSA-qpcg-29vr-jwm3: a child element under a field the schema types
+    as a string reached the document as an object and mapped the field as
+    one. The walk covers every field, so a scalar field added later is
+    checked too."""
+
+    def _document(self, **variants):
+        report = parse_aggregate_report_xml(_scalar_field_xml(**variants), offline=True)
+        docs = []
+        with (
+            patch("parsedmarc.elastic.Search", return_value=_empty_search()),
+            patch("parsedmarc.elastic.Index") as mock_index_cls,
+            patch("parsedmarc.elastic.connections.get_connection"),
+            patch.object(
+                elastic_module._AggregateReportDoc,
+                "save",
+                autospec=True,
+                side_effect=lambda doc, *args, **kwargs: docs.append(doc.to_dict()),
+            ),
+        ):
+            mock_index_cls.return_value.exists.return_value = False
+            save_aggregate_report_to_elasticsearch(cast(dict, report))
+        return docs[0]
+
+    def test_no_object_outside_the_object_fields(self):
+        mixed = {name: f"{value}<x/>" for name, value in _SCALAR_FIELD_VALUES.items()}
+        child = {name: "<x>1</x>" for name in _OPTIONAL_SCALAR_FIELDS}
+        for label, variants in (
+            ("mixed", mixed),
+            ("child", child),
+            ("repeated policy_published", _REPEATED_POLICY_VARIANTS),
+        ):
+            paths = set(_container_paths(self._document(**variants)))
+            self.assertIn("published_policy", paths, msg=label)
+            self.assertLessEqual(paths, _AGGREGATE_DOC_CONTAINERS, msg=label)
 
 
 if __name__ == "__main__":

@@ -27,6 +27,7 @@ from expiringdict import ExpiringDict
 import parsedmarc
 import parsedmarc.resources.ipinfo
 import parsedmarc.utils
+from tests.timing import budget
 from tests.tzutil import force_tz
 
 
@@ -293,11 +294,12 @@ class Test(unittest.TestCase):
         comment is left unclosed so the old pattern can never match: with a
         closing parenthesis its first attempt succeeded and the backtracking
         never happened."""
+        limit = budget(5)
         start = time.perf_counter()
         # dateutil's ParserError subclasses ValueError.
         with self.assertRaises(ValueError):
             parsedmarc.utils.human_timestamp_to_datetime(" " * 200_000 + "(x")
-        self.assertLess(time.perf_counter() - start, 5)
+        self.assertLess(time.perf_counter() - start, limit)
 
     def testHumanTimestampToDatetimeNegativeZero(self):
         """-0000 timezone is handled"""
@@ -628,9 +630,10 @@ class TestRedactUrlCredentials(unittest.TestCase):
             "/@" * 500_000,
         ):
             with self.subTest(prefix=value[:8]):
+                limit = budget(5)
                 started = time.monotonic()
                 parsedmarc.utils.redact_url_credentials(value)
-                self.assertLess(time.monotonic() - started, 5)
+                self.assertLess(time.monotonic() - started, limit)
 
 
 class TestSanitizeForLog(unittest.TestCase):
@@ -1324,6 +1327,27 @@ class TestUtilsIpDbPaths(unittest.TestCase):
 
 class TestUtilsParseEmail(unittest.TestCase):
     """Tests for parse_email edge cases"""
+
+    def testOverLimitSampleIsRejected(self):
+        """parse_email raises MessageLimitExceeded for a sample whose
+        message/delivery-status body holds too many blank-line-separated
+        blocks, each a part (GHSA-qcc2-4x3v-v4g7), and still parses a normal
+        one"""
+        from mailsuite.utils import MessageLimitExceeded
+
+        sample = (
+            "From: test@example.com\nSubject: Test\n"
+            "Content-Type: message/delivery-status\n\n" + "\n" * 200_000
+        )
+        with self.assertRaises(MessageLimitExceeded) as ctx:
+            parsedmarc.utils.parse_email(sample)
+        self.assertEqual(str(ctx.exception), "Message exceeds max_parts (10000)")
+        with self.assertRaises(MessageLimitExceeded):
+            parsedmarc.utils.parse_email(sample.encode())
+        result = parsedmarc.utils.parse_email(
+            "From: test@example.com\nSubject: Ok\n\nhi"
+        )
+        self.assertEqual(result["subject"], "Ok")
 
     def testMinimalEmail(self):
         """parse_email handles email with minimal headers"""

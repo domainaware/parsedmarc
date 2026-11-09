@@ -21,7 +21,7 @@ import unittest
 import zipfile
 from collections.abc import Iterator, Sequence
 from configparser import ConfigParser
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from tempfile import NamedTemporaryFile
@@ -10534,6 +10534,262 @@ tenant_id = fosdem
             "Loki: Loki token and username/password are exclusive",
         )
         self.assertIsInstance(context.exception.__cause__, ValueError)
+
+
+class TestOutputDestinationExceptionsMarkTheBatchUnsaved(unittest.TestCase):
+    """GHSA-4272-4r8g-6c5h: the failure and SMTP TLS Elasticsearch and
+    OpenSearch blocks of process_reports(), every Splunk HEC and PostgreSQL
+    block, and the file output caught only their own client's error. Any
+    other exception a report made a saver raise (an IndexError on an empty
+    From: list, a TypeError in the CSV writer) escaped through the save
+    callback, and _main logged "Mailbox Error" and exited 1 on every run,
+    leaving the message in place. Each block now ends with the catch-all the
+    aggregate Elasticsearch block has: the error is recorded through
+    log_output_error() and the batch is reported unsaved."""
+
+    _AGGREGATE = {"policy_published": {"domain": "example.com"}}
+    _FAILURE = {"reported_domain": "example.com"}
+    _SMTP_TLS = {"policies": [{"policy_domain": "example.com"}]}
+
+    def setUp(self):
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+
+    def _run(self, sections, batch, *patches, general="", silent=True):
+        """Run _main() on one mailbox batch.
+
+        Returns the save callback's verdicts, the ERROR log lines, the exit
+        code (``None`` when _main returned) and the mocks ``patches`` made.
+        """
+        with NamedTemporaryFile("w", suffix=".ini", delete=False) as config_file:
+            config_file.write(
+                "[general]\n"
+                "save_aggregate = true\n"
+                "save_failure = true\n"
+                "save_smtp_tls = true\n"
+                f"silent = {str(silent).lower()}\n"
+                f"{general}\n"
+                "[imap]\n"
+                "host = imap.example.com\n"
+                "user = test-user\n"
+                "password = test-password\n\n"
+                f"{sections}"
+            )
+            config_path = config_file.name
+        self.addCleanup(lambda: os.path.exists(config_path) and os.remove(config_path))
+        full_batch = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        full_batch.update(batch)
+        verdicts = []
+
+        def _fetch_and_save(**kwargs):
+            verdicts.append(kwargs["save_callback"](full_batch))
+            return full_batch
+
+        with ExitStack() as stack:
+            stack.enter_context(
+                patch(
+                    "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                    side_effect=_fetch_and_save,
+                )
+            )
+            stack.enter_context(
+                patch("parsedmarc.cli.IMAPConnection", return_value=object())
+            )
+            mocks = [stack.enter_context(patcher) for patcher in patches]
+            stack.enter_context(
+                patch.object(sys, "argv", ["parsedmarc", "-c", config_path])
+            )
+            cm = stack.enter_context(self.assertLogs("parsedmarc.log", level="ERROR"))
+            exit_code = None
+            try:
+                parsedmarc.cli._main()
+            except SystemExit as system_exit:
+                exit_code = system_exit.code
+        return verdicts, cm.output, exit_code, mocks
+
+    def _assert_unsaved(self, result, destination, message):
+        verdicts, output, exit_code, _mocks = result
+        self.assertIsNone(exit_code)
+        self.assertEqual(verdicts, [False])
+        expected = f"{destination} exception Error: {message}"
+        self.assertTrue(any(expected in line for line in output), output)
+        self.assertFalse(any("Mailbox Error" in line for line in output), output)
+
+    def _search_backend_patches(self, module, saver, error):
+        return (
+            patch(f"parsedmarc.cli.{module}.set_hosts"),
+            patch(f"parsedmarc.cli.{module}.migrate_indexes"),
+            patch(f"parsedmarc.cli.{module}.{saver}", side_effect=error),
+        )
+
+    def testStandardOutputEncodingErrorIsRecorded(self):
+        """A report string the console cannot encode (a lone surrogate) made
+        print() in process_reports() raise UnicodeEncodeError outside every
+        try."""
+        report = {
+            "organization_name": "Comp\ud800any",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "contact_info": "tls@attacker.example",
+            "report_id": "poc",
+            "policies": [],
+        }
+        stdout = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+        with patch.object(sys, "stdout", stdout):
+            result = self._run("", {"smtp_tls_reports": [report]}, silent=False)
+        self._assert_unsaved(
+            result, "Standard output", "'utf-8' codec can't encode character"
+        )
+
+    def testStandardOutputClosedPipeIsRecorded(self):
+        """A closed pipe on standard output (BrokenPipeError) is recorded the
+        same way as an encoding error."""
+
+        class _ClosedPipe(io.StringIO):
+            def write(self, text):
+                raise BrokenPipeError(32, "Broken pipe")
+
+        report = {
+            "organization_name": "Reporter Inc.",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "contact_info": "tls@reporter.example",
+            "report_id": "pipe",
+            "policies": [],
+        }
+        with patch.object(sys, "stdout", _ClosedPipe()):
+            result = self._run("", {"smtp_tls_reports": [report]}, silent=False)
+        self._assert_unsaved(result, "Standard output", "[Errno 32] Broken pipe")
+
+    def testFileOutputExceptionIsRecorded(self):
+        """A real TypeError from the SMTP TLS CSV writer (a policy_strings
+        list holding an integer), not a mock."""
+        output_dir = tempfile.mkdtemp()
+        self.addCleanup(lambda: shutil.rmtree(output_dir, ignore_errors=True))
+        report = {
+            "organization_name": "Attacker Inc.",
+            "begin_date": "2024-01-01T00:00:00Z",
+            "end_date": "2024-01-01T23:59:59Z",
+            "contact_info": "tls@attacker.example",
+            "report_id": "poc",
+            "policies": [
+                {
+                    "policy_domain": "example.com",
+                    "policy_type": "sts",
+                    "policy_strings": [1],
+                    "successful_session_count": 1,
+                    "failed_session_count": 0,
+                }
+            ],
+        }
+        result = self._run(
+            "", {"smtp_tls_reports": [report]}, general=f"output = {output_dir}"
+        )
+        self._assert_unsaved(
+            result,
+            "File output",
+            "sequence item 0: expected str instance, int found",
+        )
+
+    def testSearchBackendFailureAndSmtpTlsExceptionsAreRecorded(self):
+        cases = (
+            ("elastic", "Elasticsearch", "elasticsearch"),
+            ("opensearch", "OpenSearch", "opensearch"),
+        )
+        report_types = (
+            ("failure", "failure_reports", self._FAILURE),
+            ("smtp_tls", "smtp_tls_reports", self._SMTP_TLS),
+        )
+        for module, destination, section in cases:
+            for report_type, batch_key, report in report_types:
+                saver = f"save_{report_type}_report_to_{section}"
+                with self.subTest(saver=saver):
+                    result = self._run(
+                        f"[{section}]\nhosts = localhost\n",
+                        {batch_key: [report]},
+                        *self._search_backend_patches(
+                            module, saver, IndexError("list index out of range")
+                        ),
+                    )
+                    self.assertIs(result[3][2].call_args.args[0], report)
+                    self._assert_unsaved(result, destination, "list index out of range")
+
+    def testPostgreSQLExceptionsAreRecorded(self):
+        report_types = (
+            ("aggregate", "aggregate_reports", self._AGGREGATE),
+            ("failure", "failure_reports", self._FAILURE),
+            ("smtp_tls", "smtp_tls_reports", self._SMTP_TLS),
+        )
+        for report_type, batch_key, report in report_types:
+            saver = f"save_{report_type}_report_to_postgresql"
+            message = "argument of type 'int' is not a container or iterable"
+            client_cls = MagicMock()
+            getattr(client_cls.return_value, saver).side_effect = TypeError(message)
+            with self.subTest(saver=saver):
+                result = self._run(
+                    "[postgresql]\nhost = db.example.com\n",
+                    {batch_key: [report]},
+                    patch("parsedmarc.cli.postgres.PostgreSQLClient", client_cls),
+                )
+                client = client_cls.return_value
+                getattr(client, saver).assert_called_once_with(report)
+                self._assert_unsaved(result, "PostgreSQL", message)
+
+    def testSplunkHecExceptionsAreRecorded(self):
+        report_types = (
+            ("aggregate", "aggregate_reports", self._AGGREGATE),
+            ("failure", "failure_reports", self._FAILURE),
+            ("smtp_tls", "smtp_tls_reports", self._SMTP_TLS),
+        )
+        for report_type, batch_key, report in report_types:
+            saver = f"save_{report_type}_reports_to_splunk"
+            message = "'int' object has no attribute 'replace'"
+            client_cls = MagicMock()
+            getattr(client_cls.return_value, saver).side_effect = AttributeError(
+                message
+            )
+            with self.subTest(saver=saver):
+                result = self._run(
+                    "[splunk_hec]\n"
+                    "url = https://splunk.example.com:8088\n"
+                    "token = test-token\n"
+                    "index = dmarc\n",
+                    {batch_key: [report]},
+                    patch("parsedmarc.cli.splunk.HECClient", client_cls),
+                )
+                client = client_cls.return_value
+                getattr(client, saver).assert_called_once_with([report])
+                self._assert_unsaved(result, "Splunk HEC", message)
+
+    def testFailOnOutputErrorStillExitsThroughParserError(self):
+        """With fail_on_output_error the recorded exception is raised as
+        ParserError, as for any other output error, so _main exits 1 with
+        the output-error message rather than as a mailbox error."""
+        verdicts, output, exit_code, _mocks = self._run(
+            "[elasticsearch]\nhosts = localhost\n",
+            {"failure_reports": [self._FAILURE]},
+            *self._search_backend_patches(
+                "elastic",
+                "save_failure_report_to_elasticsearch",
+                IndexError("list index out of range"),
+            ),
+            general="fail_on_output_error = true",
+        )
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(verdicts, [])
+        self.assertTrue(
+            any(
+                "Output destination failures detected" in line
+                and "Elasticsearch exception Error: list index out of range" in line
+                for line in output
+            ),
+            output,
+        )
+        self.assertFalse(any("Mailbox Error" in line for line in output), output)
 
 
 if __name__ == "__main__":

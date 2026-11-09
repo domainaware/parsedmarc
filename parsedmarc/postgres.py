@@ -45,9 +45,16 @@ def _ensure_utc_suffix(value: str | None) -> str | None:
     Several parsers produce ``YYYY-MM-DD HH:MM:SS`` format strings that
     are known to be UTC but lack an explicit offset.  PostgreSQL
     ``TIMESTAMPTZ`` columns need the offset to avoid interpreting the
-    value in the session timezone.
+    value in the session timezone. A value that is not a string is
+    returned unchanged, for PostgreSQL to accept or reject.
     """
-    if value and "+" not in value and "-" not in value[10:] and "Z" not in value:
+    if (
+        isinstance(value, str)
+        and value
+        and "+" not in value
+        and "-" not in value[10:]
+        and "Z" not in value
+    ):
         return value + "+00"
     return value
 

@@ -21,6 +21,7 @@ from urllib.parse import SplitResult, urlsplit
 
 import mailparser
 from expiringdict import ExpiringDict
+from mailsuite.utils import check_message_limits
 
 from importlib.resources import files
 
@@ -1762,12 +1763,17 @@ def parse_email(data: bytes | str, *, strip_attachment_payloads: bool = False) -
 
     Returns:
         dict: Parsed email data
+
+    Raises:
+        mailsuite.utils.MessageLimitExceeded: The message's structure exceeds
+            the limits of ``mailsuite.utils.check_message_limits``
     """
 
     if isinstance(data, bytes):
         if is_outlook_msg(data):
             data = convert_outlook_msg(data)
         data = data.decode("utf-8", errors="replace")
+    check_message_limits(data)
     parsed_email = mailparser.parse_from_string(data)
     headers = json.loads(parsed_email.headers_json).copy()
     parsed_email = json.loads(parsed_email.mail_json).copy()

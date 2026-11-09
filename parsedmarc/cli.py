@@ -2656,7 +2656,13 @@ def _main():
         )
 
         if not opts.silent:
-            print(output_str)
+            try:
+                print(output_str)
+            except (UnicodeEncodeError, OSError) as error_:
+                # A report string the console's encoding cannot write, or a
+                # closed pipe, must not escape process_reports()
+                # (GHSA-4272-4r8g-6c5h).
+                log_output_error("Standard output exception", error_.__str__())
         if opts.output:
             try:
                 save_output(
@@ -2670,12 +2676,18 @@ def _main():
                     smtp_tls_csv_filename=opts.smtp_tls_csv_filename,
                 )
             except (OSError, ValueError) as error_:
-                # The only output destination that was not already caught:
-                # a full disk or an unwritable directory used to crash the
+                # A full disk or an unwritable directory used to crash the
                 # run outright, and now that a failed save holds mailbox
                 # messages back it also has to be recorded like any other
                 # destination's failure rather than escaping.
                 log_output_error("File output", str(error_))
+            except Exception as error_:
+                # Every destination below ends with the same catch-all: a
+                # report a sender shaped to make one writer raise (a
+                # wrong-typed field reaching the CSV writer, say) must mark
+                # the batch unsaved, not escape process_reports() and stop
+                # the whole mailbox run (GHSA-4272-4r8g-6c5h).
+                log_output_error("File output exception", error_.__str__())
 
         kafka_client = clients.get("kafka_client")
         s3_client = clients.get("s3_client")
@@ -2755,6 +2767,8 @@ def _main():
                     logger.warning(warning.__str__())
                 except postgres.PostgreSQLError as error_:
                     log_output_error("PostgreSQL", error_.__str__())
+                except Exception as error_:
+                    log_output_error("PostgreSQL exception", error_.__str__())
 
                 try:
                     if syslog_client:
@@ -2790,6 +2804,8 @@ def _main():
                         hec_client.save_aggregate_reports_to_splunk(aggregate_reports_)
                 except splunk.SplunkError as e:
                     log_output_error("Splunk HEC", e.__str__())
+                except Exception as error_:
+                    log_output_error("Splunk HEC exception", error_.__str__())
 
         if opts.save_failure:
             for report in reports_["failure_reports"]:
@@ -2813,6 +2829,8 @@ def _main():
                     log_output_error("Elasticsearch", error_.__str__())
                 except InvalidDMARCReport as error_:
                     log_output_error("Invalid DMARC report", error_.__str__())
+                except Exception as error_:
+                    log_output_error("Elasticsearch exception", error_.__str__())
 
                 try:
                     shards = opts.opensearch_number_of_shards
@@ -2834,6 +2852,8 @@ def _main():
                     log_output_error("OpenSearch", error_.__str__())
                 except InvalidDMARCReport as error_:
                     log_output_error("Invalid DMARC report", error_.__str__())
+                except Exception as error_:
+                    log_output_error("OpenSearch exception", error_.__str__())
 
                 try:
                     if kafka_client:
@@ -2856,6 +2876,8 @@ def _main():
                     logger.warning(warning.__str__())
                 except postgres.PostgreSQLError as error_:
                     log_output_error("PostgreSQL", error_.__str__())
+                except Exception as error_:
+                    log_output_error("PostgreSQL exception", error_.__str__())
 
                 try:
                     if syslog_client:
@@ -2891,6 +2913,8 @@ def _main():
                         hec_client.save_failure_reports_to_splunk(failure_reports_)
                 except splunk.SplunkError as e:
                     log_output_error("Splunk HEC", e.__str__())
+                except Exception as error_:
+                    log_output_error("Splunk HEC exception", error_.__str__())
 
         if opts.save_smtp_tls:
             for report in reports_["smtp_tls_reports"]:
@@ -2914,6 +2938,8 @@ def _main():
                     log_output_error("Elasticsearch", error_.__str__())
                 except InvalidDMARCReport as error_:
                     log_output_error("Invalid DMARC report", error_.__str__())
+                except Exception as error_:
+                    log_output_error("Elasticsearch exception", error_.__str__())
 
                 try:
                     shards = opts.opensearch_number_of_shards
@@ -2935,6 +2961,8 @@ def _main():
                     log_output_error("OpenSearch", error_.__str__())
                 except InvalidDMARCReport as error_:
                     log_output_error("Invalid DMARC report", error_.__str__())
+                except Exception as error_:
+                    log_output_error("OpenSearch exception", error_.__str__())
 
                 try:
                     if kafka_client:
@@ -2957,6 +2985,8 @@ def _main():
                     logger.warning(warning.__str__())
                 except postgres.PostgreSQLError as error_:
                     log_output_error("PostgreSQL", error_.__str__())
+                except Exception as error_:
+                    log_output_error("PostgreSQL exception", error_.__str__())
 
                 try:
                     if syslog_client:
@@ -2992,6 +3022,8 @@ def _main():
                         hec_client.save_smtp_tls_reports_to_splunk(smtp_tls_reports_)
                 except splunk.SplunkError as e:
                     log_output_error("Splunk HEC", e.__str__())
+                except Exception as error_:
+                    log_output_error("Splunk HEC exception", error_.__str__())
 
         if opts.la_dce:
             try:

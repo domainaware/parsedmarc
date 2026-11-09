@@ -10,6 +10,7 @@ import binascii
 import csv
 import email
 import email.errors
+import gc
 import gzip
 import inspect
 import json
@@ -19,7 +20,10 @@ import os
 import quopri
 import time
 import traceback
+import tracemalloc
 import unittest
+import zipfile
+import weakref
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
 from email.mime.application import MIMEApplication
@@ -31,7 +35,7 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import rmtree
 from tempfile import NamedTemporaryFile, mkdtemp
-from typing import BinaryIO, cast
+from typing import Any, BinaryIO, cast
 from unittest.mock import MagicMock, patch
 
 from lxml import etree  # type: ignore[import-untyped]
@@ -45,6 +49,7 @@ from parsedmarc.types import (
     ParsingResults,
     SMTPTLSReport,
 )
+from tests.timing import budget
 
 # Detect if running in GitHub Actions to skip DNS lookups
 OFFLINE_MODE = os.environ.get("GITHUB_ACTIONS", "false").lower() == "true"
@@ -2587,7 +2592,7 @@ class TestExtractReport(unittest.TestCase):
         gzip with a single unbounded zlib.decompress(), so a small
         attachment from any sender a monitored mailbox accepts could
         allocate hundreds of MB. The limit is patched down here so the test
-        stays fast; the real 100 MiB cap is the same code path."""
+        stays fast; the real 32 MiB cap is the same code path."""
         limit = 4096
         compressed = gzip.compress(b"a" * (limit + 1))
         # The attack is amplification: the wire form is far below the cap.
@@ -2777,12 +2782,13 @@ class TestMalformedXmlRecovery(unittest.TestCase):
         19 s and this 5 MB input would take minutes. The 10 s bound is not
         flaky: the fixed pattern handles it in milliseconds, orders of
         magnitude below both the bound and the old pattern's cost."""
+        limit = budget(10)
         start = time.perf_counter()
         with self.assertRaises(parsedmarc.InvalidAggregateReport):
             parsedmarc.parse_aggregate_report_xml(
                 "<xs:schema" * 500_000, offline=OFFLINE_MODE
             )
-        self.assertLess(time.perf_counter() - start, 10)
+        self.assertLess(time.perf_counter() - start, limit)
 
     def testMinifiedAggregateReportWithSchemaTag(self):
         """A report minified onto one line still parses when it carries an
@@ -2895,10 +2901,11 @@ class TestMalformedXmlRecovery(unittest.TestCase):
             f"<!DOCTYPE feedback [<!ATTLIST z {attributes}>]>"
             f"<feedback><record>{'<z/>' * 10_000}</record></feedback>"
         )
+        limit = budget(1)
         start = time.perf_counter()
         with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
             parsedmarc.parse_aggregate_report_xml(xml, offline=OFFLINE_MODE)
-        self.assertLess(time.perf_counter() - start, 1)
+        self.assertLess(time.perf_counter() - start, limit)
         self.assertIn("DOCTYPE", str(ctx.exception))
 
 
@@ -3146,6 +3153,97 @@ class TestParseReportFile(unittest.TestCase):
         with self.assertRaises(parsedmarc.ParserError) as ctx:
             parsedmarc.parse_report_file(b"this is not a report", offline=True)
         self.assertIn("recognized report format", str(ctx.exception))
+
+    def testParseReportFileRejectsOversizedXmlWithoutTheEmailParser(self):
+        """A file the size cap rejects was handed whole to the email parser,
+        which has no size cap: 200 MiB of <x/> reached +2,801 MiB in 4.6 s.
+        Content that sniffs as XML or JSON, or is over the cap, is not tried
+        as an email."""
+        content = b"<feedback>" + b"<x/>" * (10 * 2**20) + b"</feedback>"
+        limit = budget(2.0)
+        tracemalloc.start()
+        try:
+            start = time.perf_counter()
+            with patch("parsedmarc.parse_report_email") as email_parser:
+                with self.assertRaises(parsedmarc.ParserError) as ctx:
+                    parsedmarc.parse_report_file(content, offline=True)
+            elapsed = time.perf_counter() - start
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        email_parser.assert_not_called()
+        self.assertIn("exceeds the 33554432 byte limit", str(ctx.exception))
+        self.assertLess(elapsed, limit)
+        self.assertLess(peak, 100 * 2**20)
+
+    def testParseReportFileCapsTextForTheEmailParser(self):
+        """Text over the size cap that does not look like XML or JSON is not
+        handed to the email parser either."""
+        content = b"From: a@example.com\n\n" + b"x" * (
+            parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE + 1
+        )
+        with patch("parsedmarc.parse_report_email") as email_parser:
+            with self.assertRaises(parsedmarc.ParserError) as ctx:
+                parsedmarc.parse_report_file(content, offline=True)
+        email_parser.assert_not_called()
+        self.assertEqual(
+            str(ctx.exception), "Invalid report email: the report is larger than 32 MiB"
+        )
+
+    def testParseReportFileSkipsParsersThatCannotMatch(self):
+        """Content that begins with "<" is not tried as JSON or as an email,
+        and content that begins with "{" is not tried as an email, however
+        small."""
+        with (
+            patch("parsedmarc.parse_smtp_tls_report_json") as smtp_tls_parser,
+            patch("parsedmarc.parse_report_email") as email_parser,
+            self.assertRaises(parsedmarc.ParserError),
+        ):
+            parsedmarc.parse_report_file(b"<feedback></feedback>", offline=True)
+        smtp_tls_parser.assert_not_called()
+        email_parser.assert_not_called()
+        with (
+            patch("parsedmarc.parse_report_email") as email_parser,
+            self.assertRaises(parsedmarc.ParserError) as ctx,
+        ):
+            parsedmarc.parse_report_file(b'{"a": 1}', offline=True)
+        email_parser.assert_not_called()
+        self.assertIsInstance(ctx.exception.__cause__, parsedmarc.InvalidSMTPTLSReport)
+
+    def testParseReportFileReleasesEachFailedParse(self):
+        """parse_report_file() kept the aggregate parser's exception, and its
+        traceback's frames holding the parsed tree, while it tried the other
+        formats: a 31 MiB file at the cap cost +1,046 MiB there
+        against +399 MiB parsing the XML directly."""
+
+        class _Tree(dict):
+            pass
+
+        trees: list[weakref.ref] = []
+        alive_at_report: list[bool] = []
+        original_parse = parsedmarc._parse_limited_xml
+        original_describe = parsedmarc._describe_parse_failure
+
+        def parse(xml):
+            parsed = original_parse(xml)
+            tree = _Tree(parsed["feedback"] or {})
+            trees.append(weakref.ref(tree))
+            parsed["feedback"] = tree
+            return parsed
+
+        def describe(*args):
+            gc.collect()
+            alive_at_report.append(any(ref() is not None for ref in trees))
+            return original_describe(*args)
+
+        with (
+            patch.object(parsedmarc, "_parse_limited_xml", parse),
+            patch.object(parsedmarc, "_describe_parse_failure", describe),
+            self.assertRaises(parsedmarc.ParserError),
+        ):
+            parsedmarc.parse_report_file(b"<feedback><x>1</x></feedback>", offline=True)
+        self.assertTrue(trees)
+        self.assertEqual(alive_at_report, [False])
 
     def testParseReportFilePreservesCause(self):
         """The raised ParserError chains the underlying parse failure"""
@@ -3488,12 +3586,13 @@ This is not a DMARC report."""
             "Content-Type: text/plain\n\n"
             "A message claiming to be from you has failed\n" + body + "\ndetected."
         )
+        limit = budget(10)
         start = time.perf_counter()
         # The required received-date field is missing, so the notice is
         # rejected rather than parsed.
         with self.assertRaises(parsedmarc.InvalidDMARCReport):
             parsedmarc.parse_report_email(msg, offline=OFFLINE_MODE)
-        self.assertLess(time.perf_counter() - start, 10)
+        self.assertLess(time.perf_counter() - start, limit)
 
     def testTextReportFieldNamesMustBeSingleLine(self):
         """text_report_regex matches Exim's one-line ``Name: value`` fields:
@@ -3530,10 +3629,34 @@ This is not a DMARC report."""
         """Multiparts nested past the recursion limit raise ``ParserError``,
         not ``RecursionError`` (GHSA-qxwv-2vwj-v828); a shallow nesting is
         walked without error and rejected as not a report, as before."""
-        with self.assertRaises(parsedmarc.ParserError) as ctx:
+        # The message guard rejects this many multiparts before parsing
+        # (GHSA-qcc2-4x3v-v4g7); switch it off to reach the recursion guard
+        # behind it.
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
             parsedmarc.parse_report_email(
                 _nested_multipart_email(POISON_NESTING_LEVELS), offline=True
             )
+        self.assertIn("max_depth (100)", str(ctx.exception))
+
+        with patch("parsedmarc.check_message_limits"):
+            # Multiparts are walked, never serialized, so the nesting alone
+            # no longer reaches the recursion limit (GHSA-qcc2-4x3v-v4g7).
+            with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+                parsedmarc.parse_report_email(
+                    _nested_multipart_email(POISON_NESTING_LEVELS), offline=True
+                )
+            self.assertIn("is not a valid report", str(ctx.exception))
+            # A failure report's sample is serialized, so the same nesting as
+            # its sample still reaches the recursion guard.
+            sample = _nested_multipart_email(POISON_NESTING_LEVELS).decode()
+            report = (
+                "Subject: s\nContent-Type: multipart/report; boundary=r\n\n"
+                "--r\nContent-Type: message/feedback-report\n\n"
+                "Feedback-Type: auth-failure\n\n"
+                f"--r\nContent-Type: message/rfc822\n\n{sample}--r--\n"
+            )
+            with self.assertRaises(parsedmarc.ParserError) as ctx:
+                parsedmarc.parse_report_email(report, offline=True)
         self.assertIn("recursion", str(ctx.exception))
 
         with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
@@ -3965,6 +4088,15 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
             box.close()
             for n_procs in (1, 2):
                 with self.subTest(poison=poison_name, n_procs=n_procs):
+                    if poison_name == "nested":
+                        # The message guard rejects it as an invalid report
+                        # (GHSA-qcc2-4x3v-v4g7), which the loop skips.
+                        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+                        result = parsedmarc.get_dmarc_reports_from_mbox(
+                            path, offline=True, n_procs=n_procs
+                        )
+                        self.assertEqual(len(result["aggregate_reports"]), 1)
+                        continue
                     with self.assertRaises(parsedmarc.ParserError) as ctx:
                         parsedmarc.get_dmarc_reports_from_mbox(
                             path, offline=True, n_procs=n_procs
@@ -4613,8 +4745,13 @@ class TestGetDmarcReportsFromMailboxContentErrors(unittest.TestCase):
                     self.assertEqual(conn.folders["INBOX"], {})
                     self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
                     self.assertEqual(list(conn.folders["Archive/Aggregate"]), [2])
+                    expected_text = (
+                        "Message rejected"
+                        if poison_name == "nested"
+                        else "Unable to parse message"
+                    )
                     self.assertTrue(
-                        any("Unable to parse message" in line for line in output),
+                        any(expected_text in line for line in output),
                         output,
                     )
         # The nested message is a poison on every Python.
@@ -5025,11 +5162,13 @@ class TestGetDmarcReportsFromMailboxMaildir(unittest.TestCase):
                     self.assertEqual(len(result["aggregate_reports"]), 1)
                     self.assertEqual(result["failure_reports"], [])
                     self.assertEqual(len(conn.fetch_messages("Archive/Aggregate")), 1)
+                    expected_text = (
+                        "Message rejected"
+                        if poison_name == "nested"
+                        else "Unable to parse message with subject"
+                    )
                     self.assertTrue(
-                        any(
-                            "Unable to parse message with subject" in line
-                            for line in cm.output
-                        ),
+                        any(expected_text in line for line in cm.output),
                         cm.output,
                     )
                     # The poison message was moved, not left to fail again.
@@ -7022,6 +7161,1588 @@ class TestAggregateReportIdentityDomainScopePendingSave(unittest.TestCase):
         retry = self._run(save_callback=self._saved)
 
         self.assertEqual(self._count_by_domain(retry), {"a.example": 3, "b.example": 5})
+
+
+class TestMessageStructureLimits(unittest.TestCase):
+    """Messages whose structure makes parsing slow are rejected up front
+    (GHSA-qcc2-4x3v-v4g7).
+
+    Each input is a shape from the advisory. The time limits are generous:
+    the guard is one linear pass, and the timings cited are those measured
+    on 11.2.1 under Python 3.12 before the guard existed."""
+
+    HEAD = (
+        "From: sender@example.net\r\nTo: dmarc@example.com\r\nSubject: x\r\n"
+        "Date: Thu, 1 Jan 2026 00:00:00 +0000\r\nMIME-Version: 1.0\r\n"
+    )
+
+    def setUp(self):
+        import resource
+
+        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        self.addCleanup(resource.setrlimit, resource.RLIMIT_AS, (soft, hard))
+        limit = 3 * 1024**3
+        if hard != resource.RLIM_INFINITY:
+            limit = min(limit, hard)
+        resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
+
+    def _assert_rejected_quickly(self, data):
+        limit = budget(2.0)
+        start = time.monotonic()
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as caught:
+            parsedmarc.parse_report_email(data.encode(), offline=True)
+        elapsed = time.monotonic() - start
+        self.assertIn("Message rejected", str(caught.exception))
+        self.assertLess(elapsed, limit)
+
+    def test_blank_lines_after_delivery_status_part(self):
+        """512 KiB of blank lines after a message/delivery-status part took
+        6.1 s to parse on 11.2.1"""
+        data = (
+            self.HEAD
+            + "Content-Type: message/delivery-status\r\n\r\n"
+            + "\n" * (512 * 1024)
+        )
+        self._assert_rejected_quickly(data)
+
+    def test_address_group_with_many_members(self):
+        """A To: group of 250,000 members took 1.9 s to parse on 11.2.1"""
+        group = "g:" + ",".join("a@x" for _ in range(250_000)) + ";"
+        data = f"From: a@b\r\nTo: {group}\r\nSubject: s\r\n\r\nbody\r\n"
+        self._assert_rejected_quickly(data)
+
+    def test_nested_multiparts(self):
+        """900 nested multiparts around 30,000 parts took 10.9 s to parse on
+        11.2.1"""
+        depth, parts = 900, 30000
+        nested = "".join(
+            f"Content-Type: multipart/mixed; boundary=b{i}\n\n--b{i}\n"
+            for i in range(depth)
+        )
+        inner = (
+            "Content-Type: multipart/mixed; boundary=L\n\n"
+            + "--L\n\nx\n" * parts
+            + "--L--\n"
+        )
+        close = "".join(f"--b{i}--\n" for i in range(depth - 1, -1, -1))
+        self._assert_rejected_quickly(self.HEAD + nested + inner + close)
+
+    def test_header_flood(self):
+        """A 4 MiB flood of ``X-A: b`` header lines took 1.4 s to parse on
+        11.2.1"""
+        data = self.HEAD + "X-A: b\r\n" * (4 * 1024 * 1024 // 8) + "\r\nbody\r\n"
+        self._assert_rejected_quickly(data)
+
+    def test_failure_report_sample_over_a_limit(self):
+        """A failure report whose message/rfc822 sample exceeds a limit is an
+        InvalidFailureReport, not a bare ValueError or an unexpected error"""
+        feedback_report = "\n".join(
+            [
+                "Feedback-Type: auth-failure",
+                "Version: 1",
+                "Source-IP: 203.0.113.1",
+                "Reported-Domain: example.com",
+                "Auth-Failure: dmarc",
+            ]
+        )
+        # Each blank-line-separated block of a message/delivery-status body
+        # is a part, so 200,000 blank lines pass the part limit.
+        sample = (
+            "From: a@example.com\nSubject: s\n"
+            "Content-Type: message/delivery-status\n\n" + "\n" * 200_000
+        )
+        with self.assertRaises(parsedmarc.InvalidFailureReport) as caught:
+            parsedmarc.parse_failure_report(
+                feedback_report,
+                sample,
+                datetime(2024, 1, 1, tzinfo=timezone.utc),
+                offline=True,
+            )
+        self.assertIn(
+            "Sample message rejected: Message exceeds max_parts (10000)",
+            str(caught.exception),
+        )
+        self.assertNotIn("Unexpected error", str(caught.exception))
+
+    def test_normal_message_is_not_rejected(self):
+        """A message within the limits reaches the report parsers"""
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as caught:
+            parsedmarc.parse_report_email(
+                (self.HEAD + "\r\nhello\r\n").encode(), offline=True
+            )
+        self.assertNotIn("Message rejected", str(caught.exception))
+
+
+class TestAggregateReportXMLLimits(unittest.TestCase):
+    """The nesting depth and node limits of ``parse_aggregate_report_xml()``
+    (GHSA-q7gm-8cj9-94hr)."""
+
+    SAMPLE = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+    MALFORMED_DECLARATION = '<?xml version="1.0" foo?>'
+
+    def _sample(self, inner="", declaration=None):
+        """The sample report with ``inner`` inserted at the start of its
+        ``<report_metadata>`` element (depth 2), and its XML declaration
+        replaced by ``declaration`` when given"""
+        with open(self.SAMPLE, encoding="utf-8") as f:
+            original = f.read()
+        header, body = original.split("?>", 1)
+        self.assertIn("<report_metadata>", body)
+        body = body.replace("<report_metadata>", "<report_metadata>" + inner, 1)
+        return (declaration or header + "?>") + body
+
+    @staticmethod
+    def _nested(levels):
+        return "<a>" * levels + "x" + "</a>" * levels
+
+    def testUnclosedElementsAreRejectedQuickly(self):
+        """The advisory's document of unclosed ``<a>`` tags is rejected as
+        soon as it is nested too deep, before xmltodict builds the tree.
+
+        Regression test for GHSA-q7gm-8cj9-94hr: xmltodict keeps one stack
+        entry per open element and expat reports the missing end tags only
+        at the end of the input, so the reporter measured 1.35 GB of RSS for
+        10 MiB. Measured locally with 11.2.1 (Python 3.14), this 2 MiB input
+        took 1.2 s, +255 MiB of RSS and a 236 MiB tracemalloc peak; the
+        triage measured +117 MiB and 1.3 s. The fixed code rejects it in
+        milliseconds. Memory is measured with tracemalloc rather than
+        ``ru_maxrss``, which only grows past the process's earlier peak and
+        so could not show an increase after other tests in the suite."""
+        head = '<?xml version="1.0"?><feedback><report_metadata><org_name>x</org_name>'
+        xml = head + "<a>" * ((2 * 2**20 - len(head)) // 3)
+        limit = budget(1)
+        start = time.perf_counter()
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertLess(time.perf_counter() - start, limit)
+        self.assertIn(
+            f"nested more than {constants.MAX_XML_DEPTH} levels", str(ctx.exception)
+        )
+
+        tracemalloc.start()
+        try:
+            with self.assertRaises(parsedmarc.InvalidAggregateReport):
+                parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertLess(peak, 100 * 2**20)
+
+    def testDepthLimitBoundary(self):
+        """A document nested exactly ``MAX_XML_DEPTH`` levels deep parses;
+        one level more is rejected."""
+        # <feedback> and <report_metadata> are the first two levels.
+        within = constants.MAX_XML_DEPTH - 2
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._sample(self._nested(within)), offline=OFFLINE_MODE
+        )
+        self.assertGreater(len(report["records"]), 0)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(
+                self._sample(self._nested(within + 1)), offline=OFFLINE_MODE
+            )
+        self.assertIn("levels deep", str(ctx.exception))
+
+    def testSixtyLevelsDeepReportStillParses(self):
+        """A valid report with a 60-level-deep extension element parses like
+        the sample it was made from."""
+        expected = parsedmarc.parse_aggregate_report_xml(
+            self._sample(), offline=OFFLINE_MODE
+        )
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._sample(self._nested(60)), offline=OFFLINE_MODE
+        )
+        self.assertEqual(report["records"], expected["records"])
+        self.assertEqual(report["report_metadata"]["errors"], [])
+
+    def testWideDocumentIsRejectedOnTheNodeLimit(self):
+        """A well-formed document with more than ``MAX_XML_NODES`` sibling
+        elements is rejected on the node limit.
+
+        Regression test for GHSA-q7gm-8cj9-94hr: the reporter measured
+        1.75 GB of RSS for 40 MiB of ``<a b=""/>`` siblings. Empty ``<a/>``
+        siblings are the cheapest way to reach the shipped limit (about
+        4 MiB here); ``testAttributesCountAsNodes`` covers attributes."""
+        siblings = constants.MAX_XML_NODES  # plus <feedback>: one node over
+        xml = "<feedback>" + "<a/>" * siblings + "</feedback>"
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIn(
+            f"more than {constants.MAX_XML_NODES:,} elements and attributes",
+            str(ctx.exception),
+        )
+
+    def testAttributesCountAsNodes(self):
+        """Elements and attributes both count toward the node limit, which
+        is checked exactly: at the limit the document parses, one node over
+        it is rejected. The limit is lowered so the inputs stay small."""
+        instances = []
+        original_init = parsedmarc._LimitedExpatParser.__init__
+
+        def record(proxy, parser):
+            original_init(proxy, parser)
+            instances.append(proxy)
+
+        with patch.object(parsedmarc._LimitedExpatParser, "__init__", record):
+            parsedmarc.parse_aggregate_report_xml(self._sample(), offline=OFFLINE_MODE)
+        sample_nodes = instances[-1]._counts.nodes
+        self.assertGreater(sample_nodes, 0)
+        # Three <a b=""/> siblings add three elements and three attributes.
+        widened = self._sample('<a b=""/>' * 3)
+        with patch.object(parsedmarc, "MAX_XML_NODES", sample_nodes + 6):
+            parsedmarc.parse_aggregate_report_xml(widened, offline=OFFLINE_MODE)
+        with patch.object(parsedmarc, "MAX_XML_NODES", sample_nodes + 5):
+            with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+                parsedmarc.parse_aggregate_report_xml(widened, offline=OFFLINE_MODE)
+        self.assertIn("elements and attributes", str(ctx.exception))
+
+    def testLimitsApplyOnTheRecoveryPath(self):
+        """A deep body behind a malformed XML declaration is rejected too.
+
+        The malformed declaration makes the first parse fail before expat
+        reads any element, so the document goes through the lxml recovery
+        path and the second ``xmltodict.parse()``, which must apply the same
+        limits (GHSA-q7gm-8cj9-94hr)."""
+        # Without the deep body, the recovery path parses the report.
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._sample(declaration=self.MALFORMED_DECLARATION),
+            offline=OFFLINE_MODE,
+        )
+        self.assertTrue(
+            any(
+                e.startswith("Invalid XML") for e in report["report_metadata"]["errors"]
+            )
+        )
+        deep_bodies = {
+            "closed": self._nested(150),
+            # libxml2 stops at its own depth limit of 256 and recovers the
+            # elements read so far, which are still over this one.
+            "unclosed": "<a>" * (2 * 2**20 // 3),
+        }
+        for name, inner in deep_bodies.items():
+            with self.subTest(body=name):
+                xml = self._sample(inner, declaration=self.MALFORMED_DECLARATION)
+                limit = budget(1)
+                start = time.perf_counter()
+                with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+                    parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+                self.assertLess(time.perf_counter() - start, limit)
+                self.assertIn("levels deep", str(ctx.exception))
+
+    def testWideDocumentIsRejectedBeforeTheRecoveryTree(self):
+        """A wide document behind a malformed XML declaration is rejected by
+        the counting pass, before lxml builds the recovery tree.
+
+        Regression test for GHSA-q7gm-8cj9-94hr: the malformed declaration
+        sends the document to the lxml recovery parse, which has no node
+        limit. Measured locally before the counting pass, 2,600,000
+        ``<a b=""/>`` siblings (22 MiB) behind this declaration peaked at
+        +1532 MiB of RSS, 890 MiB of it the lxml tree. The counting pass
+        builds no tree. ``testLimitsApplyOnTheRecoveryPath`` shows the
+        declaration alone still lets the report parse."""
+        xml = (
+            self.MALFORMED_DECLARATION
+            + "<feedback>"
+            + "<a/>" * constants.MAX_XML_NODES
+            + "</feedback>"
+        )
+        limit = budget(10)
+        tracemalloc.start()
+        try:
+            start = time.perf_counter()
+            with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+                parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+            elapsed = time.perf_counter() - start
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertLess(elapsed, limit)
+        self.assertLess(peak, 100 * 2**20)
+        self.assertIn(
+            f"more than {constants.MAX_XML_NODES:,} elements and attributes",
+            str(ctx.exception),
+        )
+
+    def _assert_rejected_on_tag_length(self, xml: str) -> None:
+        limit = budget(1.0)
+        tracemalloc.start()
+        try:
+            start = time.perf_counter()
+            with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+                parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+            elapsed = time.perf_counter() - start
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertEqual(
+            str(ctx.exception),
+            f"Invalid XML: a tag is longer than {constants.MAX_XML_TAG_LENGTH:,} "
+            "characters",
+        )
+        self.assertLess(elapsed, limit)
+        self.assertLess(peak, 200 * 2**20)
+
+    def test_element_with_many_attributes_is_rejected_before_parsing(self):
+        """expat builds a start tag's whole attribute list before the
+        counting handler sees it: one element with 900,000 attributes
+        (9.3 MiB), within the node limit and the ``=`` count, took 1.1 s and
+        +200 MiB. The tag scan now rejects it."""
+        attributes = " ".join(f"a{i}=''" for i in range(900_000))
+        xml = self._sample(f"<x {attributes}/>")
+        self._assert_rejected_on_tag_length(xml)
+        self._assert_rejected_on_tag_length(
+            self._sample(f"<x {attributes}/>", self.MALFORMED_DECLARATION)
+        )
+
+    def test_tag_length_limit_is_exact(self):
+        """A tag of exactly MAX_XML_TAG_LENGTH characters, from its "<" to
+        the character before its ">", passes the scan; one more is
+        rejected, as is an unterminated tag after the last ">"."""
+        limit = constants.MAX_XML_TAG_LENGTH
+        head = '<a b="'
+        at_limit = head + "x" * (limit - len(head) - 2) + '"/'
+        self.assertEqual(len(at_limit), limit)
+        parsedmarc._check_tag_lengths(f"<feedback>{at_limit}></feedback>")
+        over = head + "x" * (limit - len(head) - 1) + '"/'
+        for xml in (f"<feedback>{over}></feedback>", f"<feedback>{over}"):
+            with self.assertRaises(parsedmarc.InvalidAggregateReport, msg=xml[-20:]):
+                parsedmarc._check_tag_lengths(xml)
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._sample(at_limit + ">"), offline=True
+        )
+        self.assertTrue(report["records"])
+
+    def test_tag_scan_spans_chunks_and_stays_small(self):
+        """The scan reads the text one chunk at a time: a tag across a chunk
+        boundary is measured whole, and a document of millions of short
+        tags is scanned in little memory (one split of 100 MiB of "<a/>"
+        peaked at +1,318 MiB)."""
+        limit = constants.MAX_XML_TAG_LENGTH
+        chunk = parsedmarc._TAG_SCAN_CHUNK
+        filler = "x" * (chunk - 100)
+        # From "<" to the "/" before ">": exactly the limit, then one more.
+        at_limit = "<a" + "b" * (limit - 3) + "/>"
+        over = "<a" + "b" * (limit - 2) + "/>"
+        parsedmarc._check_tag_lengths(filler + at_limit)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport):
+            parsedmarc._check_tag_lengths(filler + over)
+        dense = "<feedback>" + "<a/>" * (4 * 2**20) + "</feedback>"
+        tracemalloc.start()
+        try:
+            parsedmarc._check_tag_lengths(dense)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertLess(peak, 8 * 2**20)
+
+    def test_attributes_hidden_by_a_raw_gt_are_counted_by_their_equals(self):
+        """XML allows a raw ">" in a quoted attribute value, so
+        ``x=">"`` attributes cut a tag into short pieces that pass the tag
+        scan: 2,000,000 of them (23.7 MiB) took 1.4 s and +310 MiB before
+        the node limit rejected them."""
+        attributes = " ".join(f'x{i}=">"' for i in range(2_000_000))
+        xml = f"<feedback><report_metadata {attributes}/></feedback>"
+        limit = budget(0.2)
+        tracemalloc.start()
+        try:
+            start = time.perf_counter()
+            with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+                parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+            elapsed = time.perf_counter() - start
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertIn("`=` characters", str(ctx.exception))
+        self.assertLess(elapsed, limit)
+        self.assertLess(peak, 50 * 2**20)
+
+    def test_equals_count_limit_is_exact(self):
+        limit = constants.MAX_XML_NODES
+        parsedmarc._check_attribute_count("=" * limit)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport):
+            parsedmarc._check_attribute_count("=" * (limit + 1))
+        # The '=' characters may sit in text, where they count all the same.
+        xml = _minimal_aggregate_xml().replace(
+            "<org_name>TestOrg</org_name>",
+            "<org_name>TestOrg</org_name><extra_contact_info>"
+            + "=" * (limit - 10)
+            + "</extra_contact_info>",
+        )
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertTrue(report["records"])
+
+    def test_report_over_32_mib_of_utf8_is_rejected_before_parsing(self):
+        """An uncompressed report is held to the cap a compressed one is, in
+        bytes of UTF-8: counting characters let 999,000 elements of 14 emoji
+        (31.2 Mi characters, 71 MiB of UTF-8) through, at +649 MiB."""
+        cap = parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE
+        frame = len("<feedback></feedback>")
+        parsedmarc._check_xml_text("<feedback>" + "x" * (cap - frame) + "</feedback>")
+        expected = "Invalid XML: the report is larger than 32 MiB of UTF-8"
+        for label, xml in (
+            ("ASCII", "<feedback>" + "x" * (cap - frame + 1) + "</feedback>"),
+            ("emoji", "<feedback>" + "\U0001f600" * (cap // 4) + "</feedback>"),
+        ):
+            with self.assertRaises(parsedmarc.InvalidAggregateReport, msg=label) as ctx:
+                parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+            self.assertEqual(str(ctx.exception), expected, msg=label)
+        # Under the cap in bytes, non-ASCII text passes the measure.
+        self.assertFalse(parsedmarc._exceeds_size_cap("\u00e9" * (cap // 2)))
+        self.assertTrue(parsedmarc._exceeds_size_cap(b"x" * (cap + 1)))
+        self.assertFalse(parsedmarc._exceeds_size_cap(b"x" * cap))
+        # Bytes over the cap are rejected before they are decoded, and are
+        # measured as bytes.
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(b"<a>" + b"x" * cap, offline=True)
+        self.assertEqual(
+            str(ctx.exception), "Invalid XML: the report is larger than 32 MiB"
+        )
+
+    def test_smtp_tls_report_over_the_size_cap_is_rejected_before_parsing(self):
+        """parse_smtp_tls_report_json() decoded and parsed JSON of any size:
+        60 MiB of ``[],`` cost +1,505 MiB."""
+        cap = parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE
+        content = b"[" + b"[]," * (cap // 3 + 1) + b"[]]"
+        limit = budget(0.1)
+        start = time.perf_counter()
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(content)
+        self.assertLess(time.perf_counter() - start, limit)
+        self.assertEqual(str(ctx.exception), "the report is larger than 32 MiB")
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(content.decode())
+        self.assertEqual(
+            str(ctx.exception), "the report is larger than 32 MiB of UTF-8"
+        )
+        with open("samples/smtp_tls/rfc8460.json", "rb") as sample_file:
+            self.assertTrue(
+                parsedmarc.parse_smtp_tls_report_json(sample_file.read())["policies"]
+            )
+
+    def test_a_parse_leaves_no_reference_cycle(self):
+        """The counting wrappers referred to the parser proxy, closing a
+        cycle through the parser that kept xmltodict's tree alive until the
+        cyclic collector ran: 2,000,000 distinct siblings peaked at
+        +1,020 MiB, against +391 MiB without the cycle."""
+        xml = "<feedback>" + "".join(f"<x{i}/>" for i in range(1000)) + "</feedback>"
+        gc.collect()
+        gc.disable()
+        try:
+            parsedmarc._parse_limited_xml(xml)
+            self.assertEqual(gc.collect(), 0)
+        finally:
+            gc.enable()
+
+    def test_the_first_parse_is_released_before_recovery(self):
+        """The recovery parse runs after the first parse's except block: a
+        handler keeps the handled exception's traceback, and with it the
+        failed parse's frames and partial tree, alive while it runs (on
+        Python 3.10 even after ``e.__traceback__ = None``). The first
+        parse's counter, held by those frames, must be gone when the
+        recovery starts."""
+        counters: list[weakref.ref] = []
+        alive_at_recovery: list[bool] = []
+        original_init = parsedmarc._XMLCounts.__init__
+        original_recovery = parsedmarc._parse_xml_with_recovery
+
+        def record(counts):
+            original_init(counts)
+            counters.append(weakref.ref(counts))
+
+        def check(xml):
+            gc.collect()
+            alive_at_recovery.append(counters[0]() is not None)
+            return original_recovery(xml)
+
+        with (
+            patch.object(parsedmarc._XMLCounts, "__init__", record),
+            patch.object(parsedmarc, "_parse_xml_with_recovery", check),
+        ):
+            parsedmarc.parse_aggregate_report_xml(
+                self._sample("", self.MALFORMED_DECLARATION), offline=True
+            )
+        self.assertEqual(alive_at_recovery, [False])
+
+    def test_the_recovery_path_leaves_no_tree_behind(self):
+        """After the lxml recovery path, gc.collect() finds a constant set
+        of lxml helper objects (18 here), the same for a document ten
+        times larger, so no tree of the document survives a parse."""
+
+        def garbage_after_recovery(elements: int) -> int:
+            xml = (
+                self.MALFORMED_DECLARATION
+                + "<feedback>"
+                + "".join(f"<x{i}>t</x{i}>" for i in range(elements))
+                + "</feedback>"
+            )
+            gc.collect()
+            gc.disable()
+            try:
+                with self.assertRaises(parsedmarc.InvalidAggregateReport):
+                    parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+                return gc.collect()
+            finally:
+                gc.enable()
+
+        small = garbage_after_recovery(1000)
+        self.assertEqual(garbage_after_recovery(10_000), small)
+        self.assertLess(small, 100)
+
+    def test_attributes_still_count_toward_the_node_limit(self):
+        """xmltodict keeps no attributes (xml_attribs=False), but expat still
+        passes them to the counting start handler: one element with 1,000
+        attributes is 1,001 nodes."""
+        attributes = " ".join(f'a{i}=""' for i in range(1000))
+        xml = f"<a {attributes}/>"
+        with patch("parsedmarc.MAX_XML_NODES", 1001):
+            self.assertIsNone(parsedmarc._parse_limited_xml(xml)["a"])
+        with patch("parsedmarc.MAX_XML_NODES", 1000):
+            with self.assertRaises(parsedmarc.InvalidAggregateReport):
+                parsedmarc._parse_limited_xml(xml)
+
+
+class TestAggregateReportSpanLimit(unittest.TestCase):
+    """The <date_range> of an aggregate report is bounded before it is
+    normalized into one record per day."""
+
+    BEGIN = 1704067200  # 2024-01-01 00:00:00 UTC
+
+    def _xml(self, begin: int, end: int, count: int) -> str:
+        return (
+            _minimal_aggregate_xml()
+            .replace(
+                "<begin>1704067200</begin><end>1704153599</end>",
+                f"<begin>{begin}</begin><end>{end}</end>",
+            )
+            .replace("<count>1</count>", f"<count>{count}</count>")
+        )
+
+    def test_span_over_limit_is_rejected(self):
+        xml = self._xml(self.BEGIN, self.BEGIN + 400 * 86400, 400)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(
+            str(ctx.exception),
+            f"Report date range spans more than {constants.MAX_REPORT_SPAN_DAYS} days",
+        )
+
+    def test_span_of_a_year_parses_to_at_most_one_record_per_day(self):
+        """Before the limit, 200,000 days with a count of 200,000 produced
+        200,000 records in about 0.8 s; a year must stay far below 1 s."""
+        xml = self._xml(self.BEGIN, self.BEGIN + 365 * 86400, 365)
+        limit = budget(1.0)
+        started = time.monotonic()
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        elapsed = time.monotonic() - started
+        self.assertLessEqual(len(report["records"]), 365)
+        self.assertGreater(len(report["records"]), 1)
+        self.assertLess(elapsed, limit)
+
+    def test_span_too_large_for_a_float_is_rejected_with_its_message(self):
+        """An <end> of 4,001 digits (below Python's 4,300-digit limit for
+        int()) made the message's float division raise OverflowError, which
+        reached the caller as "Unexpected error: integer division result too
+        large for a float"."""
+        xml = self._xml(self.BEGIN, 10**4000, 1)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        # No sender-derived number reaches the message or the log.
+        self.assertEqual(
+            str(ctx.exception),
+            f"Report date range spans more than {constants.MAX_REPORT_SPAN_DAYS} days",
+        )
+        self.assertLess(len(str(ctx.exception)), 200)
+
+    def test_many_records_over_many_days_are_kept_whole(self):
+        """10,000 records over 366 days, each with a count of 1,000,000,
+        normalized into 3,670,000 records in 13.5 s and 1.7 GB before the
+        limit; the report now keeps its 10,000 records whole."""
+        record_count = 10_000
+        xml = self._xml(self.BEGIN, self.BEGIN + 366 * 86400, 1_000_000)
+        start = xml.index("<record>")
+        end = xml.index("</record>") + len("</record>")
+        xml = xml[:start] + xml[start:end] * record_count + xml[end:]
+        limit = budget(3.0)
+        started = time.monotonic()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            report = cast(
+                dict, parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+            )
+        elapsed = time.monotonic() - started
+        self.assertLess(elapsed, limit)
+        self.assertEqual(len(report["records"]), record_count)
+        self.assertFalse(
+            any(record["normalized_timespan"] for record in report["records"])
+        )
+        self.assertFalse(report["report_metadata"]["timespan_requires_normalization"])
+        # Each record covers the report's own range, in UTC.
+        self.assertEqual(report["records"][0]["interval_begin"], "2024-01-01 00:00:00")
+        self.assertEqual(report["records"][0]["interval_end"], "2025-01-01 00:00:00")
+        warnings = [line for line in logs.output if "not normalized" in line]
+        self.assertEqual(len(warnings), 1)
+        self.assertIn(str(constants.MAX_NORMALIZED_RECORDS), warnings[0])
+        self.assertIn(f"{record_count} records over 366 days", warnings[0])
+
+    def test_keep_alive_is_called_every_20_records(self):
+        xml = self._xml(self.BEGIN, self.BEGIN + 86399, 1)
+        start = xml.index("<record>")
+        end = xml.index("</record>") + len("</record>")
+        xml = xml[:start] + xml[start:end] * 45 + xml[end:]
+        keep_alive = MagicMock()
+        report = parsedmarc.parse_aggregate_report_xml(
+            xml, offline=True, keep_alive=keep_alive
+        )
+        self.assertEqual(len(report["records"]), 45)
+        self.assertEqual(keep_alive.call_count, 2)
+
+    def _records_times_days(self, record_count, days, begin_offset=0):
+        begin = self.BEGIN + begin_offset
+        xml = self._xml(begin, begin + days * 86400, days)
+        start = xml.index("<record>")
+        end = xml.index("</record>") + len("</record>")
+        xml = xml[:start] + xml[start:end] * record_count + xml[end:]
+        return cast(dict, parsedmarc.parse_aggregate_report_xml(xml, offline=True))
+
+    def test_normalization_at_exactly_the_limit_is_split(self):
+        """1,000 records over 250 days make exactly MAX_NORMALIZED_RECORDS."""
+        self.assertEqual(1000 * 250, constants.MAX_NORMALIZED_RECORDS)
+        report = self._records_times_days(1000, 250)
+        self.assertTrue(report["report_metadata"]["timespan_requires_normalization"])
+        self.assertEqual(len(report["records"]), 250_000)
+
+    def test_normalization_just_under_and_over_the_limit(self):
+        """683 records over 366 days make 249,978 records; 684 make
+        250,344, which keeps the records whole."""
+        under = self._records_times_days(683, 366)
+        self.assertTrue(under["report_metadata"]["timespan_requires_normalization"])
+        self.assertEqual(len(under["records"]), 683 * 366)
+        with self.assertLogs("parsedmarc.log", level="WARNING"):
+            over = self._records_times_days(684, 366)
+        self.assertFalse(over["report_metadata"]["timespan_requires_normalization"])
+        self.assertEqual(len(over["records"]), 684)
+
+    def test_a_range_starting_after_midnight_counts_the_extra_day(self):
+        """A range of 366 days starting 1 s after midnight touches 367
+        calendar days, so 682 records would make 250,294."""
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            report = self._records_times_days(682, 366, begin_offset=1)
+        self.assertFalse(report["report_metadata"]["timespan_requires_normalization"])
+        self.assertEqual(len(report["records"]), 682)
+        self.assertTrue(
+            any("682 records over 367 days" in line for line in logs.output)
+        )
+
+    def test_small_multi_day_report_is_still_normalized(self):
+        xml = self._xml(self.BEGIN, self.BEGIN + 3 * 86400, 30)
+        start = xml.index("<record>")
+        end = xml.index("</record>") + len("</record>")
+        xml = xml[:start] + xml[start:end] * 2 + xml[end:]
+        report = cast(dict, parsedmarc.parse_aggregate_report_xml(xml, offline=True))
+        self.assertTrue(report["report_metadata"]["timespan_requires_normalization"])
+        self.assertEqual(len(report["records"]), 6)
+        self.assertTrue(
+            all(record["normalized_timespan"] for record in report["records"])
+        )
+        self.assertEqual(sum(record["count"] for record in report["records"]), 60)
+
+    def test_negative_span_is_rejected(self):
+        xml = self._xml(self.BEGIN, self.BEGIN - 86400, 1)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(str(ctx.exception), "Report date range is negative")
+
+
+def _smtp_tls_report_dict() -> dict:
+    """A minimal valid RFC 8460 §4.4 report, as a dict to mutate per test."""
+    return {
+        "organization-name": "Reporter Example",
+        "date-range": {
+            "start-datetime": "2024-01-01T00:00:00Z",
+            "end-datetime": "2024-01-01T23:59:59Z",
+        },
+        "contact-info": "tls@reporter.example",
+        "report-id": "report-1",
+        "policies": [
+            {
+                "policy": {
+                    "policy-type": "sts",
+                    "policy-string": ["version: STSv1", "mode: enforce"],
+                    "policy-domain": "example.com",
+                },
+                "summary": {
+                    "total-successful-session-count": 10,
+                    "total-failure-session-count": 1,
+                },
+                "failure-details": [
+                    {
+                        "result-type": "certificate-expired",
+                        "sending-mta-ip": "192.0.2.1",
+                        "receiving-mx-hostname": "mx.example.com",
+                        "failed-session-count": 1,
+                    }
+                ],
+            }
+        ],
+    }
+
+
+def _smtp_tls_field_container(report: dict, field: str) -> dict:
+    """Return the object of ``report`` that holds ``field``."""
+    policy = report["policies"][0]
+    if field in ("policy-domain", "policy-type", "policy-string", "mx-host"):
+        return policy["policy"]
+    if field.startswith("total-"):
+        return policy["summary"]
+    if field in ("organization-name", "report-id", "contact-info"):
+        return report
+    return policy["failure-details"][0]
+
+
+class TestSmtpTlsReportTypeValidation(unittest.TestCase):
+    """GHSA-4272-4r8g-6c5h: parse_smtp_tls_report_json() copied every field
+    without a type check, so a sender could make an output raise later:
+    ``"policy-string": [1]`` gave a TypeError in the CSV writer, and
+    ``"start-datetime": 5`` an AttributeError in the Elasticsearch,
+    OpenSearch and Splunk saves and a TypeError in the PostgreSQL save. The
+    exception escaped the CLI and stopped the mailbox run on every attempt.
+    Each field now has the type RFC 8460 §4.4 gives it, or the report is
+    rejected as InvalidSMTPTLSReport."""
+
+    def _assert_rejected(self, report: dict, label: str) -> None:
+        with self.subTest(label):
+            with self.assertRaises(parsedmarc.InvalidSMTPTLSReport):
+                parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+
+    def testValidReportStillParses(self):
+        parsed = parsedmarc.parse_smtp_tls_report_json(
+            json.dumps(_smtp_tls_report_dict())
+        )
+        self.assertEqual(parsed["begin_date"], "2024-01-01T00:00:00Z")
+        policy = parsed["policies"][0]
+        self.assertEqual(
+            policy.get("policy_strings"), ["version: STSv1", "mode: enforce"]
+        )
+        self.assertEqual(
+            policy.get("failure_details", [{}])[0].get("failed_session_count"), 1
+        )
+
+    def testPolicyStringOfIntegersIsRejectedBeforeTheCsvWriter(self):
+        """The advisory's file-output case: before the fix the report
+        parsed and parsed_smtp_tls_reports_to_csv() raised TypeError."""
+        report = _smtp_tls_report_dict()
+        report["policies"][0]["policy"]["policy-string"] = [1]
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+        self.assertIn("policy-string", str(ctx.exception))
+
+    def testPolicyStringMustBeAListOfStrings(self):
+        for value in ("version: STSv1", {"version": "STSv1"}, [["nested"]]):
+            report = _smtp_tls_report_dict()
+            report["policies"][0]["policy"]["policy-string"] = value
+            self._assert_rejected(report, f"policy-string={value!r}")
+
+    def testNullPolicyStringIsTreatedAsAbsent(self):
+        report = _smtp_tls_report_dict()
+        report["policies"][0]["policy"]["policy-string"] = None
+        parsed = parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+        self.assertNotIn("policy_strings", parsed["policies"][0])
+
+    def testMxHostPatternListOfIntegersIsRejected(self):
+        report = _smtp_tls_report_dict()
+        report["policies"][0]["policy"]["mx-host-pattern"] = [1]
+        self._assert_rejected(report, "mx-host-pattern=[1]")
+
+    def testStringFieldsMustBeStrings(self):
+        for field in (
+            "organization-name",
+            "report-id",
+            "policy-domain",
+            "policy-type",
+            "result-type",
+            "receiving-mx-hostname",
+            "additional-information",
+        ):
+            for value in (5, ["sts"], {"#text": "sts"}):
+                report = _smtp_tls_report_dict()
+                _smtp_tls_field_container(report, field)[field] = value
+                self._assert_rejected(report, f"{field}={value!r}")
+
+    def testContactInfoIsAStringOrAListOfStrings(self):
+        for value in ("tls@reporter.example", ["a@reporter.example", "b@x.example"]):
+            report = _smtp_tls_report_dict()
+            report["contact-info"] = value
+            parsed = parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+            self.assertEqual(parsed["contact_info"], value)
+        for value in (5, [1], {"email": "a@reporter.example"}):
+            report = _smtp_tls_report_dict()
+            report["contact-info"] = value
+            self._assert_rejected(report, f"contact-info={value!r}")
+
+    def testDatesMustBeParseableStrings(self):
+        for field in ("start-datetime", "end-datetime"):
+            for value in (5, None, ["2024-01-01T00:00:00Z"], "not a date", ""):
+                report = _smtp_tls_report_dict()
+                report["date-range"][field] = value
+                self._assert_rejected(report, f"{field}={value!r}")
+
+    def testStartDatetimeIntegerIsRejected(self):
+        """The advisory's Elasticsearch/OpenSearch/Splunk/PostgreSQL case."""
+        report = _smtp_tls_report_dict()
+        report["date-range"]["start-datetime"] = 5
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+        self.assertIn("start-datetime", str(ctx.exception))
+
+    def testUnparseableDateIsSanitizedInTheErrorMessage(self):
+        report = _smtp_tls_report_dict()
+        report["date-range"]["start-datetime"] = "bad\r\nforged log line"
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+        self.assertNotIn("\r\n", str(ctx.exception))
+        self.assertIn("bad\\r\\nforged log line", str(ctx.exception))
+
+    def testOverlongDateIsRejectedQuickly(self):
+        """dateutil took 12.4 s (Python 3.14) to fail on a 1,000,000-digit
+        date string; a date over 64 characters is now rejected unparsed."""
+        report = _smtp_tls_report_dict()
+        report["date-range"]["start-datetime"] = "1" * 1_000_000
+        limit = budget(2.0)
+        start = time.perf_counter()
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+        self.assertLess(time.perf_counter() - start, limit)
+        self.assertIn("longer than", str(ctx.exception))
+
+    def testOtherDateFormatsStillParse(self):
+        for value in ("2024-01-01", "2024-01-01T00:00:00.123456789+00:00"):
+            report = _smtp_tls_report_dict()
+            report["date-range"]["start-datetime"] = value
+            parsed = parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+            self.assertEqual(parsed["begin_date"], value)
+
+    def testCountersAreIntegersOrNull(self):
+        for field in (
+            "total-successful-session-count",
+            "total-failure-session-count",
+            "failed-session-count",
+        ):
+            report = _smtp_tls_report_dict()
+            _smtp_tls_field_container(report, field)[field] = None
+            parsed = parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+            self.assertEqual(parsed["report_id"], "report-1")
+            for value in ("5", 1.5, True, [1], {"count": 1}):
+                report = _smtp_tls_report_dict()
+                _smtp_tls_field_container(report, field)[field] = value
+                self._assert_rejected(report, f"{field}={value!r}")
+
+    def testFailureDetailsMustBeAListOfObjects(self):
+        for value in ("certificate-expired", {"result-type": "x"}, [1], ["x"]):
+            report = _smtp_tls_report_dict()
+            report["policies"][0]["failure-details"] = value
+            self._assert_rejected(report, f"failure-details={value!r}")
+
+    def test_lone_surrogate_is_rejected(self):
+        """A JSON "\\ud800" passed every type check and later made
+        print() in process_reports() raise UnicodeEncodeError, which exited
+        the CLI with status 1."""
+        cases = (
+            ("organization-name", "Comp\ud800any"),
+            ("policy-string", ["version: STSv1", "mode: \ud800"]),
+            ("contact-info", ["tls@example.com", "\udfff"]),
+            ("contact-info", "tls\ud800@example.com"),
+            ("mx-host", "\ud800.example.com"),
+            ("mx-host", ["mx.example.com", "\ud800.example.com"]),
+        )
+        for field, value in cases:
+            report = _smtp_tls_report_dict()
+            _smtp_tls_field_container(report, field)[field] = value
+            with self.assertRaises(parsedmarc.InvalidSMTPTLSReport, msg=field) as ctx:
+                parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+            self.assertIn(f"{field} is not valid UTF-8 text", str(ctx.exception))
+
+
+class TestPolicyOverrideReasonTypeNormalization(unittest.TestCase):
+    """GHSA-4272-4r8g-6c5h: _parse_report_record() normalized only a
+    reason's ``comment``, so a ``<reason>`` without ``<type>`` gave
+    parsed_aggregate_reports_to_csv_rows() a KeyError, and a ``<type>``
+    that xmltodict parsed to a dict or a list a TypeError in its join. The
+    exception escaped the CLI's file output and stopped the mailbox run.
+    A reason's ``type`` and ``comment`` are now each a string or None."""
+
+    @staticmethod
+    def _report_xml(reason: str) -> str:
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+<feedback>
+  <report_metadata><org_name>reporter.example</org_name>
+    <email>dmarc@reporter.example</email><report_id>reason-test</report_id>
+    <date_range><begin>1704067200</begin><end>1704153599</end></date_range>
+  </report_metadata>
+  <policy_published><domain>example.com</domain><adkim>r</adkim><aspf>r</aspf>
+    <p>none</p><sp>none</sp><pct>100</pct></policy_published>
+  <record><row><source_ip>192.0.2.1</source_ip><count>1</count>
+    <policy_evaluated><disposition>none</disposition><dkim>fail</dkim>
+      <spf>fail</spf>{reason}</policy_evaluated></row>
+    <identifiers><header_from>example.com</header_from></identifiers>
+    <auth_results><spf><domain>example.com</domain><result>fail</result></spf>
+    </auth_results></record>
+</feedback>
+"""
+
+    def _csv_row(self, reason: str) -> tuple[dict, dict]:
+        """Parse a report holding ``reason`` and return its parsed
+        override reason and its one CSV row."""
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._report_xml(reason), offline=True
+        )
+        csv_text = parsedmarc.parsed_aggregate_reports_to_csv(report)
+        rows = list(csv.DictReader(StringIO(csv_text)))
+        self.assertEqual(len(rows), 1)
+        record = report["records"][0]
+        override = dict(record["policy_evaluated"]["policy_override_reasons"][0])
+        return override, rows[0]
+
+    def testReasonWithoutTypeWritesNone(self):
+        override, row = self._csv_row("<reason><comment>x</comment></reason>")
+        self.assertIsNone(override["type"])
+        self.assertEqual(row["policy_override_reasons"], "none")
+        self.assertEqual(row["policy_override_comments"], "x")
+
+    def testTypeWithChildElementsWritesNone(self):
+        """An element with child elements has no text of its own."""
+        override, row = self._csv_row(
+            "<reason><type><x>local_policy</x></type><comment>x</comment></reason>"
+        )
+        self.assertIsNone(override["type"])
+        self.assertEqual(row["policy_override_reasons"], "none")
+
+    def testTypeWithTextBesideChildElementsWritesTheText(self):
+        override, row = self._csv_row(
+            "<reason><type>forwarded<x/></type><comment>x</comment></reason>"
+        )
+        self.assertEqual(override["type"], "forwarded")
+        self.assertEqual(row["policy_override_reasons"], "forwarded")
+
+    def testTypeWithLangAttributeWritesItsText(self):
+        override, row = self._csv_row(
+            '<reason><type lang="en">local_policy</type><comment>x</comment></reason>'
+        )
+        self.assertEqual(override["type"], "local_policy")
+        self.assertEqual(row["policy_override_reasons"], "local_policy")
+
+    def testRepeatedTypeAndCommentAreNull(self):
+        """A repeated element follows the rule of every other string field
+        (_scalar()): it is None, written as "none" in CSV."""
+        override, row = self._csv_row(
+            "<reason><type>local_policy</type><type>other</type>"
+            "<comment>a</comment><comment>b</comment></reason>"
+        )
+        self.assertIsNone(override["type"])
+        self.assertIsNone(override["comment"])
+        self.assertEqual(row["policy_override_reasons"], "none")
+        self.assertEqual(row["policy_override_comments"], "none")
+
+    def testPlainTypeIsUnchanged(self):
+        override, row = self._csv_row(
+            "<reason><type>mailing_list</type><comment>list</comment></reason>"
+        )
+        self.assertEqual(override["type"], "mailing_list")
+        self.assertEqual(override["comment"], "list")
+        self.assertEqual(row["policy_override_reasons"], "mailing_list")
+
+
+class TestSmtpTlsMxHostKey(unittest.TestCase):
+    """Issue #942: RFC 8460 §4.4 keys a policy's MX host patterns
+    ``"mx-host"`` (its schema line reads ``"mx-host": mx-host-pattern``,
+    and §4.4 describes the value as "a JSON array of strings"), and the
+    RFC's Appendix B example gives it as a plain string. The parser read
+    only ``"mx-host-pattern"``, the value type's name, so every
+    RFC-conformant report lost the field. ``mx-host`` is now read as a list
+    or a string, ``mx-host-pattern`` stays a fallback, and the output key
+    is still ``mx_host_patterns``."""
+
+    def _parse_policy(self, **policy_keys) -> dict:
+        report = _smtp_tls_report_dict()
+        report["policies"][0]["policy"].update(policy_keys)
+        parsed = parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+        return dict(parsed["policies"][0])
+
+    def testMxHostList(self):
+        policy = self._parse_policy(
+            **{"mx-host": ["*.mail.example.com", "mx.example.com"]}
+        )
+        self.assertEqual(
+            policy["mx_host_patterns"], ["*.mail.example.com", "mx.example.com"]
+        )
+
+    def testMxHostStringBecomesAOneElementList(self):
+        policy = self._parse_policy(**{"mx-host": "*.mail.company-y.example"})
+        self.assertEqual(policy["mx_host_patterns"], ["*.mail.company-y.example"])
+
+    def testMxHostPatternIsAFallback(self):
+        policy = self._parse_policy(**{"mx-host-pattern": ["*.legacy.example"]})
+        self.assertEqual(policy["mx_host_patterns"], ["*.legacy.example"])
+        policy = self._parse_policy(**{"mx-host-pattern": "*.legacy.example"})
+        self.assertEqual(policy["mx_host_patterns"], ["*.legacy.example"])
+
+    def testMxHostWinsOverMxHostPattern(self):
+        policy = self._parse_policy(
+            **{"mx-host": ["*.rfc.example"], "mx-host-pattern": ["*.legacy.example"]}
+        )
+        self.assertEqual(policy["mx_host_patterns"], ["*.rfc.example"])
+
+    def testEmptyMxHostFallsBackThenOmits(self):
+        for value in (None, "", []):
+            with self.subTest(value=value):
+                policy = self._parse_policy(
+                    **{"mx-host": value, "mx-host-pattern": ["*.legacy.example"]}
+                )
+                self.assertEqual(policy["mx_host_patterns"], ["*.legacy.example"])
+                policy = self._parse_policy(**{"mx-host": value})
+                self.assertNotIn("mx_host_patterns", policy)
+
+    def testWrongTypedMxHostIsRejected(self):
+        for key in ("mx-host", "mx-host-pattern"):
+            for value in (5, [1], {"pattern": "*.example.com"}):
+                report = _smtp_tls_report_dict()
+                report["policies"][0]["policy"][key] = value
+                with self.subTest(key=key, value=value):
+                    with self.assertRaises(parsedmarc.InvalidSMTPTLSReport):
+                        parsedmarc.parse_smtp_tls_report_json(json.dumps(report))
+
+    def testRfc8460AppendixBSampleKeepsItsMxHost(self):
+        """samples/smtp_tls/rfc8460.json is the RFC's Appendix B example."""
+        parsed = parsedmarc.parse_report_file(
+            "samples/smtp_tls/rfc8460.json", offline=True
+        )
+        self.assertEqual(parsed["report_type"], "smtp_tls")
+        report = cast(SMTPTLSReport, parsed["report"])
+        self.assertEqual(
+            report["policies"][0].get("mx_host_patterns"),
+            ["*.mail.company-y.example"],
+        )
+        csv_text = parsedmarc.parsed_smtp_tls_reports_to_csv(report)
+        rows = list(csv.DictReader(StringIO(csv_text)))
+        self.assertTrue(rows)
+        self.assertEqual(
+            {row["mx_host_patterns"] for row in rows}, {"*.mail.company-y.example"}
+        )
+
+
+class TestAggregateReportXMLAttributesDropped(unittest.TestCase):
+    """An XML attribute on a scalar element made xmltodict return an object
+    (``{"@a": "1", "#text": "none"}``) that reached Elasticsearch and
+    OpenSearch and mapped the field as an object (GHSA-qpcg-29vr-jwm3)."""
+
+    ATTRIBUTE = ' a="1"'
+
+    @classmethod
+    def poisoned_xml(cls, attribute=ATTRIBUTE):
+        return (
+            _minimal_aggregate_xml(
+                policy_published=(
+                    "<policy_published><domain>example.com</domain>"
+                    f"<p{attribute}>none</p><fo{attribute}>1</fo></policy_published>"
+                ),
+                reason='<reason><type>other</type><comment lang="en">x</comment></reason>',
+            )
+            .replace("<feedback>", f"<feedback><version{attribute}>1.0</version>", 1)
+            .replace("<disposition>", f"<disposition{attribute}>", 1)
+            .replace(
+                "<header_from>example.com</header_from>",
+                "<header_from>example.com</header_from>"
+                f"<envelope_to{attribute}>example.org</envelope_to>",
+                1,
+            )
+        )
+
+    def test_attributes_on_scalar_elements_are_dropped(self):
+        report = cast(
+            dict,
+            parsedmarc.parse_aggregate_report_xml(self.poisoned_xml(), offline=True),
+        )
+        record = report["records"][0]
+        self.assertEqual(report["xml_schema"], "1.0")
+        self.assertEqual(report["policy_published"]["p"], "none")
+        self.assertEqual(report["policy_published"]["fo"], "1")
+        self.assertEqual(record["policy_evaluated"]["disposition"], "none")
+        self.assertEqual(record["identifiers"]["envelope_to"], "example.org")
+        self.assertEqual(
+            record["policy_evaluated"]["policy_override_reasons"],
+            [{"type": "other", "comment": "x"}],
+        )
+
+    def test_element_with_many_attributes_parses_to_its_text(self):
+        attributes = "".join(f' a{i}="v"' for i in range(500))
+        report = cast(
+            dict,
+            parsedmarc.parse_aggregate_report_xml(
+                self.poisoned_xml(attributes), offline=True
+            ),
+        )
+        self.assertEqual(report["policy_published"]["p"], "none")
+        self.assertEqual(report["xml_schema"], "1.0")
+
+    def test_rfc_9990_is_still_detected_through_a_field_with_an_attribute(self):
+        """With no namespace, an RFC 9990-only field (``np``) still marks the
+        report as RFC 9990 after its attribute is dropped, so a DKIM result
+        without a selector gets the RFC 9990 warning."""
+        xml = _minimal_aggregate_xml(
+            policy_published=(
+                "<policy_published><domain>example.com</domain><p>none</p>"
+                f"<np{self.ATTRIBUTE}>reject</np></policy_published>"
+            )
+        ).replace(
+            "<auth_results>",
+            "<auth_results><dkim><domain>example.com</domain>"
+            "<result>pass</result></dkim>",
+            1,
+        )
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIsNone(report["xml_namespace"])
+        self.assertEqual(report["policy_published"]["np"], "reject")
+        self.assertTrue(any("REQUIRED by RFC 9990" in line for line in logs.output))
+
+
+# Every element of an aggregate report that the schema types as a string,
+# with its plain value; {name} placeholders take a variant.
+_SCALAR_FIELD_VALUES = {
+    "version": "1.0",
+    "org_name": "reporter.example",
+    "email": "dmarc@reporter.example",
+    "extra_contact_info": "https://reporter.example/dmarc",
+    "report_id": "scalar-test",
+    "generator": "reporter/1.0",
+    "domain": "example.com",
+    "adkim": "r",
+    "aspf": "s",
+    "p": "none",
+    "sp": "quarantine",
+    "pct": "100",
+    "fo": "1",
+    "np": "reject",
+    "testing": "n",
+    "discovery_method": "psl",
+    "source_ip": "192.0.2.1",
+    "count": "3",
+    "disposition": "none",
+    "dkim": "pass",
+    "spf": "fail",
+    "header_from": "example.com",
+    "envelope_from": "bounce.example.com",
+    "envelope_to": "example.org",
+    "dkim_domain": "example.com",
+    "selector": "s1",
+    "dkim_result": "pass",
+    "dkim_human_result": "good signature",
+    "spf_domain": "bounce.example.com",
+    "scope": "mfrom",
+    "spf_result": "fail",
+    "spf_human_result": "not listed",
+}
+_SCALAR_FIELD_TEMPLATE = (
+    "<feedback><version>{version}</version><report_metadata>"
+    "<org_name>{org_name}</org_name><email>{email}</email>"
+    "<extra_contact_info>{extra_contact_info}</extra_contact_info>"
+    "<report_id>{report_id}</report_id><generator>{generator}</generator>"
+    "<date_range><begin>1704067200</begin><end>1704153599</end></date_range>"
+    "</report_metadata><policy_published><domain>{domain}</domain>"
+    "<adkim>{adkim}</adkim><aspf>{aspf}</aspf><p>{p}</p><sp>{sp}</sp>"
+    "<pct>{pct}</pct><fo>{fo}</fo><np>{np}</np><testing>{testing}</testing>"
+    "<discovery_method>{discovery_method}</discovery_method></policy_published>"
+    "<record><row><source_ip>{source_ip}</source_ip><count>{count}</count>"
+    "<policy_evaluated><disposition>{disposition}</disposition>"
+    "<dkim>{dkim}</dkim><spf>{spf}</spf>"
+    "<reason><type>other</type><comment>c</comment></reason>"
+    "</policy_evaluated></row><identifiers><header_from>{header_from}</header_from>"
+    "<envelope_from>{envelope_from}</envelope_from>"
+    "<envelope_to>{envelope_to}</envelope_to></identifiers><auth_results>"
+    "<dkim><domain>{dkim_domain}</domain><selector>{selector}</selector>"
+    "<result>{dkim_result}</result><human_result>{dkim_human_result}</human_result>"
+    "</dkim><spf><domain>{spf_domain}</domain><scope>{scope}</scope>"
+    "<result>{spf_result}</result><human_result>{spf_human_result}</human_result>"
+    "</spf></auth_results></record></feedback>"
+)
+
+
+def _scalar_field_xml(**variants: str) -> str:
+    """The report with each named field's value replaced by its variant."""
+    return _SCALAR_FIELD_TEMPLATE.format(**{**_SCALAR_FIELD_VALUES, **variants})
+
+
+_POLICY_FIELDS = (
+    "domain",
+    "adkim",
+    "aspf",
+    "p",
+    "sp",
+    "pct",
+    "fo",
+    "np",
+    "testing",
+    "discovery_method",
+)
+
+
+def _record(report: dict) -> dict:
+    return report["records"][0]
+
+
+def _auth_result(report: dict, kind: str) -> dict:
+    return (_record(report)["auth_results"][kind] or [{}])[0]
+
+
+class TestAggregateReportScalarFields(unittest.TestCase):
+    """GHSA-qpcg-29vr-jwm3: a child element under a field the schema types
+    as a string (``<p><x>1</x></p>``, ``<p>none<x/></p>``) reached the
+    parsed report, and the Elasticsearch and OpenSearch documents, as a dict
+    that mapped the field as an object."""
+
+    GETTERS: dict[str, Callable[[dict], Any]] = {
+        "version": lambda r: r["xml_schema"],
+        "org_name": lambda r: r["report_metadata"]["org_name"],
+        "email": lambda r: r["report_metadata"]["org_email"],
+        "extra_contact_info": lambda r: r["report_metadata"]["org_extra_contact_info"],
+        "report_id": lambda r: r["report_metadata"]["report_id"],
+        "generator": lambda r: r["report_metadata"]["generator"],
+        **{
+            name: (lambda name: lambda r: r["policy_published"][name])(name)
+            for name in _POLICY_FIELDS
+        },
+        "source_ip": lambda r: _record(r)["source"]["ip_address"],
+        "count": lambda r: _record(r)["count"],
+        "disposition": lambda r: _record(r)["policy_evaluated"]["disposition"],
+        "dkim": lambda r: _record(r)["policy_evaluated"]["dkim"],
+        "spf": lambda r: _record(r)["policy_evaluated"]["spf"],
+        "header_from": lambda r: _record(r)["identifiers"]["header_from"],
+        "envelope_from": lambda r: _record(r)["identifiers"]["envelope_from"],
+        "envelope_to": lambda r: _record(r)["identifiers"]["envelope_to"],
+        "dkim_domain": lambda r: _auth_result(r, "dkim").get("domain"),
+        "selector": lambda r: _auth_result(r, "dkim").get("selector"),
+        "dkim_result": lambda r: _auth_result(r, "dkim").get("result"),
+        "dkim_human_result": lambda r: _auth_result(r, "dkim").get("human_result"),
+        "spf_domain": lambda r: _auth_result(r, "spf").get("domain"),
+        "scope": lambda r: _auth_result(r, "spf").get("scope"),
+        "spf_result": lambda r: _auth_result(r, "spf").get("result"),
+        "spf_human_result": lambda r: _auth_result(r, "spf").get("human_result"),
+    }
+
+    def _parse(self, **variants: str) -> dict:
+        return cast(
+            dict,
+            parsedmarc.parse_aggregate_report_xml(
+                _scalar_field_xml(**variants), offline=True
+            ),
+        )
+
+    def test_every_scalar_field_has_a_getter(self):
+        self.assertEqual(set(self.GETTERS), set(_SCALAR_FIELD_VALUES))
+
+    def test_mixed_content_keeps_the_text(self):
+        plain = self._parse()
+        for name, getter in self.GETTERS.items():
+            value = _SCALAR_FIELD_VALUES[name]
+            report = self._parse(**{name: f"{value}<x/>"})
+            self.assertEqual(getter(report), getter(plain), msg=name)
+
+    def test_child_element_gives_a_string_none_or_a_rejection(self):
+        for name, getter in self.GETTERS.items():
+            try:
+                report = self._parse(**{name: "<x>1</x>"})
+            except parsedmarc.InvalidAggregateReport:
+                continue
+            value = getter(report)
+            self.assertNotIsInstance(value, (dict, list), msg=name)
+            self.assertTrue(value is None or isinstance(value, str), msg=name)
+
+    def test_repeated_policy_published_is_coerced_too(self):
+        """A second <policy_published> makes the field a list; the parser
+        reads the first, whose <p> holds a child element."""
+        report = self._parse(
+            p="<x>1</x>",
+            discovery_method=(
+                "psl</discovery_method></policy_published><policy_published>"
+                "<domain>example.com</domain><p>none</p><discovery_method>psl"
+            ),
+        )
+        self.assertIsNone(report["policy_published"]["p"])
+        self.assertEqual(report["policy_published"]["discovery_method"], "psl")
+
+    def test_error_with_a_child_element_keeps_its_text(self):
+        """<error> may repeat, so it goes through _text(), which gives the
+        text beside a child element or drops an error with none."""
+        xml = _scalar_field_xml().replace(
+            "<generator>",
+            "<error>disk full<x/></error><error><x>1</x></error><generator>",
+            1,
+        )
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertEqual(report["report_metadata"]["errors"], ["disk full"])
+
+    def test_repeated_scalar_element_gives_none(self):
+        report = self._parse(fo="1</fo><fo>0")
+        self.assertIsNone(report["policy_published"]["fo"])
+
+    def test_count_with_child_elements_takes_the_non_numeric_count_path(self):
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            self._parse(count="<x>1</x>")
+        self.assertIn("invalid literal for int()", str(ctx.exception))
+
+
+class TestReportEmailSerializesEachPartOnce(unittest.TestCase):
+    """parse_report_email() serialized every part walk() visited, and str()
+    of a composite part renders its whole subtree, so a deep nesting within
+    mailsuite's limits re-rendered its leaf once per level
+    (GHSA-qcc2-4x3v-v4g7)."""
+
+    HEAD = (
+        "From: a@example.com\nTo: b@example.com\n"
+        "Subject: Report Domain: example.com\n"
+        "Date: Mon, 9 Nov 2026 00:00:00 +0000\nMIME-Version: 1.0\n"
+    )
+
+    def _assert_quick(self, message: str) -> None:
+        limit = budget(2.0)
+        start = time.monotonic()
+        with self.assertRaises(parsedmarc.InvalidDMARCReport):
+            parsedmarc.parse_report_email(message, offline=True)
+        self.assertLess(time.monotonic() - start, limit)
+
+    def test_nested_multiparts_around_a_large_leaf(self):
+        """98 nested multiparts around a 20 MiB one-line leaf took 26.6 s."""
+        message = self.HEAD + 'Content-Type: multipart/mixed; boundary="b0"\n\n'
+        for i in range(1, 98):
+            message += f'--b{i - 1}\nContent-Type: multipart/mixed; boundary="b{i}"\n\n'
+        message += "--b97\nContent-Type: text/plain\n\n" + "x" * 20 * 2**20
+        self._assert_quick(message + "\n--b97--\n")
+
+    def test_chain_of_rfc822_messages_around_a_large_leaf(self):
+        """A chain of 99 message/rfc822 parts around a 10 MiB leaf took
+        11.3 s."""
+        message = (
+            self.HEAD
+            + "Content-Type: message/rfc822\n\n"
+            + "Subject: s\nContent-Type: message/rfc822\n\n" * 97
+            + "Subject: s\nContent-Type: text/plain\n\n"
+            + "x" * 10 * 2**20
+            + "\n"
+        )
+        self._assert_quick(message)
+
+    def test_chain_of_feedback_report_parts_around_a_large_leaf(self):
+        """A chain of 99 message/feedback-report parts around a 10 MiB leaf
+        rendered every level and took 11.6 s."""
+        message = (
+            self.HEAD
+            + "Content-Type: message/feedback-report\n\n"
+            + "Subject: s\nContent-Type: message/feedback-report\n\n" * 97
+            + "Subject: s\nContent-Type: text/plain\n\n"
+            + "x" * 10 * 2**20
+            + "\n"
+        )
+        self._assert_quick(message)
+
+    def test_a_message_inside_the_sample_does_not_replace_it(self):
+        """A feedback report has one sample (RFC 6591 §3.1); a message/rfc822
+        attached inside the sample replaced it before."""
+        message = (
+            self.HEAD
+            + 'Content-Type: multipart/report; report-type=feedback-report; boundary="r"\n\n'
+            "--r\nContent-Type: message/feedback-report\n\n"
+            "Feedback-Type: auth-failure\nUser-Agent: test/1.0\nVersion: 1\n"
+            "Original-Mail-From: user@example.com\n"
+            "Arrival-Date: Mon, 01 Jan 2024 00:00:00 +0000\n"
+            "Source-IP: 192.0.2.1\nReported-Domain: example.com\n"
+            "Authentication-Results: mx; dmarc=fail\n\n"
+            "--r\nContent-Type: message/rfc822\n\n"
+            "From: spoofer@example.com\nTo: victim@example.org\nSubject: outer\n"
+            'MIME-Version: 1.0\nContent-Type: multipart/mixed; boundary="s"\n\n'
+            "--s\nContent-Type: text/plain\n\nhello\n"
+            "--s\nContent-Type: message/rfc822\n\n"
+            "From: other@example.net\nSubject: inner\n\nforwarded\n"
+            "--s--\n--r--\n"
+        )
+        parsed = parsedmarc.parse_report_email(message, offline=True)
+        self.assertEqual(parsed["report_type"], "failure")
+        report = cast(dict, parsed["report"])
+        self.assertEqual(report["parsed_sample"]["subject"], "outer")
+
+
+class TestFailureReportPartPrecedence(unittest.TestCase):
+    """An RFC 6591 message/feedback-report part and its sample win over a
+    legacy "A message claiming to be from you has failed" text part, in
+    either order, and a legacy text part inside the sample (the spoofer's
+    own text) cannot replace the report's Source-IP or sample
+    (GHSA-qcc2-4x3v-v4g7)."""
+
+    HEAD = (
+        "From: a@example.net\nTo: b@example.com\nSubject: fail\n"
+        "Date: Mon, 9 Nov 2026 00:00:00 +0000\nMIME-Version: 1.0\n"
+        'Content-Type: multipart/report; report-type=feedback-report; boundary="r"\n\n'
+    )
+    LEGACY = (
+        "--r\nContent-Type: text/plain\n\n"
+        "A message claiming to be from you has failed the published DMARC "
+        "policy for your domain.\n\n  Sender Domain: example.com\n"
+        "  Sender IP Address: 192.0.2.9\n"
+        "  Received Date: Mon, 9 Nov 2026 00:00:00 +0000\n"
+        "  SPF Alignment: no\n  DKIM Alignment: no\n"
+        "  DMARC Results: None, Accept\n\ndetected.\n\n"
+        "From: x@example.com\nSubject: legacy\n\n"
+    )
+    FEEDBACK = (
+        "--r\nContent-Type: message/feedback-report\n\n"
+        "Feedback-Type: auth-failure\nVersion: 1\nAuth-Failure: dmarc\n"
+        "Source-IP: 192.0.2.1\nReported-Domain: example.com\n"
+        "Arrival-Date: Mon, 9 Nov 2026 00:00:00 +0000\n\n"
+    )
+    SAMPLE = (
+        "--r\nContent-Type: message/rfc822\n\nFrom: x@example.com\n"
+        "To: y@example.org\nSubject: arfsample\n"
+        "Date: Mon, 9 Nov 2026 00:00:00 +0000\n\nbody\n\n"
+    )
+
+    def _parse(self, body: str) -> dict:
+        parsed = parsedmarc.parse_report_email(
+            self.HEAD + body + "--r--\n", offline=True
+        )
+        self.assertEqual(parsed["report_type"], "failure")
+        return cast(dict, parsed["report"])
+
+    def _assert_arf(self, report: dict) -> None:
+        self.assertEqual(report["source"]["ip_address"], "192.0.2.1")
+        self.assertEqual(report["parsed_sample"]["subject"], "arfsample")
+
+    def test_arf_after_a_legacy_text_part_wins(self):
+        self._assert_arf(self._parse(self.LEGACY + self.FEEDBACK + self.SAMPLE))
+
+    def test_arf_before_a_legacy_text_part_wins(self):
+        self._assert_arf(self._parse(self.FEEDBACK + self.SAMPLE + self.LEGACY))
+
+    def test_attachments_inside_the_sample_are_not_reports(self):
+        """The sample is the reported message, the spoofer's attachments
+        included: an SVG or zipped HTML attachment made the email rejected,
+        a gzipped aggregate report or SMTP TLS JSON inside it was returned
+        as that report instead of the failure report."""
+        with open(
+            "samples/aggregate/example.net!example.com!1529366400!1529452799.xml",
+            "rb",
+        ) as sample_file:
+            aggregate = sample_file.read()
+        with open("samples/smtp_tls/smtp_tls.json", "rb") as sample_file:
+            smtp_tls = sample_file.read()
+        zipped = BytesIO()
+        with zipfile.ZipFile(zipped, "w") as archive:
+            archive.writestr("invoice.html", "<html><body>pay</body></html>")
+        cases = (
+            ("image/svg+xml", b'<svg xmlns="http://www.w3.org/2000/svg"/>'),
+            ("application/zip", zipped.getvalue()),
+            ("application/json", b'{"a": 1}'),
+            ("application/gzip", gzip.compress(aggregate)),
+            ("application/tlsrpt+json", smtp_tls),
+            ("application/pdf", b"%PDF-1.4 x"),
+        )
+        for content_type, data in cases:
+            attachment = base64.encodebytes(data).decode()
+            sample = (
+                "--r\nContent-Type: message/rfc822\n\nFrom: x@example.com\n"
+                "To: y@example.org\nSubject: arfsample\n"
+                "Date: Mon, 9 Nov 2026 00:00:00 +0000\nMIME-Version: 1.0\n"
+                'Content-Type: multipart/mixed; boundary="s"\n\n'
+                "--s\nContent-Type: text/plain\n\nhello\n\n"
+                f"--s\nContent-Type: {content_type}\n"
+                "Content-Transfer-Encoding: base64\n"
+                "Content-Disposition: attachment; filename=a\n\n"
+                f"{attachment}\n--s--\n\n"
+            )
+            with self.subTest(content_type=content_type):
+                report = self._parse(self.FEEDBACK + sample)
+                self._assert_arf(report)
+                self.assertIn(content_type, report["sample"])
+
+    def test_legacy_text_then_a_feedback_part_without_its_sample_is_invalid(self):
+        """RFC 6591 §3.1 puts the sample after the feedback report part, so a
+        sample before it, or none, leaves the RFC 6591 report without one;
+        the legacy part read earlier is not mixed in."""
+        for body in (
+            self.LEGACY + self.FEEDBACK,
+            self.LEGACY + self.SAMPLE + self.FEEDBACK,
+        ):
+            with self.assertRaises(parsedmarc.InvalidDMARCReport):
+                parsedmarc.parse_report_email(
+                    self.HEAD + body + "--r--\n", offline=True
+                )
+
+    @staticmethod
+    def _gzipped_aggregate_attachment() -> str:
+        with open(
+            "samples/aggregate/example.net!example.com!1529366400!1529452799.xml",
+            "rb",
+        ) as sample_file:
+            data = base64.encodebytes(gzip.compress(sample_file.read())).decode()
+        return (
+            "Content-Type: application/gzip\nContent-Transfer-Encoding: base64\n"
+            f"Content-Disposition: attachment; filename=a.gz\n\n{data}\n"
+        )
+
+    def _sample_with(self, boundary: str, extra: str) -> str:
+        return (
+            "--r\nContent-Type: message/rfc822\n\nFrom: x@example.com\n"
+            "To: y@example.org\nSubject: arfsample\n"
+            "Date: Mon, 9 Nov 2026 00:00:00 +0000\nMIME-Version: 1.0\n"
+            f'Content-Type: multipart/mixed; boundary="{boundary}"\n\n'
+            f"--{boundary}\nContent-Type: text/plain\n\nhello\n\n"
+            f"{extra}--{boundary}--\n\n"
+        )
+
+    def test_parts_inside_a_later_sample_candidate_are_not_reports(self):
+        """Only the first sample candidate is kept, but every candidate is
+        part of the reported message: a gzipped aggregate report inside a
+        second candidate was returned in place of the failure report."""
+        attachment = "--s\n" + self._gzipped_aggregate_attachment()
+        headers = (
+            "--r\nContent-Type: text/rfc822-headers\n\nFrom: x@example.com\n"
+            "To: y@example.org\nSubject: arfsample\n\n"
+        )
+        for label, body in (
+            ("headers, then rfc822", headers + self._sample_with("s", attachment)),
+            (
+                "rfc822, then rfc822",
+                self._sample_with("q", "") + self._sample_with("s", attachment),
+            ),
+        ):
+            with self.subTest(label):
+                report = self._parse(self.FEEDBACK + body)
+                self.assertEqual(report["source"]["ip_address"], "192.0.2.1")
+
+    def test_a_report_beside_the_sample_is_still_read(self):
+        """Only parts inside the sample are skipped: a gzipped aggregate
+        report after the sample, as a sibling, is returned as before."""
+        body = (
+            self.FEEDBACK
+            + self._sample_with("q", "")
+            + "--r\n"
+            + self._gzipped_aggregate_attachment()
+        )
+        parsed = parsedmarc.parse_report_email(
+            self.HEAD + body + "--r--\n", offline=True
+        )
+        self.assertEqual(parsed["report_type"], "aggregate")
+
+    def test_legacy_text_inside_the_sample_is_ignored(self):
+        sample = (
+            "--r\nContent-Type: message/rfc822\n\nFrom: x@example.com\n"
+            "To: y@example.org\nSubject: arfsample\n"
+            "Date: Mon, 9 Nov 2026 00:00:00 +0000\nMIME-Version: 1.0\n"
+            'Content-Type: multipart/mixed; boundary="s"\n\n'
+            "--s\nContent-Type: text/plain\n\n"
+            "A message claiming to be from you has failed\n"
+            "  Sender IP Address: 203.0.113.66\n"
+            "  Received Date: Mon, 9 Nov 2026 00:00:00 +0000\ndetected.\n"
+            "From: forged@example.com\nSubject: injected\n\n--s--\n\n"
+        )
+        self._assert_arf(self._parse(self.FEEDBACK + sample))
 
 
 if __name__ == "__main__":

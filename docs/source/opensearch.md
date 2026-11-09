@@ -14,6 +14,13 @@ index for each day (or each month, with `monthly_indexes`), named after
 the report's date, such as `dmarc_aggregate-2024-03-31`. That makes it
 easy to comply with records retention regulations such as GDPR: delete
 the indexes for the dates you no longer keep.
+A single aggregate report creates at most 31 dated indexes
+(`MAX_INDEXES_PER_REPORT`): when its records would use more than 31
+dated indexes, the later records are saved to the report's first dated
+index with their own dates, and a warning is logged. Dated index names still come
+from each report's own dates, so reports with many different dates
+still create one index per date; data streams (`use_data_streams`) are
+affected by neither.
 
 Set `use_data_streams = True` in the `[opensearch]` section to write to
 [data streams] instead. Each report type then goes to one data stream
@@ -39,7 +46,8 @@ exist yet. The template:
   reports, which is the report's begin date unless parsedmarc split a
   report spanning more than a day into daily records; the arrival date
   for failure reports; and the report's begin date for SMTP TLS reports.
-  The other fields are mapped dynamically, as in the dated indexes.
+  The other fields get the same [field mappings](#field-mappings) as the
+  dated indexes.
 
 parsedmarc puts the template again in every process, so changes made to
 it directly do not last.
@@ -108,6 +116,38 @@ from the report dates, so a backing index is deleted 180 days after it
 was created, whatever dates the reports in it cover. If you need
 retention by report date, keep using dated indexes and delete them by
 name.
+
+### Field mappings
+
+Indexes and data stream templates created by parsedmarc 11.2.2 or later
+turn date detection off and declare the date fields (`date_range`,
+`date_begin`, `date_end`, `arrival_date`, `@timestamp`, and
+`sample.date`), so a report
+cannot make a text field such as `report_id` a date and block every
+later report for that index. In failure reports, only these sample
+headers are indexed: `authentication-results`, `auto-submitted`, `cc`,
+`content-transfer-encoding`, `content-type`, `date`, `from`,
+`in-reply-to`, `message-id`, `mime-version`, `received`, `references`,
+`reply-to`, `return-path`, `subject`, `thread-index`, `thread-topic`,
+`to`, `x-auto-response-suppress`, `x-exclaimer-md-config`,
+`x-linkedin-fe`, `x-mailer`, `x-ms-exchange-generated-message-source`,
+`x-ms-exchange-inbox-rules-loop`, `x-ms-exchange-parent-message-id`,
+`x-ms-exchange-transport-fromentityheader`, `x-ms-has-attach`,
+`x-ms-tnef-correlator`, and `x-onpremexternalip`. Every header is still
+kept in `_source` under its lower-cased name, with any `.` replaced by
+`_`, except a `From`, `To` or `Reply-To` header that holds no address,
+which is left out of the document. To make another header searchable
+in the dated indexes, declare it
+under `sample.headers.properties` as `text` with a `keyword` sub-field
+in an index template whose `index_patterns` match them
+(`dmarc_failure-*`); it applies only to indexes created after it. The
+data stream template composes no component template, so for a data
+stream add the header to its backing indices with the update mapping
+API (`PUT dmarc_failure/_mapping`), and again after each rollover.
+Dated indexes created by earlier releases keep their mappings unchanged.
+parsedmarc puts the data stream template again in every process
+before its first save to the stream, so after upgrading, an existing
+stream's next backing index after a rollover gets these mappings too.
 
 ### Switching an existing installation to data streams
 
