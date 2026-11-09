@@ -1262,7 +1262,11 @@ parsed when a run died has an entry; on the next run each of them is
 parsed on its own after the rest of its batch, so a second crash counts
 against the one message that caused it. It is parsed in the main process,
 or, when `parse_timeout` is set, in a worker process of its own, so the
-timeout still applies to it.
+timeout still applies to it. If a worker process dies while it parses (the
+out-of-memory killer can end a worker without ending parsedmarc),
+parsedmarc logs an error and exits with status 1, and the entries of the
+messages that were being parsed stay in the file, so the next run parses
+each of them on its own in the same way.
 
 This count is separate from the in-memory failed-save counts of
 `max_unsaved_retries` above: an entry is removed when the parse
@@ -1569,6 +1573,7 @@ After=network.target network-online.target elasticsearch.service
 ExecStart=/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGTERM
+KillMode=mixed
 TimeoutStopSec=60
 User=parsedmarc
 Group=parsedmarc
@@ -1579,6 +1584,11 @@ RestartSec=5m
 [Install]
 WantedBy=multi-user.target
 ```
+
+`KillMode=mixed` sends the stop signal to the main parsedmarc process
+only, so the batch in progress finishes before it exits; the default
+control-group mode would also stop its parsing worker processes and
+abandon the batch.
 
 `StateDirectory=parsedmarc` makes systemd create `/var/lib/parsedmarc`,
 owned by the `parsedmarc` user, before the service starts. Point the

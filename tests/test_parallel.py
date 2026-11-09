@@ -252,8 +252,8 @@ class TestInitWorkerLogging(unittest.TestCase):
     handler), and with log files it attaches a FileHandler per path. The
     IP-lookup state and PSL overrides it also restores are passed through
     unchanged here so these tests exercise only the logging side. It also
-    resets SIGTERM and SIGINT to their defaults, so the test process's own
-    handlers are put back after each test."""
+    gives SIGTERM its default action and ignores SIGINT, so the test
+    process's own handlers are put back after each test."""
 
     def setUp(self):
         import signal
@@ -570,16 +570,31 @@ class TestTimeoutResults(unittest.TestCase):
         self.assertIn("2.5 seconds", str(error))
 
 
-def _signal_is_default_job(signal_name):
+def _signal_handler_job(signal_name):
     """Report whether the worker's handler for ``signal_name`` is the
-    default. Module-level so it pickles."""
+    default (``"default"``), ignores it (``"ignored"``) or is something else.
+    Module-level so it pickles."""
     import signal
 
-    return signal.getsignal(getattr(signal, signal_name)) is signal.SIG_DFL
+    handler = signal.getsignal(getattr(signal, signal_name))
+    if handler is signal.SIG_DFL:
+        return "default"
+    if handler is signal.SIG_IGN:
+        return "ignored"
+    return "other"
 
 
 def _parent_signal_handler(signum, frame):
     """A handler that, like the CLI's, only notes the signal."""
+
+
+def _use_fork(test):
+    """Switch ``test`` to the ``fork`` start method, or skip it."""
+    if "fork" not in multiprocessing.get_all_start_methods():
+        test.skipTest("the fork start method is not available")
+    original_method = multiprocessing.get_start_method()
+    test.addCleanup(multiprocessing.set_start_method, original_method, force=True)
+    multiprocessing.set_start_method("fork", force=True)
 
 
 class TestWorkerSignalHandlers(unittest.TestCase):
@@ -587,29 +602,114 @@ class TestWorkerSignalHandlers(unittest.TestCase):
     CLI installs SIGTERM and SIGINT handlers that only set a flag, so a
     worker running them ignores the SIGTERM ``ProcessPoolExecutor`` sends
     when it tears down a broken pool, and the teardown waits for it
-    forever. The pool initializer restores the default handlers, in the
-    plain pool and in the pool built for a ``parse_timeout``."""
+    forever. The pool initializer restores the default SIGTERM action and
+    ignores SIGINT, which the parent coordinates, in the plain pool and in
+    the pool built for a ``parse_timeout``."""
 
-    def test_workers_restore_default_handlers_under_fork(self):
+    def test_workers_take_sigterm_and_ignore_sigint_under_fork(self):
         import signal
 
-        if "fork" not in multiprocessing.get_all_start_methods():
-            self.skipTest("the fork start method is not available")
+        _use_fork(self)
         names = [n for n in ("SIGTERM", "SIGINT") if hasattr(signal, n)]
         for name in names:
             number = getattr(signal, name)
             self.addCleanup(signal.signal, number, signal.getsignal(number))
             signal.signal(number, _parent_signal_handler)
-        original_method = multiprocessing.get_start_method()
-        self.addCleanup(multiprocessing.set_start_method, original_method, force=True)
-        multiprocessing.set_start_method("fork", force=True)
+        expected = {"SIGTERM": "default", "SIGINT": "ignored"}
 
         for kwargs in ({}, {"parse_timeout": 30.0, "timeout_result": _timeout_value}):
             with self.subTest(**kwargs):
                 results = list(
-                    parallel_map(_signal_is_default_job, names, n_procs=1, **kwargs)
+                    parallel_map(_signal_handler_job, names, n_procs=1, **kwargs)
                 )
-                self.assertEqual(dict(zip(names, results)), dict.fromkeys(names, True))
+                self.assertEqual(
+                    dict(zip(names, results)), {n: expected[n] for n in names}
+                )
+
+    def test_ctrl_c_lets_the_running_jobs_finish_under_fork(self):
+        """A terminal sends Ctrl-C's SIGINT to every process in its
+        foreground process group, the workers included. The parent's handler
+        (here, as in the CLI, one that only notes the signal) lets the batch
+        finish, so the workers must survive the signal too; with the default
+        action each worker died and the run ended in ``BrokenProcessPool``.
+        The test signals the parent and each worker itself rather than its
+        whole process group, which holds the test runner too."""
+        import signal
+        import threading
+
+        _use_fork(self)
+        received = []
+        self.addCleanup(signal.signal, signal.SIGINT, signal.getsignal(signal.SIGINT))
+        signal.signal(signal.SIGINT, lambda signum, frame: received.append(signum))
+
+        for kwargs in ({}, {"parse_timeout": 30.0, "timeout_result": _timeout_value}):
+            with self.subTest(**kwargs):
+                received.clear()
+                before = set(multiprocessing.active_children())
+
+                def interrupt(before=before):
+                    for child in set(multiprocessing.active_children()) - before:
+                        os.kill(child.pid, signal.SIGINT)
+                    os.kill(os.getpid(), signal.SIGINT)
+
+                timer = threading.Timer(0.5, interrupt)
+                timer.start()
+                self.addCleanup(timer.cancel)
+                results = list(parallel_map(_sleep_job, [2.0, 2.0], 2, **kwargs))
+                timer.join()
+                self.assertEqual(results, [2.0, 2.0])
+                self.assertEqual(received, [signal.SIGINT])
+
+
+def _exit_job(value):
+    """End the worker process at once when ``value`` is ``"exit"``, as the
+    out-of-memory killer or a crash would; otherwise sleep ``value``
+    seconds and return it. Module-level so it pickles."""
+    if value == "exit":
+        os._exit(1)
+    time.sleep(value)
+    return value
+
+
+class TestWorkerDeath(unittest.TestCase):
+    """A worker process that dies breaks the pool, and
+    ``ProcessPoolExecutor`` then fails every unfinished job with
+    ``BrokenProcessPool``. ``parallel_map`` raises ``ParserError`` from it,
+    promptly, and leaves no worker behind, in the plain pool and in the pool
+    built for a ``parse_timeout``. Without the conversion the
+    ``BrokenProcessPool`` escaped to the caller, which handles only
+    ``ParserError``."""
+
+    def test_dying_worker_raises_parser_error(self):
+        from concurrent.futures.process import BrokenProcessPool
+
+        methods = [
+            m
+            for m in ("fork", "forkserver")
+            if m in multiprocessing.get_all_start_methods()
+        ]
+        original_method = multiprocessing.get_start_method()
+        self.addCleanup(multiprocessing.set_start_method, original_method, force=True)
+        for method in methods:
+            for kwargs in (
+                {},
+                {"parse_timeout": 30.0, "timeout_result": _timeout_value},
+            ):
+                with self.subTest(start_method=method, **kwargs):
+                    multiprocessing.set_start_method(method, force=True)
+                    before = set(multiprocessing.active_children())
+                    start = time.monotonic()
+                    with self.assertRaises(parsedmarc.ParserError) as caught:
+                        list(
+                            parallel_map(
+                                _exit_job, [0.1, "exit", 0.1, 0.1], 2, **kwargs
+                            )
+                        )
+                    # About a pool start; the 30 s timeout plays no part.
+                    self.assertLess(time.monotonic() - start, budget(5))
+                    self.assertIn("worker process died", str(caught.exception))
+                    self.assertIsInstance(caught.exception.__cause__, BrokenProcessPool)
+                    self.assertLessEqual(set(multiprocessing.active_children()), before)
 
 
 if __name__ == "__main__":

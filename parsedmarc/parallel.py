@@ -11,6 +11,7 @@ import time
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Future, ProcessPoolExecutor, wait
+from concurrent.futures.process import BrokenProcessPool
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
@@ -79,10 +80,13 @@ def _init_worker(
     # Under fork a worker inherits the parent's signal handlers, and the CLI
     # installs SIGTERM and SIGINT handlers that only set a flag. A worker
     # running them ignores the SIGTERM ProcessPoolExecutor sends when it
-    # tears down a broken pool, and the teardown then waits for it forever.
-    for name in ("SIGTERM", "SIGINT"):
-        if hasattr(signal, name):
-            signal.signal(getattr(signal, name), signal.SIG_DFL)
+    # tears down a broken pool, and the teardown then waits for it forever,
+    # so SIGTERM gets its default action. Ctrl-C sends SIGINT to the whole
+    # process group, workers included, under every start method; the parent
+    # decides how to shut down and lets the batch in progress finish, so
+    # workers ignore SIGINT.
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     utils._set_ip_worker_state(*ip_worker_state)
     utils.psl_overrides[:] = psl_overrides
@@ -288,34 +292,9 @@ class _DeadlinePool(Generic[_J, _R]):
                 pending.started_at = now
 
     def kill(self) -> None:
-        """Kill the worker processes and wait, boundedly, for them to exit.
-
-        ``ProcessPoolExecutor`` has no public way to stop a running job, and
-        ``shutdown()`` waits for it or, with ``wait=False``, leaves it
-        running, so the workers are read from ``_processes``, a private
-        attribute present in every supported Python version. Without it the
-        workers are left to finish on their own and a warning says so.
-        """
-        from parsedmarc.log import logger
-
-        executor = self._executor
-        processes = getattr(executor, "_processes", None)
-        manager_thread = getattr(executor, "_executor_manager_thread", None)
-        if processes is None:
-            logger.warning(
-                "Cannot stop the worker processes of a timed-out parsing job "
-                "on this Python version; they keep running until they finish"
-            )
-            workers = []
-        else:
-            workers = list(processes.values())
-        for worker in workers:
-            worker.kill()
-        executor.shutdown(wait=False, cancel_futures=True)
-        for worker in workers:
-            worker.join(_KILL_JOIN_SECONDS)
-        if manager_thread is not None:
-            manager_thread.join(_KILL_JOIN_SECONDS)
+        """Kill the worker processes, as ``_kill_workers()`` does, and close
+        the start queue."""
+        _kill_workers(self._executor)
         self._start_queue.close()
         self._by_token.clear()
 
@@ -328,6 +307,46 @@ class _DeadlinePool(Generic[_J, _R]):
         """Shut the pool down once every job has finished."""
         self._executor.shutdown(wait=True)
         self._start_queue.close()
+
+
+def _kill_workers(executor: ProcessPoolExecutor) -> None:
+    """Kill ``executor``'s worker processes and wait, boundedly, for them.
+
+    ``ProcessPoolExecutor`` has no public way to stop a running job, and
+    ``shutdown()`` waits for it or, with ``wait=False``, leaves it running,
+    so the workers are read from ``_processes``, a private attribute present
+    in every supported Python version. Without it the workers are left to
+    finish on their own and a warning says so.
+    """
+    from parsedmarc.log import logger
+
+    processes = getattr(executor, "_processes", None)
+    manager_thread = getattr(executor, "_executor_manager_thread", None)
+    if processes is None:
+        logger.warning(
+            "Cannot stop the worker processes of a parsing pool on this "
+            "Python version; they keep running until they finish"
+        )
+        workers = []
+    else:
+        workers = list(processes.values())
+    for worker in workers:
+        worker.kill()
+    executor.shutdown(wait=False, cancel_futures=True)
+    for worker in workers:
+        worker.join(_KILL_JOIN_SECONDS)
+    if manager_thread is not None:
+        manager_thread.join(_KILL_JOIN_SECONDS)
+
+
+def _worker_died_error() -> ParserError:
+    """Return the error ``parallel_map()`` raises when a worker dies."""
+    from parsedmarc import ParserError
+
+    return ParserError(
+        "A parsing worker process died (killed, out of memory, or crashed); "
+        "the rest of this batch was not parsed"
+    )
 
 
 def _resolved(value: _R) -> Future[_R]:
@@ -535,6 +554,10 @@ def parallel_map(
             negative or not finite, or if ``parse_timeout`` is set without
             ``timeout_result``. Raised eagerly at the call itself (not on
             first iteration of the returned iterator).
+        ParserError: While iterating, if a worker process dies (the
+            out-of-memory killer, a crash), which breaks the pool and loses
+            every unfinished job. The other workers are killed first; the
+            ``BrokenProcessPool`` is the error's cause.
     """
     if n_procs < 1:
         raise ValueError(f"n_procs must be at least 1, got {n_procs}")
@@ -564,27 +587,61 @@ def parallel_map(
 
         window_size = max(window_factor * n_procs, 1)
 
-        if parse_timeout and timeout_result is not None:
-            yield from _map_with_timeout(
-                func,
-                first_job,
-                jobs_iter,
-                n_procs,
-                window_size,
-                initargs,
-                parse_timeout,
-                timeout_result,
-                heartbeat,
-                heartbeat_interval,
-                should_stop,
-            )
-            return
+        try:
+            if parse_timeout and timeout_result is not None:
+                yield from _map_with_timeout(
+                    func,
+                    first_job,
+                    jobs_iter,
+                    n_procs,
+                    window_size,
+                    initargs,
+                    parse_timeout,
+                    timeout_result,
+                    heartbeat,
+                    heartbeat_interval,
+                    should_stop,
+                )
+            else:
+                yield from _map_plain(
+                    func,
+                    first_job,
+                    jobs_iter,
+                    n_procs,
+                    window_size,
+                    initargs,
+                    heartbeat,
+                    heartbeat_interval,
+                    should_stop,
+                )
+        except BrokenProcessPool as error:
+            raise _worker_died_error() from error
 
-        with ProcessPoolExecutor(
-            max_workers=n_procs,
-            initializer=_init_worker,
-            initargs=initargs,
-        ) as executor:
+    return _generate()
+
+
+def _map_plain(
+    func: Callable[[_J], _R],
+    first_job: _J,
+    jobs_iter: Iterator[_J],
+    n_procs: int,
+    window_size: int,
+    initargs: tuple[Any, ...],
+    heartbeat: Callable[[], None] | None,
+    heartbeat_interval: float,
+    should_stop: Callable[[], bool] | None,
+) -> Iterator[_R]:
+    """``parallel_map()``'s loop when no ``parse_timeout`` is set.
+
+    When a worker dies the pool is broken; its other workers are killed
+    and ``BrokenProcessPool`` propagates for ``parallel_map()`` to convert.
+    """
+    with ProcessPoolExecutor(
+        max_workers=n_procs,
+        initializer=_init_worker,
+        initargs=initargs,
+    ) as executor:
+        try:
             window: deque[Future[_R]] = deque()
             window.append(executor.submit(func, first_job))
 
@@ -622,5 +679,6 @@ def parallel_map(
                 except StopIteration:
                     continue
                 window.append(executor.submit(func, job))
-
-    return _generate()
+        except BrokenProcessPool:
+            _kill_workers(executor)
+            raise

@@ -3559,39 +3559,44 @@ def _main():
     parser_config = _build_parser_config(opts)
 
     func = functools.partial(_parse_report_file_job, config=parser_config)
-    for file_path, result in parallel_map(
-        func,
-        file_paths,
-        n_procs,
-        should_stop=lambda: _shutdown_requested,
-        parse_timeout=opts.parse_timeout,
-        timeout_result=_file_timeout_result,
-    ):
-        if pbar is not None:
-            pbar.update(1)
-        if isinstance(result, Exception):
-            logger.error(f"Failed to parse {file_path} - {result}")
-        else:
-            if result["report_type"] == "aggregate":
-                report_org = result["report"]["report_metadata"]["org_name"]
-                report_id = result["report"]["report_metadata"]["report_id"]
-                report_key = _aggregate_report_dedup_key(result["report"])
-                seen_ids = parser_config.seen_aggregate_report_ids
-                if report_key not in seen_ids:
-                    seen_ids[report_key] = True
-                    aggregate_reports.append(result["report"])
-                else:
-                    logger.debug(
-                        "Skipping duplicate aggregate report "
-                        f"from {sanitize_for_log(str(report_org))} "
-                        f"with ID: {sanitize_for_log(str(report_id))}"
-                    )
-            elif result["report_type"] == "failure":
-                failure_reports.append(result["report"])
-            elif result["report_type"] == "smtp_tls":
-                smtp_tls_reports.append(result["report"])
-        if opts.archive_directory:
-            _archive_processed_file(file_path, opts.archive_directory, result)
+    try:
+        for file_path, result in parallel_map(
+            func,
+            file_paths,
+            n_procs,
+            should_stop=lambda: _shutdown_requested,
+            parse_timeout=opts.parse_timeout,
+            timeout_result=_file_timeout_result,
+        ):
+            if pbar is not None:
+                pbar.update(1)
+            if isinstance(result, Exception):
+                logger.error(f"Failed to parse {file_path} - {result}")
+            else:
+                if result["report_type"] == "aggregate":
+                    report_org = result["report"]["report_metadata"]["org_name"]
+                    report_id = result["report"]["report_metadata"]["report_id"]
+                    report_key = _aggregate_report_dedup_key(result["report"])
+                    seen_ids = parser_config.seen_aggregate_report_ids
+                    if report_key not in seen_ids:
+                        seen_ids[report_key] = True
+                        aggregate_reports.append(result["report"])
+                    else:
+                        logger.debug(
+                            "Skipping duplicate aggregate report "
+                            f"from {sanitize_for_log(str(report_org))} "
+                            f"with ID: {sanitize_for_log(str(report_id))}"
+                        )
+                elif result["report_type"] == "failure":
+                    failure_reports.append(result["report"])
+                elif result["report_type"] == "smtp_tls":
+                    smtp_tls_reports.append(result["report"])
+            if opts.archive_directory:
+                _archive_processed_file(file_path, opts.archive_directory, result)
+    except ParserError as error:
+        # parallel_map raises ParserError when a worker process dies.
+        logger.error(error.__str__())
+        sys.exit(1)
 
     if pbar is not None:
         pbar.close()
@@ -3607,12 +3612,18 @@ def _main():
         if _shutdown_requested:
             logger.info("Shutdown requested, skipping remaining mbox files")
             break
-        reports = get_dmarc_reports_from_mbox(
-            mbox_path,
-            config=parser_config,
-            n_procs=n_procs,
-            parse_timeout=opts.parse_timeout,
-        )
+        try:
+            reports = get_dmarc_reports_from_mbox(
+                mbox_path,
+                config=parser_config,
+                n_procs=n_procs,
+                parse_timeout=opts.parse_timeout,
+            )
+        except ParserError as error:
+            # A missing mbox, a message error that is not an invalid
+            # report, or a parsing worker process that died.
+            logger.error(error.__str__())
+            sys.exit(1)
         aggregate_reports += reports["aggregate_reports"]
         failure_reports += reports["failure_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]

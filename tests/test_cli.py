@@ -8708,6 +8708,65 @@ class TestParseTimeoutOption(unittest.TestCase):
         self.assertEqual(seen, [5.0, 7.5])
 
 
+def _dying_parse_job(job, *, config):
+    """Stand-in parse job that ends its worker process at once, as the
+    out-of-memory killer would. Module-level so it pickles."""
+    os._exit(1)
+
+
+class TestWorkerDeathEndsTheRun(unittest.TestCase):
+    """A parsing worker process that dies makes ``parallel_map`` raise
+    ``ParserError``. For report files and mbox files _main() logs it and
+    exits with status 1, as it does for the mailbox paths, instead of
+    ending in a traceback. The workers really die here, under the default
+    start method."""
+
+    def setUp(self):
+        for stream in ("sys.stdout", "sys.stderr"):
+            patcher = patch(stream, new_callable=io.StringIO)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        self.tmp_dir = tmp_dir
+        self.cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
+        with open(self.cfg_path, "w") as cfg:
+            cfg.write("[general]\nsilent = true\noffline = true\nn_procs = 2\n")
+
+    def _run_main(self, *inputs):
+        from parsedmarc.log import logger as _logger
+
+        self.addCleanup(setattr, _logger, "disabled", _logger.disabled)
+        _logger.disabled = False
+        with (
+            patch.object(sys, "argv", ["parsedmarc", "-c", self.cfg_path, *inputs]),
+            self.assertLogs("parsedmarc.log", level="ERROR") as logs,
+            self.assertRaises(SystemExit) as system_exit,
+        ):
+            parsedmarc.cli._main()
+        self.assertEqual(system_exit.exception.code, 1)
+        self.assertTrue(
+            any("worker process died" in line for line in logs.output), logs.output
+        )
+
+    def test_report_files(self):
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        other = "samples/aggregate/example.net!example.com!1529366400!1529452799.xml"
+        with patch("parsedmarc.cli._parse_report_file_job", _dying_parse_job):
+            self._run_main(sample, other)
+
+    def test_mbox(self):
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            content = message.read()
+        for _ in range(2):
+            box.add(mailbox.mboxMessage(content))
+        box.close()
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            self._run_main(mbox_path)
+
+
 class TestParseConfigElasticsearch(unittest.TestCase):
     def test_elasticsearch_basic(self):
         from parsedmarc.cli import _parse_config
