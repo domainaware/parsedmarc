@@ -8,6 +8,7 @@ import functools
 import http.client
 import json
 import logging
+import math
 import os
 import shutil
 import signal
@@ -141,7 +142,11 @@ from parsedmarc.mail import (
     MaildirConnection,
     MSGraphConnection,
 )
-from parsedmarc.parallel import _parse_report_file_job, parallel_map
+from parsedmarc.parallel import (
+    _file_timeout_result,
+    _parse_report_file_job,
+    parallel_map,
+)
 from parsedmarc.types import ParsedReport, ParsingResults
 import parsedmarc.utils
 from parsedmarc.utils import (
@@ -960,6 +965,20 @@ def _parse_config(config: ConfigParser, opts):
             opts.log_file = _expand_path(general_config["log_file"])
         if "n_procs" in general_config:
             opts.n_procs = general_config.getint("n_procs")
+        if "parse_timeout" in general_config:
+            raw_parse_timeout = general_config["parse_timeout"]
+            try:
+                parse_timeout = float(raw_parse_timeout)
+            except ValueError:
+                parse_timeout = math.nan
+            # float() also accepts "nan" and "inf", which are no number of
+            # seconds.
+            if not math.isfinite(parse_timeout) or parse_timeout < 0:
+                raise ConfigurationError(
+                    "parse_timeout must be a number of seconds, 0 or greater, "
+                    f"got {raw_parse_timeout!r}"
+                )
+            opts.parse_timeout = parse_timeout
         if "ip_db_path" in general_config:
             opts.ip_db_path = _expand_path(general_config["ip_db_path"])
         else:
@@ -3315,6 +3334,7 @@ def _main():
         maildir_create=False,
         log_file=args.log_file,
         n_procs=1,
+        parse_timeout=0.0,
         archive_directory=None,
         ip_db_path=None,
         ipinfo_url=None,
@@ -3536,7 +3556,12 @@ def _main():
 
     func = functools.partial(_parse_report_file_job, config=parser_config)
     for file_path, result in parallel_map(
-        func, file_paths, n_procs, should_stop=lambda: _shutdown_requested
+        func,
+        file_paths,
+        n_procs,
+        should_stop=lambda: _shutdown_requested,
+        parse_timeout=opts.parse_timeout,
+        timeout_result=_file_timeout_result,
     ):
         if pbar is not None:
             pbar.update(1)
@@ -3582,6 +3607,7 @@ def _main():
             mbox_path,
             config=parser_config,
             n_procs=n_procs,
+            parse_timeout=opts.parse_timeout,
         )
         aggregate_reports += reports["aggregate_reports"]
         failure_reports += reports["failure_reports"]
@@ -3814,6 +3840,7 @@ def _main():
                 since=opts.mailbox_since,
                 config=parser_config,
                 n_procs=n_procs,
+                parse_timeout=opts.parse_timeout,
                 save_callback=mailbox_save_callback,
                 max_unsaved_retries=mailbox_max_unsaved_retries_value,
             )
@@ -3964,6 +3991,7 @@ def _main():
                     config=parser_config,
                     config_reloading=lambda: _reload_requested or _shutdown_requested,
                     n_procs=n_procs,
+                    parse_timeout=opts.parse_timeout,
                     max_unsaved_retries=mailbox_max_unsaved_retries_value,
                 )
             except FileExistsError as error:

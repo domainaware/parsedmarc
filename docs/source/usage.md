@@ -247,6 +247,26 @@ The full set of configuration options is:
     cache.
     :::
 
+  - `parse_timeout` - float: Stop parsing a report file or message
+      after this many seconds, and treat it as invalid: a report file
+      is logged as failed (and moved to `Invalid` under
+      `archive_directory`), an mbox message is skipped with a warning,
+      and a mailbox message is moved to the `Invalid` archive folder
+      (or deleted with `delete_invalid`). `0` means no limit
+      (Default: `0`, suggested: `300`)
+
+    :::{note}
+    With a timeout set, parsing always runs in worker processes, even
+    with `n_procs = 1`, because a parse can only be stopped by ending
+    the process that runs it. When a parse times out, every worker
+    process is stopped and new ones are started, and the other
+    messages or files that were still being parsed start again from
+    the beginning. A parse may run up to one second past the timeout
+    before it is stopped. Choose a value well above the time your
+    largest legitimate reports take, including DNS lookups, each of
+    which can take up to `dns_timeout` seconds per try.
+    :::
+
 - `mailbox`
   - `reports_folder` - str: The mailbox folder (or label for
       Gmail) where the incoming reports can be found
@@ -1372,9 +1392,10 @@ A few things to keep in mind:
   (IP address info, seen aggregate report IDs, and the reverse DNS map).
   Omitting `config=` falls back to the process-wide caches shared by every
   call that doesn't pass one.
-- `keep_alive` and `n_procs` are not part of `ParserConfig` — they control
-  process/worker orchestration rather than parsing or enrichment behavior,
-  so they are always passed as separate keyword arguments.
+- `keep_alive`, `n_procs` and `parse_timeout` are not part of
+  `ParserConfig` — they control process/worker orchestration rather than
+  parsing or enrichment behavior, so they are always passed as separate
+  keyword arguments.
 
 ## Performance tuning
 
@@ -1392,6 +1413,9 @@ imports more predictable:
   trade-off is memory and DNS load: at most roughly `2 * n_procs` messages
   are held in flight at once, each worker process keeps its own DNS/GeoIP
   cache, and DNS query volume can multiply by up to `n_procs`.
+- Set `parse_timeout` (for example to `300`) so that one message or file that
+  takes far too long to parse is set aside as invalid instead of holding up
+  the rest of the run.
 - Use `mailbox.since` to process reports in smaller time windows such as `1d`,
   `7d`, or another interval that fits the backlog. This makes it easier to catch
   up incrementally instead of loading an entire mailbox history in one run.
@@ -1533,7 +1557,7 @@ for that batch have completed. The following settings are reloaded:
 - DNS and GeoIP settings (`nameservers`, `dns_timeout`, `ip_db_path`,
   `ipinfo_url`, `offline`, etc.)
 - Processing flags (`strip_attachment_payloads`, `batch_size`,
-  `check_timeout`, etc.)
+  `check_timeout`, `parse_timeout`, etc.)
 - Log level (`debug`, `verbose`, `warnings`, `silent`)
 
 Mailbox connection settings (IMAP host/credentials, Microsoft Graph,
