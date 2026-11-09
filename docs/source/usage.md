@@ -265,9 +265,9 @@ The full set of configuration options is:
     a parse result, so a parse is stopped within one second of
     parsedmarc next waiting for a result after its time is up; while
     parsedmarc is busy between results (moving messages, for example)
-    a parse can run on past the timeout. Choose a value well above the time your
-    largest legitimate reports take, including DNS lookups, each of
-    which can take up to `dns_timeout` seconds per try.
+    a parse can run on past the timeout. Choose a value well above the
+    time your largest legitimate reports take, including DNS lookups,
+    each of which can take up to `dns_timeout` seconds per try.
     :::
 
 - `mailbox`
@@ -1261,15 +1261,20 @@ start; if the move fails, the entry stays and the next run tries the move
 again. Two attempts are allowed so that one crash for an unrelated reason
 (a reboot, a deployment) never sets a message aside. With `n_procs` above
 1, or with `parse_timeout` set (which parses in worker processes even with
-`n_procs = 1`), several messages are parsed at once, so every message that was being
-parsed when a run died has an entry; on the next run each of them is
+`n_procs = 1`), several messages are parsed at once, so every message
+that was being parsed or waiting for a worker when a run died has an
+entry; on the next run each of them is
 parsed on its own after the rest of its batch, so a second crash counts
 against the one message that caused it. It is parsed in the main process,
 or, when `parse_timeout` is set, in a worker process of its own, so the
 timeout still applies to it. If a worker process dies while it parses (the
-out-of-memory killer can end a worker without ending parsedmarc),
-parsedmarc logs an error and exits with status 1, and the entries of the
-messages that were being parsed stay in the file, so the next run parses
+out-of-memory killer can end a worker without ending parsedmarc), the
+batch ends with a logged error. A one-shot run saves the reports parsed
+before it and exits with status 1. In watch mode the IMAP and Maildir
+watchers log it as a warning and check the mailbox again, so the process
+keeps running, while the Microsoft Graph and Gmail watchers exit with
+status 1. Either way the entries of the messages that were being parsed
+or waiting for a worker stay in the file, so the next run or check parses
 each of them on its own in the same way.
 
 This count is separate from the in-memory failed-save counts of
@@ -1594,9 +1599,10 @@ WantedBy=multi-user.target
 ```
 
 `KillMode=mixed` sends the stop signal to the main parsedmarc process
-only, so the batch in progress finishes before it exits; the default
-control-group mode would also stop its parsing worker processes and
-abandon the batch.
+only, so the batch in progress can finish before it exits, within
+`TimeoutStopSec`, after which systemd kills the whole group; the default
+control-group mode would also stop its parsing worker processes at once
+and abandon the batch.
 
 `StateDirectory=parsedmarc` makes systemd create `/var/lib/parsedmarc`,
 owned by the `parsedmarc` user, before the service starts. Point the
