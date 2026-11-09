@@ -97,9 +97,10 @@ class ParserConfig:
     interpreter starts with empty caches and accumulates hits across the
     tasks it handles, matching pre-refactor behavior.
 
-    Note that ``keep_alive`` and ``n_procs`` are deliberately **not** fields
-    on this class: those control process/worker orchestration, not parsing
-    or enrichment behavior.
+    Note that ``keep_alive``, ``n_procs``, ``parse_timeout`` and
+    ``attempts_file`` are deliberately **not** fields on this class: those
+    control process/worker or mailbox orchestration, not parsing or
+    enrichment behavior.
 
     Attributes:
         offline: Do not make online requests (DNS, IP database download,

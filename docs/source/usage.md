@@ -1469,10 +1469,10 @@ A few things to keep in mind:
   (IP address info, seen aggregate report IDs, and the reverse DNS map).
   Omitting `config=` falls back to the process-wide caches shared by every
   call that doesn't pass one.
-- `keep_alive`, `n_procs` and `parse_timeout` are not part of
-  `ParserConfig` — they control process/worker orchestration rather than
-  parsing or enrichment behavior, so they are always passed as separate
-  keyword arguments.
+- `keep_alive`, `n_procs`, `parse_timeout` and `attempts_file` are not part
+  of `ParserConfig` — they control process/worker or mailbox orchestration
+  rather than parsing or enrichment behavior, so they are always passed as
+  separate keyword arguments.
 
 ## Performance tuning
 
