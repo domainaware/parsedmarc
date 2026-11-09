@@ -1169,22 +1169,36 @@ class TestTimestampLengthGuard(unittest.TestCase):
         self.assertLess(elapsed, limit)
 
     def testLimitIsInclusive(self):
-        """A string at the limit is parsed, one character more is refused"""
-        at_limit = "2024-01-15 12:00:00" + " " * (
-            parsedmarc.utils.MAX_TIMESTAMP_LENGTH - 19
-        )
-        # The padding is stripped before dateutil sees it, so this parses.
+        """A string at the limit is parsed, one character more is refused.
+        The padding is inside the date, where stripping leaves it and
+        dateutil skips it."""
+        limit = parsedmarc.utils.MAX_TIMESTAMP_LENGTH
+        at_limit = "2024-01-15" + " " * (limit - 18) + "12:00:00"
+        self.assertEqual(len(at_limit), limit)
         self.assertEqual(
             parsedmarc.utils.human_timestamp_to_datetime(at_limit).year, 2024
         )
+        over_limit = "2024-01-15" + " " * (limit - 17) + "12:00:00"
         with self.assertRaises(ValueError):
-            parsedmarc.utils.human_timestamp_to_datetime(at_limit + " ")
+            parsedmarc.utils.human_timestamp_to_datetime(over_limit)
 
     def testRfc5322DateWithCommentsStillParses(self):
         dt = parsedmarc.utils.human_timestamp_to_datetime(
             "Mon, 15 Jan 2024 12:00:00 +0000 (Coordinated Universal Time)"
         )
         self.assertEqual(dt.hour, 12)
+
+    def testLongCommentIsNotCounted(self):
+        """RFC 5322 section 3.2.2 puts no limit on a comment's length, so the
+        limit applies once comments are removed: a valid date with a
+        300-character comment parses, and 300 digits are still refused."""
+        dt = parsedmarc.utils.human_timestamp_to_datetime(
+            "Mon, 15 Jan 2024 12:00:00 +0000 (" + "x" * 300 + ")"
+        )
+        self.assertEqual((dt.year, dt.hour), (2024, 12))
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.utils.human_timestamp_to_datetime("1" * 300)
+        self.assertIn("characters", str(ctx.exception))
 
 
 class TestUtilsIpDbPaths(unittest.TestCase):
