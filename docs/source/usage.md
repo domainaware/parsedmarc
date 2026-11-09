@@ -298,6 +298,16 @@ The full set of configuration options is:
       runs. See
       [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved)
       below.
+  - `attempts_file` - str: Path to a JSON file in which parsedmarc
+      counts the messages whose parsing never finished because the
+      process died, so that a message that keeps killing parsedmarc is
+      moved to the `Invalid` archive subfolder (or deleted, per
+      `delete_invalid`) after two such attempts instead of being parsed
+      on every run. The directory must be writable by the user running
+      parsedmarc; the file is created on first use. Unset by default
+      (no record is kept). See
+      [Messages that crash parsedmarc are not retried forever](#messages-that-crash-parsedmarc-are-not-retried-forever)
+      below.
   - `since` - str: Search for messages since a certain time. (Examples: `5m|3h|2d|1w`)
       Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}.
       Defaults to `1d` if an incorrect value is provided.
@@ -1150,14 +1160,17 @@ from `Archive/Unsaved` back into the reports folder, or run parsedmarc once
 with `reports_folder = Archive/Unsaved`.
 
 :::{note}
-The failure counts live in memory, so they are counted per parsedmarc
-process. In watch mode — a long-running process that checks the mailbox
-repeatedly — the cap works as described across checks. A one-shot run
-(`cron`, `systemd` timers) attempts each message exactly once and then
-exits, so its counts start over every time and the default cap is never
-reached: messages simply keep being retried on every run, which is the
-safe direction. Set `max_unsaved_retries = 0` if you want one-shot runs to
-move unsavable messages to `Unsaved` immediately instead.
+The failed-save counts live in memory, so they are counted per
+parsedmarc process. In watch mode — a long-running process that checks
+the mailbox repeatedly — the cap works as described across checks. A
+one-shot run (`cron`, `systemd` timers) attempts each message exactly once
+and then exits, so its counts start over every time and the default cap is
+never reached: messages simply keep being retried on every run, which is
+the safe direction. Set `max_unsaved_retries = 0` if you want one-shot
+runs to move unsavable messages to `Unsaved` immediately instead. A
+message that crashes parsedmarc while it is being parsed is a different
+case, counted on disk by `attempts_file`; see
+[Messages that crash parsedmarc are not retried forever](#messages-that-crash-parsedmarc-are-not-retried-forever).
 :::
 
 :::{warning}
@@ -1194,6 +1207,57 @@ automatically. It is never deleted or moved — it simply stays in the
 reports folder until it is processed by a run with a wider (or no)
 `since` window.
 :::
+
+### Messages that crash parsedmarc are not retried forever
+
+A message is only moved out of the reports folder after it has been
+parsed. If parsing a message kills the parsedmarc process — the
+out-of-memory killer, a container memory limit, a crash in a library —
+the message stays where it is, and every later run, or every restart of
+the service, fetches it again and dies on it again, so the reports behind
+it in the mailbox are never processed. parsedmarc rejects the message shapes known to
+do this, but cannot rule out new ones.
+
+Set `[mailbox]` `attempts_file` to a path to guard against that loop:
+
+```ini
+[mailbox]
+attempts_file = /var/lib/parsedmarc/attempts.json
+```
+
+parsedmarc then writes an entry to that file before it parses each
+message, and removes the entry as soon as the parse returns, whether it
+found a report or rejected the message as invalid. An entry that is still
+there on a later run belongs to a message whose parse never finished.
+Once a message has two such unfinished attempts, the next run logs an
+error naming the folder, the message and the count, and moves the message
+to `<archive_folder>/Invalid` without parsing it (or deletes it, if
+`delete_invalid` is set). Its entry is removed once the message has been
+moved, so moving it back into the reports folder tries it again from the
+start; if the move fails, the entry stays and the next run tries the move
+again. Two attempts are allowed so that one crash for an unrelated reason
+(a reboot, a deployment) never sets a message aside. With `n_procs` above
+1, several messages are parsed at once, so every message that was being
+parsed when a run died has an entry; on the next run each of them is
+parsed on its own, in the main process, after the rest of its batch, so a
+second crash counts against the one message that caused it.
+
+This count is separate from the in-memory failed-save counts of
+`max_unsaved_retries` above: an entry is removed when the parse
+returns, before the reports are saved, so a message whose batch could not
+be saved is retried and moved to `Unsaved` as described above, never to
+`Invalid`. A message is identified by the reports folder, its id and a
+hash of its beginning, so a new message that reuses an old id starts with
+no attempts.
+
+Use one file per configuration (per mailbox and reports folder): two
+parsedmarc processes writing one file overwrite each other's entries. The
+file is written atomically, readable by its owner only, and entries older
+than 30 days are dropped. A file that is not a valid attempts file is
+logged as a warning and replaced. If the file cannot be written, an error
+is logged and the protection is off for the rest of that batch; reports are
+still processed. In `test` mode messages are recorded and set aside as
+usual but never moved.
 
 ## Environment variable configuration
 
@@ -1257,10 +1321,23 @@ services:
       PARSEDMARC_IMAP_USER: dmarc@example.com
       PARSEDMARC_IMAP_PASSWORD: ${IMAP_PASSWORD}
       PARSEDMARC_MAILBOX_WATCH: "true"
+      PARSEDMARC_MAILBOX_ATTEMPTS_FILE: /home/parsedmarc/attempts.json
       PARSEDMARC_ELASTICSEARCH_HOSTS: http://elasticsearch:9200
       PARSEDMARC_GENERAL_SAVE_AGGREGATE: "true"
       PARSEDMARC_GENERAL_SAVE_FAILURE: "true"
+    volumes:
+      - parsedmarc-state:/home/parsedmarc
+
+volumes:
+  parsedmarc-state:
 ```
+
+The `parsedmarc-state` volume keeps the
+[attempts file](#messages-that-crash-parsedmarc-are-not-retried-forever)
+when the container is recreated, as it is on an image upgrade. It is
+mounted on the home directory of the image's `parsedmarc` user because
+Docker gives a new named volume the owner of the directory it is mounted
+on, and that directory is one the user can write.
 
 ### Docker secrets (`_FILE` suffix)
 
@@ -1469,11 +1546,23 @@ KillSignal=SIGTERM
 TimeoutStopSec=60
 User=parsedmarc
 Group=parsedmarc
+StateDirectory=parsedmarc
 Restart=always
 RestartSec=5m
 
 [Install]
 WantedBy=multi-user.target
+```
+
+`StateDirectory=parsedmarc` makes systemd create `/var/lib/parsedmarc`,
+owned by the `parsedmarc` user, before the service starts. Point the
+[attempts file](#messages-that-crash-parsedmarc-are-not-retried-forever)
+there in `/etc/parsedmarc.ini`, so a message that kills the service is
+not parsed again on every restart:
+
+```ini
+[mailbox]
+attempts_file = /var/lib/parsedmarc/attempts.json
 ```
 
 Then, enable the service
