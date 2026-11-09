@@ -10734,6 +10734,9 @@ class TestOutputDestinationExceptionsMarkTheBatchUnsaved(unittest.TestCase):
                     "[postgresql]\nhost = db.example.com\n",
                     {batch_key: [report]},
                     patch("parsedmarc.cli.postgres.PostgreSQLClient", client_cls),
+                    # The startup guard checks the SDK, not the client class;
+                    # without a stand-in the test needs the postgresql extra.
+                    patch("parsedmarc.cli.postgres.psycopg", object()),
                 )
                 client = client_cls.return_value
                 getattr(client, saver).assert_called_once_with(report)
