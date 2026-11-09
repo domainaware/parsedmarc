@@ -1160,6 +1160,22 @@ class TestSaveFailureReport(unittest.TestCase):
         self.assertIn("network", str(ctx.exception))
         mock_save.assert_not_called()
 
+    def test_overlong_sample_date_is_invalid_failure_report(self):
+        """A sample Date too long to be a date is an InvalidFailureReport,
+        raised before the duplicate search, not a bare ValueError"""
+        report = _failure_report()
+        report["parsed_sample"]["date"] = "1" * 200
+        search = MagicMock()
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=search),
+            patch("parsedmarc.opensearch.Index"),
+            patch.object(opensearch_module._FailureReportDoc, "save") as mock_save,
+        ):
+            with self.assertRaises(InvalidFailureReport):
+                save_failure_report_to_opensearch(report)
+        search.execute.assert_not_called()
+        mock_save.assert_not_called()
+
     def test_keyerror_wraps_to_invalid_failure_report(self):
         """A malformed failure report (missing a required field) is
         surfaced as InvalidFailureReport so the caller can route it

@@ -1373,7 +1373,12 @@ def save_failure_report_to_opensearch(
     sample_date = None
     if failure_report["parsed_sample"]["date"] is not None:
         sample_date = failure_report["parsed_sample"]["date"]
-        sample_date = human_timestamp_to_datetime(sample_date)
+        try:
+            sample_date = human_timestamp_to_datetime(sample_date)
+        except (ValueError, OverflowError) as error:
+            raise InvalidFailureReport(
+                f"Invalid sample Date: {sanitize_for_log(str(error))}"
+            ) from error
     original_headers = failure_report["parsed_sample"]["headers"]
     headers: dict[str, Any] = {}
     for original_header in original_headers:

@@ -652,6 +652,11 @@ def _strip_comments(value: str) -> str:
     return "".join(out)
 
 
+# Longer than any RFC 5322 date, comments included. dateutil's time grows
+# with the length of a digit run, so a longer string is refused unparsed.
+MAX_TIMESTAMP_LENGTH = 128
+
+
 def human_timestamp_to_datetime(
     human_timestamp: str, *, to_utc: bool = False, assume_utc: bool = False
 ) -> datetime:
@@ -669,8 +674,14 @@ def human_timestamp_to_datetime(
 
     Returns:
         datetime: The converted timestamp
+
+    Raises:
+        ValueError: The string is longer than ``MAX_TIMESTAMP_LENGTH``
+            characters, or is not a date
     """
 
+    if len(human_timestamp) > MAX_TIMESTAMP_LENGTH:
+        raise ValueError(f"Timestamp is longer than {MAX_TIMESTAMP_LENGTH} characters")
     human_timestamp = human_timestamp.replace("-0000", "")
     human_timestamp = _strip_comments(human_timestamp).strip()
 

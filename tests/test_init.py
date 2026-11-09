@@ -3500,6 +3500,14 @@ This is not a DMARC report."""
             parsedmarc.parse_report_email(email_str, offline=True)
         self.assertIn("not-a-real-date", str(ctx.exception))
 
+    def testOverlongDateHeaderIsInvalidDMARCReport(self):
+        """A Date header too long to be a date is an InvalidDMARCReport
+        naming the header, where it was a bare ParserError"""
+        email_str = "From: a@b.c\nDate: " + "1" * 200 + "\nSubject: x\n\nbody"
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+            parsedmarc.parse_report_email(email_str, offline=True)
+        self.assertIn("Date header", str(ctx.exception))
+
     def testFailureTextReportParses(self):
         """A valid legacy text/plain failure report parses to a failure
         report (the success path that builds the synthetic feedback report
@@ -3767,6 +3775,21 @@ Test body"""
             report_str, self._make_sample(), self._default_msg_date(), offline=True
         )
         self.assertIsNone(report["version"])
+
+    def testOverlongArrivalDateIsInvalidFailureReport(self):
+        """An Arrival-Date too long to be a date is an InvalidFailureReport
+        naming the field, not an "Unexpected error" from the date parser"""
+        report_str = self._make_feedback_report().replace(
+            "Arrival-Date: Thu, 1 Jan 2024 00:00:00 +0000",
+            "Arrival-Date: " + "1" * 200,
+        )
+        self.assertIn("Arrival-Date: 111", report_str)
+        with self.assertRaises(parsedmarc.InvalidFailureReport) as ctx:
+            parsedmarc.parse_failure_report(
+                report_str, self._make_sample(), self._default_msg_date(), offline=True
+            )
+        self.assertIn("Arrival-Date", str(ctx.exception))
+        self.assertNotIn("Unexpected error", str(ctx.exception))
 
     def testMissingUserAgent(self):
         """Missing user_agent defaults to None"""
