@@ -6,7 +6,7 @@ so every later run fetches it and dies on it again. ``AttemptStore`` keeps a
 small JSON file that counts, per message, the parse attempts that started
 but never produced a result. ``get_dmarc_reports_from_mailbox()`` records an
 attempt before it parses a message and clears it as soon as the parse
-returns or raises ``ParserError``; a message whose count passes
+returns or raises ``ParserError``; a message whose count has reached
 ``MAX_PARSE_ATTEMPTS`` is set aside as invalid without being parsed again.
 
 The file is written atomically (a temporary file in the same directory,

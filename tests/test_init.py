@@ -6014,8 +6014,8 @@ class TestCrashedMessageAttempts(unittest.TestCase):
                 self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
                 self.assertEqual(list(conn.folders["Archive/SMTP-TLS"]), [2])
                 self.assertIn(
-                    "Message UID 1 in INBOX has 3 unfinished parse attempts "
-                    "(more than 2); moving it to Archive/Invalid without "
+                    "Message UID 1 in INBOX has 2 unfinished parse attempts; "
+                    "the limit is 2. Moving it to Archive/Invalid without "
                     "parsing it",
                     "\n".join(cm.output),
                 )
@@ -6050,8 +6050,8 @@ class TestCrashedMessageAttempts(unittest.TestCase):
                 self.assertEqual(conn.folders["Archive/Invalid"], {})
                 self.assertEqual(conn.folders["Archive/Aggregate"], {})
                 self.assertIn(
-                    "has 3 unfinished parse attempts (more than 2); deleting "
-                    "it without parsing it",
+                    "has 2 unfinished parse attempts; the limit is 2. "
+                    "Deleting it without parsing it",
                     "\n".join(cm.output),
                 )
                 self.assertEqual(self._attempts(), {})
@@ -6090,8 +6090,8 @@ class TestCrashedMessageAttempts(unittest.TestCase):
                 self.assertEqual(sorted(conn.folders["INBOX"]), [1, 2, 3])
                 self.assertNotIn("Archive/Invalid", conn.folders)
                 self.assertIn(
-                    "Message UID 1 in INBOX has 3 unfinished parse attempts "
-                    "(more than 2); leaving it in place without parsing it "
+                    "Message UID 1 in INBOX has 2 unfinished parse attempts; "
+                    "the limit is 2. Leaving it in place without parsing it "
                     "(test mode)",
                     "\n".join(cm.output),
                 )
@@ -6101,7 +6101,26 @@ class TestCrashedMessageAttempts(unittest.TestCase):
                 attempts = self._attempts()
                 key = attempt_key("INBOX", 1, crashed)
                 self.assertEqual(list(attempts), [key])
-                self.assertEqual(attempts[key]["count"], 3)
+                self.assertEqual(attempts[key]["count"], 2)
+
+    def test_set_aside_count_does_not_grow_on_later_runs(self):
+        """A message left in place at the cap (test mode here, a failed move
+        likewise) is not recorded again, so every later run logs the same
+        count instead of one more each time, in both paths."""
+        crashed = self.samples[self.AGGREGATE]
+        key = attempt_key("INBOX", 1, crashed)
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                self._seed(1, crashed, count=2)
+                for _ in range(3):
+                    conn = _InMemoryIMAPConnection({1: crashed})
+                    with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
+                        self._run(conn, test=True, n_procs=n_procs)
+                    self.assertIn(
+                        "has 2 unfinished parse attempts; the limit is 2.",
+                        "\n".join(cm.output),
+                    )
+                    self.assertEqual(self._attempts()[key]["count"], 2)
 
     def test_parallel_path_records_each_attempt_before_submitting_it(self):
         conn = _InMemoryIMAPConnection(
@@ -6254,7 +6273,7 @@ class TestCrashedMessageAttempts(unittest.TestCase):
                 with self.assertLogs("parsedmarc.log", level="ERROR") as cm:
                     self._run(conn, n_procs=n_procs)
                 self.assertEqual(list(conn.folders["INBOX"]), [1])
-                self.assertEqual(self._attempts()[key]["count"], 3)
+                self.assertEqual(self._attempts()[key]["count"], 2)
                 self.assertIn(
                     "Error moving invalid message UID 1", "\n".join(cm.output)
                 )

@@ -3430,20 +3430,23 @@ def _record_parse_attempt(
     A message whose earlier parse attempts never finished
     ``MAX_PARSE_ATTEMPTS`` times is taken to be what killed those runs: the
     error is logged here, and the caller disposes of the message as invalid
-    without parsing it (or, under ``test``, leaves it in place).
+    without parsing it (or, under ``test``, leaves it in place). Such a
+    message is not recorded again, so a message left in place by a failed
+    move or by ``test`` keeps the same count on every later run.
     """
-    count = attempt_store.record(key)
-    if count <= MAX_PARSE_ATTEMPTS:
+    count = attempt_store.count(key)
+    if not attempt_store.enabled or count < MAX_PARSE_ATTEMPTS:
+        attempt_store.record(key)
         return False
     if test:
-        action = "leaving it in place without parsing it (test mode)"
+        action = "Leaving it in place without parsing it (test mode)"
     elif delete_invalid:
-        action = "deleting it without parsing it"
+        action = "Deleting it without parsing it"
     else:
-        action = f"moving it to {invalid_reports_folder} without parsing it"
+        action = f"Moving it to {invalid_reports_folder} without parsing it"
     logger.error(
         f"Message UID {message_id} in {reports_folder} has {count} unfinished "
-        f"parse attempts (more than {MAX_PARSE_ATTEMPTS}); {action}"
+        f"parse attempts; the limit is {MAX_PARSE_ATTEMPTS}. {action}"
     )
     return True
 
