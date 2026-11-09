@@ -1433,7 +1433,12 @@ def save_failure_report_to_opensearch(
         q = q & Q(subject_query)
 
     search.query = q
-    existing = search.execute()
+    try:
+        existing = search.execute()
+    except Exception as error_:
+        raise OpenSearchError(
+            f"OpenSearch's search for existing report error: {error_.__str__()}"
+        )
 
     if len(existing) > 0:
         raise AlreadySaved(

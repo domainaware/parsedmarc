@@ -1498,7 +1498,12 @@ def save_failure_report_to_elasticsearch(
         q = q & Q(subject_query)  # pyright: ignore[reportArgumentType]
 
     search.query = q  # pyright: ignore[reportAttributeAccessIssue]
-    existing = search.execute()
+    try:
+        existing = search.execute()
+    except Exception as error_:
+        raise ElasticsearchError(
+            f"Elasticsearch's search for existing report error: {error_.__str__()}"
+        )
 
     if len(existing) > 0:
         raise AlreadySaved(

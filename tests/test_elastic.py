@@ -1115,6 +1115,21 @@ class TestSaveFailureReport(unittest.TestCase):
                 save_failure_report_to_elasticsearch(_failure_report())
         self.assertIn("disk", str(ctx.exception))
 
+    def test_search_exception_wraps_to_elasticsearch_error(self):
+        """The duplicate check's search failing is a ElasticsearchError, as it is for
+        the aggregate and SMTP TLS saves, not the search library's own error."""
+        bad_search = MagicMock()
+        bad_search.execute.side_effect = RuntimeError("network")
+        with (
+            patch("parsedmarc.elastic.Search", return_value=bad_search),
+            patch("parsedmarc.elastic.Index"),
+            patch.object(elastic_module._FailureReportDoc, "save") as mock_save,
+        ):
+            with self.assertRaises(ElasticsearchError) as ctx:
+                save_failure_report_to_elasticsearch(_failure_report())
+        self.assertIn("network", str(ctx.exception))
+        mock_save.assert_not_called()
+
     def test_keyerror_wraps_to_invalid_failure_report(self):
         """A malformed failure report (missing a required field) is
         surfaced as InvalidFailureReport so the caller can route it
