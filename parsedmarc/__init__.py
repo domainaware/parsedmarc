@@ -2417,9 +2417,14 @@ def parse_failure_report(
         if parsed_report["delivery_result"] not in delivery_results:
             parsed_report["delivery_result"] = "other"
 
-        arrival_utc = human_timestamp_to_datetime(
-            parsed_report["arrival_date"], to_utc=True
-        )
+        try:
+            arrival_utc = human_timestamp_to_datetime(
+                parsed_report["arrival_date"], to_utc=True
+            )
+        except (ValueError, OverflowError) as error:
+            raise InvalidFailureReport(
+                f"Invalid Arrival-Date: {sanitize_for_log(str(error))}"
+            ) from error
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
         parsed_report["arrival_date_utc"] = arrival_utc
 
@@ -2825,12 +2830,19 @@ def parse_report_email(
         msg = mailparser.parse_from_string(input_str)
         msg_headers = json.loads(msg.headers_json)
         if "Date" in msg_headers:
-            msg_date = human_timestamp_to_datetime(msg_headers["Date"])
+            try:
+                msg_date = human_timestamp_to_datetime(msg_headers["Date"])
+            except (ValueError, OverflowError) as e:
+                raise InvalidDMARCReport(
+                    f"Invalid Date header: {sanitize_for_log(str(e))}"
+                ) from e
         date = email.utils.format_datetime(msg_date)
         msg = email.message_from_string(input_str)
 
     except MessageLimitExceeded as e:
         raise InvalidDMARCReport(f"Message rejected: {e}") from e
+    except InvalidDMARCReport:
+        raise
     except Exception as e:
         raise ParserError(e.__str__() + _exc_origin(e)) from e
     subject_text = "None"
