@@ -8752,6 +8752,7 @@ class TestWorkerDeathEndsTheRun(unittest.TestCase):
         self.assertTrue(
             any("worker process died" in line for line in logs.output), logs.output
         )
+        return logs.output
 
     def test_report_files(self):
         sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
@@ -8844,6 +8845,79 @@ class TestWorkerDeathEndsTheRun(unittest.TestCase):
         self.assertFalse(os.path.exists(report_path))
         archived = [name for _, _, names in os.walk(archive_dir) for name in names]
         self.assertEqual(archived, [report_name])
+
+    def test_dying_file_worker_leaves_the_mbox_unread(self):
+        """With one report file the file loop's death is certain; the mbox
+        after it is never read."""
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        self._write_twilight(box)
+        box.close()
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with (
+            patch("parsedmarc.cli._parse_report_file_job", _dying_parse_job),
+            patch("parsedmarc.cli.get_dmarc_reports_from_mbox") as read_mbox,
+        ):
+            self._run_main(sample, mbox_path)
+        read_mbox.assert_not_called()
+
+    def _fail_file_output(self):
+        """Point ``output`` at a regular file, so saving there fails, and
+        make that failure a ``ParserError`` with fail_on_output_error."""
+        not_a_directory = os.path.join(self.tmp_dir, "not-a-directory")
+        with open(not_a_directory, "w"):
+            pass
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {not_a_directory}\nfail_on_output_error = true\n")
+
+    def _assert_both_errors_logged(self, logs):
+        joined = "\n".join(logs)
+        self.assertIn("worker process died", joined)
+        self.assertIn("Output destination failures detected", joined)
+
+    def test_failed_save_after_an_input_error_is_logged(self):
+        """The save before exiting can fail too: both errors are logged and
+        the run still exits with status 1."""
+        self._fail_file_output()
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        self._write_twilight(box)
+        box.close()
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            logs = self._run_main(sample, mbox_path)
+        self._assert_both_errors_logged(logs)
+
+    def test_failed_save_after_a_mailbox_worker_death_is_logged(self):
+        self._fail_file_output()
+        maildir_path = os.path.join(self.tmp_dir, "maildir")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"[maildir]\npath = {maildir_path}\ncreate = true\n")
+        self._write_twilight(mailbox.Maildir(maildir_path, create=True))
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            logs = self._run_main(sample)
+        self._assert_both_errors_logged(logs)
+
+    def test_report_files_with_the_progress_bar(self):
+        """On a terminal the file loop drives a progress bar; the files are
+        still parsed and saved."""
+        output_dir = os.path.join(self.tmp_dir, "output")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {output_dir}\n")
+        samples = [
+            "samples/aggregate/!example.com!1538204542!1538463818.xml",
+            "samples/aggregate/example.net!example.com!1529366400!1529452799.xml",
+        ]
+        with (
+            patch.object(sys.stderr, "isatty", return_value=True),
+            patch.object(sys, "argv", ["parsedmarc", "-c", self.cfg_path, *samples]),
+            patch("parsedmarc.cli.tqdm", wraps=parsedmarc.cli.tqdm) as progress,
+        ):
+            parsedmarc.cli._main()
+        progress.assert_called_once_with(total=2)
+        with open(os.path.join(output_dir, "aggregate.json")) as saved:
+            self.assertEqual(len(json.load(saved)), 2)
 
 
 class TestParseConfigElasticsearch(unittest.TestCase):

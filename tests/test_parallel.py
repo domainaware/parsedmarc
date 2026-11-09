@@ -313,6 +313,111 @@ class TestInitWorkerLogging(unittest.TestCase):
         for h in file_handlers:
             h.close()
 
+    def test_timed_initializer_keeps_the_start_queue_and_initializes(self):
+        """The initializer of a pool built for a ``parse_timeout`` stores its
+        start queue for the jobs and then runs ``_init_worker``. Called here
+        in the test process, where coverage can see it."""
+        import signal
+
+        from parsedmarc import parallel, utils
+        from parsedmarc.log import logger as plog
+
+        self.addCleanup(setattr, parallel, "_start_queue", parallel._start_queue)
+        start_queue = multiprocessing.get_context().SimpleQueue()
+        self.addCleanup(start_queue.close)
+        parallel._init_timed_worker(
+            start_queue,
+            logging.WARNING,
+            [],
+            utils._get_ip_worker_state(),
+            list(utils.psl_overrides),
+        )
+        self.assertIs(parallel._start_queue, start_queue)
+        self.assertEqual(plog.level, logging.WARNING)
+        self.assertIs(signal.getsignal(signal.SIGINT), signal.SIG_IGN)
+
+
+class TestRunTimedJob(unittest.TestCase):
+    """``_run_timed_job`` writes its token to the worker's start queue before
+    it runs the job, and only runs the job when the worker has no queue. It
+    runs in a worker, so it is called here in the test process."""
+
+    def test_token_is_put_on_the_start_queue_before_the_job_runs(self):
+        from parsedmarc import parallel
+
+        self.addCleanup(setattr, parallel, "_start_queue", parallel._start_queue)
+        start_queue = multiprocessing.get_context().SimpleQueue()
+        self.addCleanup(start_queue.close)
+        parallel._start_queue = start_queue
+        seen_before_the_job = []
+
+        def job(value):
+            seen_before_the_job.append(start_queue.get())
+            return value * 2
+
+        self.assertEqual(parallel._run_timed_job(job, 7, 21), 42)
+        self.assertEqual(seen_before_the_job, [7])
+        self.assertTrue(start_queue.empty())
+
+    def test_without_a_start_queue_the_job_just_runs(self):
+        from parsedmarc import parallel
+
+        self.addCleanup(setattr, parallel, "_start_queue", parallel._start_queue)
+        parallel._start_queue = None
+        self.assertEqual(parallel._run_timed_job(_echo_job, 7, 21), _echo_job(21))
+
+
+class _ExecutorWithoutProcesses:
+    """An executor without the private ``_processes`` and
+    ``_executor_manager_thread`` attributes ``_kill_workers`` reads, as a
+    Python version that dropped them would be. Records its shutdown."""
+
+    def __init__(self):
+        self.shutdowns = []
+
+    def shutdown(self, wait=True, *, cancel_futures=False):
+        self.shutdowns.append((wait, cancel_futures))
+
+
+class TestKillWorkersWithoutProcesses(unittest.TestCase):
+    """Without ``_processes`` the workers cannot be killed: ``_kill_workers``
+    warns that they keep running, and still shuts the executor down without
+    waiting and with its queued jobs cancelled."""
+
+    def test_warns_and_shuts_down_without_waiting(self):
+        from parsedmarc.log import logger as plog
+        from parsedmarc.parallel import _kill_workers
+
+        self.addCleanup(setattr, plog, "disabled", plog.disabled)
+        plog.disabled = False
+        executor = _ExecutorWithoutProcesses()
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            _kill_workers(executor)  # pyright: ignore[reportArgumentType]
+        self.assertIn("Cannot stop the worker processes", "\n".join(logs.output))
+        self.assertEqual(executor.shutdowns, [(False, True)])
+
+
+class TestPlainPoolHeartbeat(unittest.TestCase):
+    """Without a ``parse_timeout``, a ``heartbeat`` is still called every
+    ``heartbeat_interval`` seconds while the parent waits for a slow job."""
+
+    def test_heartbeat_is_called_while_a_plain_job_runs(self):
+        calls = []
+        start = time.monotonic()
+        results = list(
+            parallel_map(
+                _sleep_job,
+                [0.5],
+                1,
+                heartbeat=lambda: calls.append(time.monotonic()),
+                heartbeat_interval=0.1,
+            )
+        )
+        self.assertEqual(results, [0.5])
+        self.assertGreaterEqual(len(calls), 2)
+        # One pool start and the 0.5 s job; no heartbeat may hold it up.
+        self.assertLess(time.monotonic() - start, budget(3))
+
 
 def _ip_worker_state_job(_):
     """Read the worker process's IP-lookup state and PSL overrides so a
