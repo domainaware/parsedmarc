@@ -198,6 +198,15 @@ class InvalidSMTPTLSReport(ParserError):
     """Raised when an invalid SMTP TLS report is encountered"""
 
 
+class ParseTimeoutError(InvalidDMARCReport):
+    """Returned in place of a report whose parsing exceeded ``parse_timeout``
+
+    An ``InvalidDMARCReport``, so a timed-out message is handled like any
+    other message that cannot be parsed: the mbox loop warns and continues,
+    and the mailbox loop moves it to the ``Invalid`` archive folder.
+    """
+
+
 class InvalidAggregateReport(InvalidDMARCReport):
     """Raised when an invalid DMARC aggregate report is encountered"""
 
