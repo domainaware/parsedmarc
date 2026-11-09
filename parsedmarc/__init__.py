@@ -3792,8 +3792,10 @@ def get_dmarc_reports_from_mailbox(
             (moved to ``Invalid``, or deleted under ``delete_invalid``)
             without being parsed again. With ``n_procs > 1``, a message
             that was being parsed when an earlier run died is parsed on its
-            own in this process after the others, so the messages parsed
-            beside it are not blamed for it. ``None`` (the default) keeps
+            own after the others (in this process, or with
+            ``parse_timeout`` in a worker pool of its own, so the timeout
+            still applies), so the messages parsed beside it are not blamed
+            for it. ``None`` (the default) keeps
             no record. Mailbox orchestration, not part of ``config``.
         config (ParserConfig): a single object carrying all parsing and
             enrichment options plus the caches; when provided, it replaces
@@ -4081,15 +4083,11 @@ def get_dmarc_reports_from_mailbox(
                 fetched_ids.append((message_id, key))
                 yield msg_content
 
-        for result in parallel_map(
-            func,
-            _jobs(),
-            n_procs,
-            heartbeat=connection.keepalive,
-            parse_timeout=parse_timeout,
-            timeout_result=_email_timeout_result,
-        ):
-            message_id, key = fetched_ids.popleft()
+        def _take_result(
+            message_id: int | str,
+            key: str | None,
+            result: ParsedReport | ParserError,
+        ) -> None:
             _parse_finished(key)
             if isinstance(result, ParserError):
                 logger.warning(str(result))
@@ -4110,8 +4108,37 @@ def get_dmarc_reports_from_mailbox(
                 elif report_type == "smtp_tls":
                     smtp_tls_msg_uids.append(message_id)
 
+        for result in parallel_map(
+            func,
+            _jobs(),
+            n_procs,
+            heartbeat=connection.keepalive,
+            parse_timeout=parse_timeout,
+            timeout_result=_email_timeout_result,
+        ):
+            message_id, key = fetched_ids.popleft()
+            _take_result(message_id, key, result)
+
         for message_id, msg_content in suspects:
-            _parse_in_process(message_id, msg_content)
+            if not parse_timeout or attempt_store is None:
+                _parse_in_process(message_id, msg_content)
+                continue
+            # Only a worker process can be stopped when the timeout expires,
+            # so each suspect gets a pool of its own: the timeout still
+            # bounds it, and a crash is still charged to it alone. A suspect
+            # is below MAX_PARSE_ATTEMPTS, so this record cannot reach the
+            # cap.
+            key = attempt_key(reports_folder, message_id, msg_content)
+            attempt_store.record(key)
+            for result in parallel_map(
+                func,
+                [msg_content],
+                1,
+                heartbeat=connection.keepalive,
+                parse_timeout=parse_timeout,
+                timeout_result=_email_timeout_result,
+            ):
+                _take_result(message_id, key, result)
 
         if not test:
             for invalid_message_id, key in invalid_msg_ids:

@@ -1259,8 +1259,10 @@ again. Two attempts are allowed so that one crash for an unrelated reason
 (a reboot, a deployment) never sets a message aside. With `n_procs` above
 1, several messages are parsed at once, so every message that was being
 parsed when a run died has an entry; on the next run each of them is
-parsed on its own, in the main process, after the rest of its batch, so a
-second crash counts against the one message that caused it.
+parsed on its own after the rest of its batch, so a second crash counts
+against the one message that caused it. It is parsed in the main process,
+or, when `parse_timeout` is set, in a worker process of its own, so the
+timeout still applies to it.
 
 This count is separate from the in-memory failed-save counts of
 `max_unsaved_retries` above: an entry is removed when the parse

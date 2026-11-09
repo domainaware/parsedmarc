@@ -6153,6 +6153,84 @@ class TestCrashedMessageAttempts(unittest.TestCase):
         self.assertEqual(conn.folders["INBOX"], {})
         self.assertEqual(self._attempts(), {})
 
+    def _recording_parallel_map(self, calls, jobs_seen):
+        """``_parallel_map_timing_out`` that also notes each job it is
+        given, per call, as the call consumes it."""
+        fake = _parallel_map_timing_out(calls)
+
+        def recording(func, jobs, n_procs, **kwargs):
+            seen = []
+            jobs_seen.append(seen)
+
+            def noted():
+                for job in jobs:
+                    seen.append(job)
+                    yield job
+
+            return fake(func, noted(), n_procs, **kwargs)
+
+        return recording
+
+    def test_suspect_parse_is_bounded_by_parse_timeout(self):
+        """With parse_timeout set, a suspect is parsed alone in a worker
+        pool of its own rather than in this process, where the timeout
+        could not stop it; one that times out goes to Invalid like any
+        other timed-out message and its attempt is cleared."""
+        others = {2: self.samples[self.AGGREGATE], 3: self.samples[self.SMTP_TLS]}
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                self._seed(1, _SLOW_MESSAGE, count=1)
+                calls = []
+                jobs_seen = []
+                conn = _InMemoryIMAPConnection({1: _SLOW_MESSAGE, **others})
+                with (
+                    patch(
+                        "parsedmarc.parallel.parallel_map",
+                        self._recording_parallel_map(calls, jobs_seen),
+                    ),
+                    self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+                ):
+                    result = self._run(conn, n_procs=n_procs, parse_timeout=1.0)
+
+                self.assertEqual(len(calls), 2)
+                self.assertNotIn(_SLOW_MESSAGE, jobs_seen[0])
+                self.assertEqual(jobs_seen[1], [_SLOW_MESSAGE])
+                self.assertEqual(calls[1]["n_procs"], 1)
+                self.assertEqual(calls[1]["parse_timeout"], 1.0)
+                self.assertEqual(calls[1]["heartbeat"], conn.keepalive)
+                self.assertIn(
+                    "longer than parse_timeout (1 seconds)", "\n".join(cm.output)
+                )
+                self.assertEqual(list(conn.folders["Archive/Invalid"]), [1])
+                self.assertEqual(len(result["aggregate_reports"]), 1)
+                self.assertEqual(len(result["smtp_tls_reports"]), 1)
+                self.assertEqual(conn.folders["INBOX"], {})
+                self.assertEqual(self._attempts(), {})
+
+    def test_suspect_without_parse_timeout_is_parsed_in_this_process(self):
+        """Without a timeout nothing would bound a worker any better than
+        this process, so the suspect is not given to parallel_map."""
+        suspect = self.samples[self.AGGREGATE]
+        self._seed(1, suspect, count=1)
+        calls = []
+        jobs_seen = []
+        conn = _InMemoryIMAPConnection({1: suspect, 2: self.samples[self.SMTP_TLS]})
+        with (
+            patch(
+                "parsedmarc.parallel.parallel_map",
+                self._recording_parallel_map(calls, jobs_seen),
+            ),
+            self.assertLogs("parsedmarc.log", level="WARNING"),
+        ):
+            result = self._run(conn, n_procs=2)
+
+        self.assertEqual(len(calls), 1)
+        self.assertNotIn(suspect, jobs_seen[0])
+        self.assertEqual(len(result["aggregate_reports"]), 1)
+        self.assertEqual(len(result["smtp_tls_reports"]), 1)
+        self.assertEqual(conn.folders["INBOX"], {})
+        self.assertEqual(self._attempts(), {})
+
     def test_failed_disposal_keeps_the_entry(self):
         """The entry is cleared only once the message has left the folder:
         a move the server refuses leaves the count in place, so the next
