@@ -6,6 +6,7 @@ import itertools
 import logging
 import math
 import multiprocessing
+import signal
 import time
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
@@ -74,6 +75,14 @@ def _init_worker(
     """
     from parsedmarc import utils
     from parsedmarc.log import configure_logging
+
+    # Under fork a worker inherits the parent's signal handlers, and the CLI
+    # installs SIGTERM and SIGINT handlers that only set a flag. A worker
+    # running them ignores the SIGTERM ProcessPoolExecutor sends when it
+    # tears down a broken pool, and the teardown then waits for it forever.
+    for name in ("SIGTERM", "SIGINT"):
+        if hasattr(signal, name):
+            signal.signal(getattr(signal, name), signal.SIG_DFL)
 
     utils._set_ip_worker_state(*ip_worker_state)
     utils.psl_overrides[:] = psl_overrides

@@ -251,13 +251,21 @@ class TestInitWorkerLogging(unittest.TestCase):
     log files it sets the level (configure_logging still ensures a console
     handler), and with log files it attaches a FileHandler per path. The
     IP-lookup state and PSL overrides it also restores are passed through
-    unchanged here so these tests exercise only the logging side."""
+    unchanged here so these tests exercise only the logging side. It also
+    resets SIGTERM and SIGINT to their defaults, so the test process's own
+    handlers are put back after each test."""
 
     def setUp(self):
+        import signal
+
         from parsedmarc.log import logger as plog
 
         self._saved_handlers = list(plog.handlers)
         self._saved_level = plog.level
+        for name in ("SIGTERM", "SIGINT"):
+            if hasattr(signal, name):
+                number = getattr(signal, name)
+                self.addCleanup(signal.signal, number, signal.getsignal(number))
 
     def tearDown(self):
         from parsedmarc.log import logger as plog
@@ -560,6 +568,48 @@ class TestTimeoutResults(unittest.TestCase):
         self.assertEqual(file_path, "reports/a.xml")
         self.assertIsInstance(error, parsedmarc.ParseTimeoutError)
         self.assertIn("2.5 seconds", str(error))
+
+
+def _signal_is_default_job(signal_name):
+    """Report whether the worker's handler for ``signal_name`` is the
+    default. Module-level so it pickles."""
+    import signal
+
+    return signal.getsignal(getattr(signal, signal_name)) is signal.SIG_DFL
+
+
+def _parent_signal_handler(signum, frame):
+    """A handler that, like the CLI's, only notes the signal."""
+
+
+class TestWorkerSignalHandlers(unittest.TestCase):
+    """Under ``fork`` a worker inherits the parent's signal handlers. The
+    CLI installs SIGTERM and SIGINT handlers that only set a flag, so a
+    worker running them ignores the SIGTERM ``ProcessPoolExecutor`` sends
+    when it tears down a broken pool, and the teardown waits for it
+    forever. The pool initializer restores the default handlers, in the
+    plain pool and in the pool built for a ``parse_timeout``."""
+
+    def test_workers_restore_default_handlers_under_fork(self):
+        import signal
+
+        if "fork" not in multiprocessing.get_all_start_methods():
+            self.skipTest("the fork start method is not available")
+        names = [n for n in ("SIGTERM", "SIGINT") if hasattr(signal, n)]
+        for name in names:
+            number = getattr(signal, name)
+            self.addCleanup(signal.signal, number, signal.getsignal(number))
+            signal.signal(number, _parent_signal_handler)
+        original_method = multiprocessing.get_start_method()
+        self.addCleanup(multiprocessing.set_start_method, original_method, force=True)
+        multiprocessing.set_start_method("fork", force=True)
+
+        for kwargs in ({}, {"parse_timeout": 30.0, "timeout_result": _timeout_value}):
+            with self.subTest(**kwargs):
+                results = list(
+                    parallel_map(_signal_is_default_job, names, n_procs=1, **kwargs)
+                )
+                self.assertEqual(dict(zip(names, results)), dict.fromkeys(names, True))
 
 
 if __name__ == "__main__":
