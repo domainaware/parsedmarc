@@ -372,6 +372,36 @@ class TestRunTimedJob(unittest.TestCase):
         self.assertEqual(parallel._take_outcome(self.result_dir, 7), 42)
         self.assertEqual(os.listdir(self.result_dir), [])
 
+    def test_result_file_that_cannot_be_written_returns_a_directory_marker(self):
+        from parsedmarc import parallel
+
+        missing = os.path.join(self.result_dir, "missing")
+        marker = parallel._run_timed_job(lambda value: value, 1, 1, missing)
+        self.assertIsNotNone(marker)
+        kind, text = marker
+        self.assertEqual(kind, "directory")
+        self.assertIn("FileNotFoundError", text)
+
+    def test_unpicklable_result_returns_an_outcome_marker(self):
+        from parsedmarc import parallel
+
+        marker = parallel._run_timed_job(lambda value: lambda: value, 2, 2, self.result_dir)
+        self.assertIsNotNone(marker)
+        kind, text = marker
+        self.assertEqual(kind, "outcome")
+        self.assertIn("local object", text)
+        # The failed write leaves no finished result behind.
+        self.assertNotIn("2", os.listdir(self.result_dir))
+
+    def test_unreadable_result_file_raises_the_directory_error(self):
+        from parsedmarc import ParserError, parallel
+
+        os.mkdir(parallel._result_path(self.result_dir, 3))
+        with self.assertRaises(ParserError) as caught:
+            parallel._take_outcome(self.result_dir, 3)
+        self.assertIn("writable temporary directory", str(caught.exception))
+        self.assertIn("IsADirectoryError", str(caught.exception))
+
     def test_without_a_start_queue_the_job_just_runs(self):
         from parsedmarc import parallel
 
