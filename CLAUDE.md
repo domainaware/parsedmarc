@@ -18,10 +18,15 @@ The Fable review above is the author's side. Before a PR merges, a second, indep
 
 - **Public PRs: request a Copilot review** when the PR is opened, and re-request it after every push that answers a finding (the `address-copilot-review` skill covers the loop). A review of an earlier commit does not count for a later head.
 - **Temporary private advisory forks (`domainaware/parsedmarc-ghsa-*`): Copilot cannot review there.** The request is accepted and Copilot is listed as a reviewer, but the review fails with "Copilot encountered an error and was unable to review this pull request", on a retry too (tried twice on 2026-11-10). Do not open the diff as a public PR to get a review: that discloses the fix before the advisory is published. Use the Opus review loop below instead.
+- **Anywhere else Copilot cannot produce a review of the current head, use the same loop.** Copilot is unavailable only when *our own* request for the current head ends without a review. Two messages are known:
+  - "Copilot encountered an error and was unable to review this pull request. You can try again by re-requesting a review."
+  - "Copilot was unable to review this pull request because the user who requested the review has insufficient remaining quota. Try requesting a review at a lower effort level."
 
-### The Opus review loop for advisory forks
+  The quota in the second message belongs to whoever made that request, so do not take such a message as an answer to ours: on #951 a contributor's request got it on 2026-11-10 and the maintainer's own request afterwards was reviewed normally. Before falling back, check that the message was posted after our request and names no later head, then re-request once. If our own re-request also ends in one of these messages, or in no review at all, say so to the maintainer and run the Opus loop. Go back to Copilot on that PR if it becomes available again before the merge.
 
-Treat an Opus reviewer exactly as Copilot is treated on a public PR: review, fix, review the new head, and repeat until a review of the **final head** has no open issues. Only then push and merge. A clean review of an earlier head does not count.
+### The Opus review loop, for when Copilot cannot review
+
+This applies to advisory forks and to any other PR where Copilot is unavailable as described above. Treat an Opus reviewer exactly as Copilot is treated on a public PR: review, fix, review the new head, and repeat until a review of the **final head** has no open issues. Only then push and merge. A clean review of an earlier head does not count.
 
 1. **Review.** Start a fresh Opus subagent that has seen nothing but the code: read-only, given the diff that will merge (`git diff origin/master...HEAD`) and `AGENTS.md` as its rubric. Tell it which commits no reviewer has read yet, and to reproduce every suspected bug with a script before reporting it. Ask for findings ranked "must fix", "should fix" and "nit", design preferences under a separate "optional" heading, and a last line that is exactly `VERDICT: no open issues` or `VERDICT: changes recommended`.
 2. **Triage** each finding like an external review: fix what is real, decline the rest with a reason. Tell the maintainer what the round found.
