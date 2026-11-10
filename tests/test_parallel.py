@@ -385,7 +385,9 @@ class TestRunTimedJob(unittest.TestCase):
     def test_unpicklable_result_returns_an_outcome_marker(self):
         from parsedmarc import parallel
 
-        marker = parallel._run_timed_job(lambda value: lambda: value, 2, 2, self.result_dir)
+        marker = parallel._run_timed_job(
+            lambda value: lambda: value, 2, 2, self.result_dir
+        )
         self.assertIsNotNone(marker)
         kind, text = marker
         self.assertEqual(kind, "outcome")
@@ -400,7 +402,7 @@ class TestRunTimedJob(unittest.TestCase):
         with self.assertRaises(ParserError) as caught:
             parallel._take_outcome(self.result_dir, 3)
         self.assertIn("writable temporary directory", str(caught.exception))
-        self.assertIn("IsADirectoryError", str(caught.exception))
+        self.assertIn("Is a directory", str(caught.exception))
 
     def test_without_a_start_queue_the_job_just_runs(self):
         from parsedmarc import parallel
