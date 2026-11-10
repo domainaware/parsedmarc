@@ -12,4 +12,11 @@ Any new feature or modification to an existing feature must follow this model sp
 
 **PR reviews** must also use Fable, with Opus as the fallback if Fable is unavailable.
 
+## Every PR gets a second reviewer before it merges
+
+The Fable review above is the author's side. Before a PR merges, a second, independent reviewer must also have read its final head, and every finding must be fixed or declined with a reason on its thread.
+
+- **Public PRs: request a Copilot review** when the PR is opened, and re-request it after every push that answers a finding (the `address-copilot-review` skill covers the loop). A review of an earlier commit does not count for a later head.
+- **Temporary private advisory forks (`domainaware/parsedmarc-ghsa-*`): Copilot cannot review there.** The request is accepted and Copilot is listed as a reviewer, but the review fails with "Copilot encountered an error and was unable to review this pull request", on a retry too (tried twice on 2026-11-10). Do not open the diff as a public PR to get a review: that discloses the fix before the advisory is published. Instead run a second fresh-context review with a different model than the first one (Opus if the first was Fable), given only the diff, and make sure it covers commits added after the first review, such as review fixes.
+
 @AGENTS.md
