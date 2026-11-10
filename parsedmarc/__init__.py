@@ -3131,15 +3131,15 @@ def _read_up_to(file_object: BinaryIO, limit: int) -> bytes:
     whichever comes first. A raw or unbuffered stream (a socket file, a
     pipe) may return fewer bytes than asked for without being at its end, so
     one sized ``read()`` could hand the parser a truncated report."""
-    chunks: list[bytes] = []
-    remaining = limit
-    while remaining > 0:
-        chunk = file_object.read(remaining)
+    # One growing buffer, not a list of chunks: a stream that returns a byte
+    # at a time would otherwise cost one bytes object per byte read.
+    content = bytearray()
+    while len(content) < limit:
+        chunk = file_object.read(limit - len(content))
         if not chunk:
             break
-        chunks.append(chunk)
-        remaining -= len(chunk)
-    return b"".join(chunks)
+        content += chunk
+    return bytes(content)
 
 
 def parse_report_file(

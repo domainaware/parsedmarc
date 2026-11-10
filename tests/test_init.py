@@ -9630,6 +9630,36 @@ class TestParseReportFileSizeCap(unittest.TestCase):
         )
         self.assertEqual(result["report_type"], "aggregate")
 
+    def testByteAtATimeStreamDoesNotMultiplyMemory(self):
+        """Reading a stream that returns one byte per read costs memory in
+        proportion to the bytes read, not to the number of reads. Keeping
+        every chunk in a list cost about 85 bytes per byte read (89 MiB for
+        1 MiB of input), so 256 KiB read that way peaked above 20 MiB; one
+        growing buffer stays under 2 MiB."""
+
+        class OneByteAtATime(io.RawIOBase):
+            def __init__(self, data: bytes) -> None:
+                self._inner = io.BytesIO(data)
+
+            def readable(self) -> bool:
+                return True
+
+            def readinto(self, buffer) -> int:
+                chunk = self._inner.read(1)
+                buffer[: len(chunk)] = chunk
+                return len(chunk)
+
+        size = 256 * 1024
+        stream = cast(BinaryIO, OneByteAtATime(b"x" * size))
+        tracemalloc.start()
+        try:
+            content = parsedmarc._read_up_to(stream, size + 1)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertEqual(len(content), size)
+        self.assertLess(peak, 2 * 1024 * 1024)
+
     def testInputOfExactlyTheCapIsNotRejectedForSize(self):
         """Zero bytes are not a report, but the size check does not fire at
         the cap."""
