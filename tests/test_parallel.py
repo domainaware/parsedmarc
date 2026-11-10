@@ -419,6 +419,53 @@ class TestTimedJobThatRaises(unittest.TestCase):
         self.assertEqual(multiprocessing.active_children(), [])
 
 
+class TestUnwritableTemporaryDirectory(unittest.TestCase):
+    """With a ``parse_timeout`` the results travel through a temporary
+    directory. When it cannot be created, or the workers cannot write in
+    it, ``parallel_map`` raises a ``ParserError`` naming the cause, which
+    the CLI logs, instead of a raw ``OSError``. Without a timeout no such
+    directory is used."""
+
+    _TEXT = "parse_timeout needs a writable temporary directory (TMPDIR or /tmp)"
+
+    def _timed_run(self):
+        return list(
+            parallel_map(
+                _echo_job,
+                [1, 2],
+                1,
+                parse_timeout=30.0,
+                timeout_result=_timeout_value,
+            )
+        )
+
+    def test_directory_that_cannot_be_created(self):
+        refusal = PermissionError(13, "Permission denied", "/tmp/parsedmarc-x")
+        with patch("parsedmarc.parallel.mkdtemp", side_effect=refusal):
+            with self.assertRaises(parsedmarc.ParserError) as caught:
+                self._timed_run()
+            self.assertEqual(list(parallel_map(_echo_job, [1, 2], 1)), [1, 2])
+        self.assertIn(self._TEXT, str(caught.exception))
+        self.assertIn("Permission denied", str(caught.exception))
+        self.assertIs(caught.exception.__cause__, refusal)
+
+    def test_directory_the_workers_cannot_write(self):
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            self.skipTest("root can write in a read-only directory")
+        parent = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, parent, ignore_errors=True)
+        read_only = os.path.join(parent, "read-only")
+        os.mkdir(read_only, 0o500)
+        # The pool removes the directory itself when it stops.
+        self.addCleanup(lambda: os.path.isdir(read_only) and os.chmod(read_only, 0o700))
+        with patch("parsedmarc.parallel.mkdtemp", return_value=read_only):
+            with self.assertRaises(parsedmarc.ParserError) as caught:
+                self._timed_run()
+        self.assertIn(self._TEXT, str(caught.exception))
+        self.assertIn("Permission denied", str(caught.exception))
+        self.assertEqual(multiprocessing.active_children(), [])
+
+
 def _raising_job(message):
     """Raise ``ValueError(message)``. Module-level so it pickles."""
     raise ValueError(message)

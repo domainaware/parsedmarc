@@ -25,12 +25,12 @@ import os
 import pickle
 import shutil
 import signal
-import tempfile
 import time
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Future, ProcessPoolExecutor, wait
 from concurrent.futures.process import BrokenProcessPool
+from tempfile import mkdtemp
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
@@ -137,7 +137,7 @@ def _result_path(result_dir: str, token: int) -> str:
 
 def _run_timed_job(
     func: Callable[[_J], _R], token: int, job: _J, result_dir: str
-) -> None:
+) -> str | None:
     """Worker job that reports ``token`` as started, runs ``func(job)``, and
     leaves the outcome in ``result_dir`` for ``_take_outcome()``.
 
@@ -148,7 +148,8 @@ def _run_timed_job(
     token written here, before ``func`` runs, is what starts the job's clock.
     The outcome, ``("value", result)`` or ``("error", exception)``, is
     written to a temporary name and renamed into place, so the file the
-    parent reads is always whole.
+    parent reads is always whole. Returns ``None``, or the error text when
+    the file cannot be written, which keeps the executor's message small.
     """
     if _start_queue is not None:
         _start_queue.put(token)
@@ -157,18 +158,35 @@ def _run_timed_job(
     except Exception as error:
         outcome = ("error", error)
     path = _result_path(result_dir, token)
-    with open(path + ".tmp", "wb") as result_file:
-        pickle.dump(outcome, result_file, protocol=pickle.HIGHEST_PROTOCOL)
-    os.replace(path + ".tmp", path)
+    try:
+        with open(path + ".tmp", "wb") as result_file:
+            pickle.dump(outcome, result_file, protocol=pickle.HIGHEST_PROTOCOL)
+        os.replace(path + ".tmp", path)
+    except OSError as error:
+        return str(error)
+    return None
+
+
+def _temp_dir_error(reason: object) -> ParserError:
+    """Return the error a timed pool raises when its result files cannot be
+    created, written or read."""
+    from parsedmarc import ParserError
+
+    return ParserError(
+        f"parse_timeout needs a writable temporary directory (TMPDIR or /tmp): {reason}"
+    )
 
 
 def _take_outcome(result_dir: str, token: int) -> Any:
     """Read, delete and return the outcome ``_run_timed_job()`` left for
     ``token``, raising it when it is an exception."""
     path = _result_path(result_dir, token)
-    with open(path, "rb") as result_file:
-        kind, value = pickle.load(result_file)
-    os.remove(path)
+    try:
+        with open(path, "rb") as result_file:
+            kind, value = pickle.load(result_file)
+        os.remove(path)
+    except OSError as error:
+        raise _temp_dir_error(error) from error
     if kind == "error":
         raise value
     return value
@@ -319,7 +337,10 @@ class _DeadlinePool(Generic[_J, _R]):
 
     def _new_executor(self) -> tuple[ProcessPoolExecutor, SimpleQueue[int], str]:
         # Readable by this user only (mkdtemp's mode): results hold reports.
-        result_dir = tempfile.mkdtemp(prefix="parsedmarc-results-")
+        try:
+            result_dir = mkdtemp(prefix="parsedmarc-results-")
+        except OSError as error:
+            raise _temp_dir_error(error) from error
         start_queue: SimpleQueue[int] = self._context.SimpleQueue()
         executor = ProcessPoolExecutor(
             max_workers=self._n_procs,
@@ -358,7 +379,10 @@ class _DeadlinePool(Generic[_J, _R]):
         if pending.future.exception() is not None:
             return
         settled: Future[Any] = Future()
+        write_error = pending.future.result()
         try:
+            if write_error is not None:
+                raise _temp_dir_error(write_error)
             settled.set_result(_take_outcome(self.result_dir, pending.token))
         except Exception as error:
             settled.set_exception(error)
@@ -659,7 +683,9 @@ def parallel_map(
         ParserError: While iterating, if a worker process dies (the
             out-of-memory killer, a crash), which breaks the pool and loses
             every unfinished job. The other workers are killed first; the
-            ``BrokenProcessPool`` is the error's cause.
+            ``BrokenProcessPool`` is the error's cause. Also, with
+            ``parse_timeout`` set, if the temporary directory for the
+            results cannot be created, written or read.
     """
     if n_procs < 1:
         raise ValueError(f"n_procs must be at least 1, got {n_procs}")
