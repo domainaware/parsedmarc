@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 from urllib.parse import SplitResult, urlsplit
 
 import mailparser
@@ -1144,12 +1144,19 @@ def load_reverse_dns_map(
     reverse_dns_map.clear()
 
     def load_csv(_csv_file):
-        reader = csv.DictReader(_csv_file)
-        for row in reader:
-            key = row["base_reverse_dns"].lower().strip()
+        reader = csv.reader(_csv_file)
+        header = next(reader, [])
+        index = {name: i for i, name in enumerate(header)}
+        width = len(header)
+        missing: list[Any] = [None] * width
+        # Like csv.DictReader: skip blank rows, pad short rows with None
+        for row in filter(None, reader):
+            if len(row) < width:
+                row += missing[len(row) :]
+            key = row[index["base_reverse_dns"]].lower().strip()
             reverse_dns_map[key] = {
-                "name": row["name"].strip(),
-                "type": row["type"].strip(),
+                "name": row[index["name"]].strip(),
+                "type": row[index["type"]].strip(),
             }
 
     csv_file = io.StringIO()
