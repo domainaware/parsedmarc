@@ -420,6 +420,9 @@ index with their own dates, and a warning is logged. Dated index names still com
 from each report's own dates, so reports with many different dates
 still create one index per date; data streams (`use_data_streams`) are
 affected by neither.
+A report whose begin date (aggregate, SMTP TLS) or `Arrival-Date`
+(failure) is more than two days in the future is rejected as invalid,
+because that date names the dated index; past dates are not bounded.
 
 Set `use_data_streams = True` in the `[elasticsearch]` section to write
 to [data streams] instead. Each report type then goes to one data stream

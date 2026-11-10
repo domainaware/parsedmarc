@@ -53,6 +53,7 @@ from parsedmarc.constants import (
     DEFAULT_DNS_MAX_RETRIES,
     DEFAULT_DNS_TIMEOUT,
     MAX_NORMALIZED_RECORDS,
+    MAX_REPORT_FUTURE_DAYS,
     MAX_REPORT_SPAN_DAYS,
     MAX_XML_DEPTH,
     MAX_XML_NODES,
@@ -1037,7 +1038,10 @@ def _smtp_tls_datetime(value: Any, field: str) -> str:
     Splunk output (a UNIX timestamp) make later. dateutil also accepts a
     partial date such as ``"2016"``, which PostgreSQL may still reject; that
     failure is raised as ``PostgreSQLError`` and recorded as an output
-    error. Raises ``InvalidSMTPTLSReport`` otherwise.
+    error. A ``start-datetime`` more than ``MAX_REPORT_FUTURE_DAYS`` days in
+    the future is also rejected, because it names the dated index (#947);
+    ``end-datetime`` is not checked. Raises ``InvalidSMTPTLSReport``
+    otherwise.
     """
     value = _smtp_tls_string(value, field)
     if len(value) > _SMTP_TLS_MAX_DATETIME_LENGTH:
@@ -1045,12 +1049,17 @@ def _smtp_tls_datetime(value: Any, field: str) -> str:
             f"{field} is longer than {_SMTP_TLS_MAX_DATETIME_LENGTH} characters"
         )
     try:
-        human_timestamp_to_datetime(value, to_utc=True)
+        moment = human_timestamp_to_datetime(value, to_utc=True)
         human_timestamp_to_unix_timestamp(value)
     except (ValueError, OverflowError) as e:
         raise InvalidSMTPTLSReport(
             f"{field} is not a valid date-time: {sanitize_for_log(value)}"
         ) from e
+    if field == "start-datetime":
+        try:
+            _check_not_future(moment, field)
+        except ValueError as error:
+            raise InvalidSMTPTLSReport(str(error)) from error
     return value
 
 
@@ -1513,6 +1522,19 @@ def _check_report_span(span_seconds: int) -> None:
         )
 
 
+def _check_not_future(moment: datetime, what: str) -> None:
+    """Raise ``ValueError`` when ``moment`` is more than
+    ``MAX_REPORT_FUTURE_DAYS`` days ahead of the current time, because the
+    date that names a report's dated index would then create an index for a
+    date far in the future (#947). ``moment`` must be an aware UTC datetime;
+    each parser converts the error to its own ``Invalid*Report``."""
+    if moment > datetime.now(timezone.utc) + timedelta(days=MAX_REPORT_FUTURE_DAYS):
+        raise ValueError(
+            f"{what} {moment.isoformat()} is more than "
+            f"{MAX_REPORT_FUTURE_DAYS} days in the future"
+        )
+
+
 def _days_touched(begin: datetime, end: datetime) -> int:
     """Return how many calendar days of ``begin``'s timezone the interval
     [begin, end) touches: the number of buckets ``_bucket_interval_by_day()``
@@ -1744,6 +1766,12 @@ def parse_aggregate_report_xml(
         end_ts = int(date_range["end"].split(".")[0])
         span_seconds = end_ts - begin_ts
         _check_report_span(span_seconds)
+        try:
+            _check_not_future(
+                datetime.fromtimestamp(begin_ts, timezone.utc), "Report begin date"
+            )
+        except ValueError as error:
+            raise InvalidAggregateReport(str(error)) from error
 
         normalize_timespan = (
             span_seconds > cfg.normalize_timespan_threshold_hours * 3600
@@ -2429,6 +2457,10 @@ def parse_failure_report(
             raise InvalidFailureReport(
                 f"Invalid Arrival-Date: {sanitize_for_log(str(error))}"
             ) from error
+        try:
+            _check_not_future(arrival_utc, "Arrival-Date")
+        except ValueError as error:
+            raise InvalidFailureReport(str(error)) from error
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
         parsed_report["arrival_date_utc"] = arrival_utc
 

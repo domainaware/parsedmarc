@@ -10,6 +10,7 @@ import binascii
 import csv
 import email
 import email.errors
+import email.utils
 import gc
 import gzip
 import inspect
@@ -18,6 +19,7 @@ import logging
 import mailbox
 import os
 import quopri
+import re
 import time
 import traceback
 import tracemalloc
@@ -9383,6 +9385,127 @@ class TestFailureReportPartPrecedence(unittest.TestCase):
             "From: forged@example.com\nSubject: injected\n\n--s--\n\n"
         )
         self._assert_arf(self._parse(self.FEEDBACK + sample))
+
+
+class TestReportDateInTheFuture(unittest.TestCase):
+    """A report whose index-naming date is more than MAX_REPORT_FUTURE_DAYS
+    ahead is rejected (#947): that date names the dated Elasticsearch or
+    OpenSearch index, and nothing bounded it against the present."""
+
+    AGGREGATE = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+    SMTP_TLS = "samples/smtp_tls/rfc8460.json"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.crlf.eml"
+
+    @staticmethod
+    def _tomorrow() -> datetime:
+        return (datetime.now(timezone.utc) + timedelta(days=1)).replace(microsecond=0)
+
+    def _aggregate(self, moment: datetime | None) -> str:
+        with open(self.AGGREGATE, encoding="utf-8") as f:
+            xml = f.read()
+        if moment is None:
+            return xml
+        stamp = str(int(moment.timestamp()))
+        xml = re.sub(r"<begin>\d+</begin>", f"<begin>{stamp}</begin>", xml)
+        return re.sub(r"<end>\d+</end>", f"<end>{stamp}</end>", xml)
+
+    def _parse_failure(self, arrival: str):
+        feedback = "\n".join(
+            [
+                "Feedback-Type: auth-failure",
+                "User-Agent: test/1.0",
+                "Version: 1",
+                "Original-Mail-From: sender@example.com",
+                f"Arrival-Date: {arrival}",
+                "Source-IP: 203.0.113.1",
+                "Reported-Domain: example.com",
+                "Auth-Failure: dmarc",
+            ]
+        )
+        return parsedmarc.parse_failure_report(
+            feedback,
+            "From: a@example.com\n\nbody",
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            offline=True,
+        )
+
+    def _tls(self, start: str, end: str) -> str:
+        with open(self.SMTP_TLS, encoding="utf-8") as f:
+            report = json.load(f)
+        report["date-range"] = {"start-datetime": start, "end-datetime": end}
+        return json.dumps(report)
+
+    def testAggregateInTheFutureIsRejected(self):
+        xml = self._aggregate(datetime(2100, 1, 1, tzinfo=timezone.utc))
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIn("2100-01-01", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+        self.assertNotIn("Unexpected error", str(ctx.exception))
+
+    def testAggregateTomorrowIsAccepted(self):
+        tomorrow = self._tomorrow()
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._aggregate(tomorrow), offline=True
+        )
+        self.assertEqual(
+            report["report_metadata"]["begin_date"],
+            # begin_date is rendered in the machine's local time zone
+            datetime.fromtimestamp(tomorrow.timestamp()).strftime("%Y-%m-%d %H:%M:%S"),
+        )
+
+    def testAggregateSampleStillParses(self):
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._aggregate(None), offline=True
+        )
+        self.assertEqual(report["report_metadata"]["begin_date"][:4], "2018")
+
+    def testFailureInTheFutureIsRejected(self):
+        with self.assertRaises(parsedmarc.InvalidFailureReport) as ctx:
+            self._parse_failure("Fri, 01 Jan 2100 00:00:00 +0000")
+        self.assertIn("2100-01-01", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+        self.assertNotIn("Unexpected error", str(ctx.exception))
+
+    def testFailureTomorrowIsAccepted(self):
+        tomorrow = self._tomorrow()
+        report = self._parse_failure(email.utils.format_datetime(tomorrow))
+        self.assertEqual(
+            report["arrival_date_utc"], tomorrow.strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+    def testFailureSampleStillParses(self):
+        result = parsedmarc.parse_report_file(self.FAILURE, offline=True)
+        self.assertEqual(result["report_type"], "failure")
+
+    def testSmtpTlsInTheFutureIsRejected(self):
+        report = self._tls("2100-01-01T00:00:00Z", "2100-01-01T23:59:59Z")
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(report)
+        self.assertIn("start-datetime", str(ctx.exception))
+        self.assertIn("2100-01-01", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+
+    def testSmtpTlsTomorrowIsAccepted(self):
+        tomorrow = self._tomorrow()
+        report = parsedmarc.parse_smtp_tls_report_json(
+            self._tls(tomorrow.isoformat(), tomorrow.isoformat())
+        )
+        self.assertEqual(report["begin_date"], tomorrow.isoformat())
+
+    def testSmtpTlsSampleStillParses(self):
+        with open(self.SMTP_TLS, encoding="utf-8") as f:
+            report = parsedmarc.parse_smtp_tls_report_json(f.read())
+        self.assertEqual(report["begin_date"], "2016-04-01T00:00:00Z")
+
+    def testSmtpTlsEndDatetimeInTheFutureIsAccepted(self):
+        """Only start-datetime names the index, so a far-future
+        end-datetime is not rejected by this check (a TLS report's span is
+        not bounded)."""
+        report = parsedmarc.parse_smtp_tls_report_json(
+            self._tls("2016-04-01T00:00:00Z", "2100-01-01T00:00:00Z")
+        )
+        self.assertEqual(report["end_date"], "2100-01-01T00:00:00Z")
 
 
 if __name__ == "__main__":

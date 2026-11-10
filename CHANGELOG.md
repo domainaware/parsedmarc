@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **A report dated more than two days in the future is now rejected** ([#947](https://github.com/domainaware/parsedmarc/issues/947)). With Elasticsearch or OpenSearch output a report's own date names its dated index (`dmarc_aggregate-YYYY-MM-DD`), and nothing compared that date with the present, so a report with `<begin>4102444800</begin>` created an index for the year 2100. An aggregate report whose begin date, an SMTP TLS report whose `start-datetime`, or a failure report whose `Arrival-Date` is more than 2 days ahead of the current time (`MAX_REPORT_FUTURE_DAYS`) is now rejected with `InvalidAggregateReport`, `InvalidSMTPTLSReport` or `InvalidFailureReport`, so a mailbox message is moved to the `Invalid` folder. The two days absorb a reporter's clock skew and time-zone mistakes; dates in the past are not bounded, so archives of old reports still parse.
 - **Python 3.10 is no longer supported, and Python 3.15 is.** Python 3.10 reached end of life in October 2026; `requires-python` is now `>=3.11`. Python 3.15 is now tested in CI and listed as supported.
 
 ## 11.2.2
