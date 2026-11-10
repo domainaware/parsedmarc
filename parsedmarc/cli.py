@@ -118,9 +118,9 @@ else:
 
 # dnspython 2.9+ does DNS over HTTPS through httpx2 (installed by its
 # [doh] extra); 2.7 and 2.8 use httpx, so httpx2 may be absent. It may
-# also be present without dnspython having imported it: dnspython 2.9
-# needs Python 3.11, but httpx2 installs on 3.10 and other tools pull it
-# in. _RedactUrlCredentialsFilter must recognize httpx2.URL whenever
+# also be present without dnspython having imported it: other tools
+# install httpx2 too, and an older dnspython never imports it.
+# _RedactUrlCredentialsFilter must recognize httpx2.URL whenever
 # httpx2 can log one, so it is imported here rather than taken from
 # dns.query (unlike utils.py's _doh_client_class(), which has to match
 # the library dnspython itself imported).

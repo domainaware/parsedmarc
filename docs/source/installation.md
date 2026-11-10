@@ -70,7 +70,7 @@ sudo dnf install -y python3 python3-pip python3-devel libxml2-devel libxslt-deve
 Python 3 installers for Windows and macOS can be found at
 <https://www.python.org/downloads/>.
 
-`parsedmarc` requires Python 3.10 or newer. If your distribution's
+`parsedmarc` requires Python 3.11 or newer. If your distribution's
 default `python3` is older, install a newer interpreter (e.g.
 `python3.12`) and substitute it for `python3` in the commands below.
 

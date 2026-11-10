@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Literal, TypedDict
 
-# NOTE: This module targets Python 3.10.
-# - PEP 604 unions (A | B) and PEP 585 generics (list[str]) are used; both are
-#   available in 3.10.
-# - No typing.NotRequired / Required (3.11+); for optional TypedDict keys, use
-#   total=False TypedDicts.
+# NOTE: This module targets Python 3.11.
+# - PEP 604 unions (A | B) and PEP 585 generics (list[str]) are used.
+# - typing.NotRequired / Required are available (3.11+), but this module keeps
+#   total=False TypedDicts for optional keys; keep one style per module.
 
 
 ReportType = Literal["aggregate", "failure", "smtp_tls"]

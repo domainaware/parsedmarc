@@ -6072,11 +6072,10 @@ class TestHttpx2LogRedaction(unittest.TestCase):
 class TestHttpx2UrlClassImport(unittest.TestCase):
     """GHSA-hjr3-rx4c-24cv: ``_HTTP_URL_CLASSES`` must recognize
     ``httpx2.URL`` whenever httpx2 is importable, not only when dnspython
-    imported it. dnspython 2.9 requires Python >= 3.11, so on Python 3.10
-    CI installs dnspython 2.8 (which never imports httpx2) while httpx2
-    still installs there (hatch in the ``[build]`` extra requires it), so
-    a constant taken from ``dns.query`` left ``httpx2.URL`` arguments on
-    the ``httpx2`` logger unmasked there."""
+    imported it. dnspython 2.8 never imports httpx2 while httpx2 can
+    still be installed (hatch in the ``[build]`` extra requires it), so a
+    constant taken from ``dns.query`` would leave ``httpx2.URL`` arguments
+    on the ``httpx2`` logger unmasked there."""
 
     def _exec_fresh_cli(self):
         """Execute parsedmarc.cli's source into a throwaway module and
