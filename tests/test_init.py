@@ -33,6 +33,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
 from glob import glob
+import io
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import rmtree
@@ -9504,6 +9505,20 @@ class TestReportDateInTheFuture(unittest.TestCase):
             datetime.fromtimestamp(tomorrow.timestamp()).strftime("%Y-%m-%d %H:%M:%S"),
         )
 
+    def testAggregateEndingInTheFutureIsRejected(self):
+        """A normalized report's per-day records name their indexes from
+        their own interval starts, so a report that begins now and ends in
+        30 days would create indexes up to a month ahead. The end date is
+        bounded like the begin date."""
+        now = datetime.now(timezone.utc)
+        xml = self._aggregate(now)
+        end = str(int((now + timedelta(days=30)).timestamp()))
+        xml = re.sub(r"<end>\d+</end>", f"<end>{end}</end>", xml)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIn("Report end date", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+
     def testAggregateSampleStillParses(self):
         report = parsedmarc.parse_aggregate_report_xml(
             self._aggregate(None), offline=True
@@ -9588,6 +9603,32 @@ class TestParseReportFileSizeCap(unittest.TestCase):
             parsedmarc.parse_report_file(stream, offline=True)
         self.assertEqual(str(ctx.exception), self.MESSAGE)
         self.assertEqual(stream.tell(), self.CAP + 1)
+
+    def testShortReadingStreamIsReadToItsEnd(self):
+        """A raw stream may return fewer bytes than asked for before its
+        end. The whole report must still be read: a single sized read would
+        parse a truncated report."""
+
+        class HundredBytesAtATime(io.RawIOBase):
+            def __init__(self, data: bytes) -> None:
+                self._inner = io.BytesIO(data)
+
+            def readable(self) -> bool:
+                return True
+
+            def readinto(self, buffer) -> int:
+                chunk = self._inner.read(min(len(buffer), 100))
+                buffer[: len(chunk)] = chunk
+                return len(chunk)
+
+        path = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with open(path, "rb") as f:
+            data = f.read()
+        self.assertGreater(len(data), 100)
+        result = parsedmarc.parse_report_file(
+            cast(BinaryIO, HundredBytesAtATime(data)), offline=True
+        )
+        self.assertEqual(result["report_type"], "aggregate")
 
     def testInputOfExactlyTheCapIsNotRejectedForSize(self):
         """Zero bytes are not a report, but the size check does not fire at

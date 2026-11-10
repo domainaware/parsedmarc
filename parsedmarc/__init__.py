@@ -1769,10 +1769,15 @@ def parse_aggregate_report_xml(
         end_ts = int(date_range["end"].split(".")[0])
         span_seconds = end_ts - begin_ts
         _check_report_span(span_seconds)
+        # The end is checked as well as the begin: a normalized report's
+        # per-day records each name an index from their own interval start,
+        # and every interval start lies at or before the report's end.
         try:
-            _check_not_future(
-                datetime.fromtimestamp(begin_ts, timezone.utc), "Report begin date"
-            )
+            for stamp, what in (
+                (begin_ts, "Report begin date"),
+                (end_ts, "Report end date"),
+            ):
+                _check_not_future(datetime.fromtimestamp(stamp, timezone.utc), what)
         except ValueError as error:
             raise InvalidAggregateReport(str(error)) from error
 
@@ -3121,6 +3126,22 @@ def _describe_parse_failure(
     )
 
 
+def _read_up_to(file_object: BinaryIO, limit: int) -> bytes:
+    """Read from ``file_object`` until end of file or ``limit`` bytes,
+    whichever comes first. A raw or unbuffered stream (a socket file, a
+    pipe) may return fewer bytes than asked for without being at its end, so
+    one sized ``read()`` could hand the parser a truncated report."""
+    chunks: list[bytes] = []
+    remaining = limit
+    while remaining > 0:
+        chunk = file_object.read(remaining)
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+
 def parse_report_file(
     input_: bytes | str | os.PathLike[str] | os.PathLike[bytes] | BinaryIO,
     *,
@@ -3204,7 +3225,7 @@ def parse_report_file(
         # A path is a handle we opened ourselves, so it must be closed on
         # both the success and exception paths.
         with open(file_path, "rb") as file_object:
-            content = file_object.read(MAX_DECOMPRESSED_REPORT_SIZE + 1)
+            content = _read_up_to(file_object, MAX_DECOMPRESSED_REPORT_SIZE + 1)
     else:
         if isinstance(input_, (bytes, bytearray, memoryview)):
             if memoryview(input_).nbytes > MAX_DECOMPRESSED_REPORT_SIZE:
@@ -3220,7 +3241,7 @@ def parse_report_file(
             # seek(0) and retry, inspect tell(), or otherwise reuse the
             # handle afterward.
             file_object = input_
-            content = file_object.read(MAX_DECOMPRESSED_REPORT_SIZE + 1)
+            content = _read_up_to(file_object, MAX_DECOMPRESSED_REPORT_SIZE + 1)
     if len(content) > MAX_DECOMPRESSED_REPORT_SIZE:
         raise too_large
     if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
