@@ -8,10 +8,11 @@ result cut off part way leaves that thread waiting for the rest of the
 message forever, and the interpreter then hangs at exit joining it. So the
 pool built for a timeout never sends a result through the executor: the
 worker pickles it, error values included, into a file of its own in a
-directory the pool owns, and the executor carries only ``None``. That
-message and the start tokens are far below ``PIPE_BUF`` (4096 bytes),
-which POSIX writes to a pipe atomically, so a killed worker cannot leave
-a partial message on either pipe. The pool without a timeout never kills
+directory the pool owns, and the executor carries only ``None`` or a short
+error text. That message (about 115 bytes, under 400 with the longest
+error text) and the start tokens are below ``PIPE_BUF``, at least 512
+bytes on POSIX, which writes a message that size to a pipe in one piece,
+so a killed worker cannot leave a partial message on either pipe. The pool without a timeout never kills
 a worker while it runs and sends results through the executor.
 """
 
@@ -47,6 +48,10 @@ _R = TypeVar("_R")
 # How long to wait for a killed worker process, and for the executor's
 # management thread, to exit after a timed-out job's pool is torn down.
 _KILL_JOIN_SECONDS = 5.0
+
+# The longest error text a worker returns through the executor, so that its
+# message stays below the smallest PIPE_BUF POSIX allows (512 bytes).
+_MAX_ERROR_TEXT = 200
 
 # Set in each worker of a pool built for a parse_timeout, by
 # _init_timed_worker(); _run_timed_job() writes a job's token to it as the
@@ -137,7 +142,7 @@ def _result_path(result_dir: str, token: int) -> str:
 
 def _run_timed_job(
     func: Callable[[_J], _R], token: int, job: _J, result_dir: str
-) -> str | None:
+) -> tuple[str, str] | None:
     """Worker job that reports ``token`` as started, runs ``func(job)``, and
     leaves the outcome in ``result_dir`` for ``_take_outcome()``.
 
@@ -148,8 +153,11 @@ def _run_timed_job(
     token written here, before ``func`` runs, is what starts the job's clock.
     The outcome, ``("value", result)`` or ``("error", exception)``, is
     written to a temporary name and renamed into place, so the file the
-    parent reads is always whole. Returns ``None``, or the error text when
-    the file cannot be written, which keeps the executor's message small.
+    parent reads is always whole. Returns ``None``, or, when the outcome
+    cannot be handed back, ``("directory", text)`` for a file that cannot
+    be written and ``("outcome", text)`` for an outcome that cannot be
+    pickled, the text cut to ``_MAX_ERROR_TEXT`` characters so the
+    executor's message stays small.
     """
     if _start_queue is not None:
         _start_queue.put(token)
@@ -163,7 +171,10 @@ def _run_timed_job(
             pickle.dump(outcome, result_file, protocol=pickle.HIGHEST_PROTOCOL)
         os.replace(path + ".tmp", path)
     except OSError as error:
-        return str(error)
+        return "directory", str(error)[:_MAX_ERROR_TEXT]
+    except Exception as error:
+        # An unpicklable result, or one too deep or too large to pickle.
+        return "outcome", f"{type(error).__name__}: {error}"[:_MAX_ERROR_TEXT]
     return None
 
 
@@ -173,7 +184,17 @@ def _temp_dir_error(reason: object) -> ParserError:
     from parsedmarc import ParserError
 
     return ParserError(
-        f"parse_timeout needs a writable temporary directory (TMPDIR or /tmp): {reason}"
+        f"parse_timeout needs a writable temporary directory (TMPDIR): {reason}"
+    )
+
+
+def _outcome_error(reason: object) -> ParserError:
+    """Return the error a timed pool raises when a job's outcome cannot be
+    handed back to the parent, because it cannot be pickled or unpickled."""
+    from parsedmarc import ParserError
+
+    return ParserError(
+        f"The outcome of a parsing job could not be handed back to parsedmarc: {reason}"
     )
 
 
@@ -187,6 +208,10 @@ def _take_outcome(result_dir: str, token: int) -> Any:
         os.remove(path)
     except OSError as error:
         raise _temp_dir_error(error) from error
+    except Exception as error:
+        # A pickle that does not load, such as an exception whose class
+        # needs arguments its pickle does not carry.
+        raise _outcome_error(f"{type(error).__name__}: {error}") from error
     if kind == "error":
         raise value
     return value
@@ -292,8 +317,8 @@ class _Pending(Generic[_J, _R]):
 
     ``started_at`` is the ``time.monotonic()`` time at which the parent
     learned that the job started, ``None`` until then. ``future`` is the
-    executor's future, whose result is only ``None`` (the outcome is in the
-    pool's result file), while ``in_pool`` is ``True``. It is replaced when
+    executor's future, whose result is ``None`` or a short error marker (the
+    outcome is in the pool's result file), while ``in_pool`` is ``True``. It is replaced when
     the job is resubmitted to a new pool, and by an already resolved future
     holding the outcome once ``_DeadlinePool.settle()`` has read it or the
     ``timeout_result`` value when the job times out.
@@ -379,10 +404,13 @@ class _DeadlinePool(Generic[_J, _R]):
         if pending.future.exception() is not None:
             return
         settled: Future[Any] = Future()
-        write_error = pending.future.result()
+        handback_error = pending.future.result()
         try:
-            if write_error is not None:
-                raise _temp_dir_error(write_error)
+            if handback_error is not None:
+                kind, text = handback_error
+                if kind == "directory":
+                    raise _temp_dir_error(text)
+                raise _outcome_error(text)
             settled.set_result(_take_outcome(self.result_dir, pending.token))
         except Exception as error:
             settled.set_exception(error)

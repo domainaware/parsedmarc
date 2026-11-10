@@ -269,9 +269,9 @@ The full set of configuration options is:
     time your largest legitimate reports take, including DNS lookups,
     each of which can take up to `dns_timeout` seconds per try. With a
     timeout set, the worker processes hand each parsed report back
-    through a file in a temporary directory readable only by the
-    parsedmarc user (under `TMPDIR`, or `/tmp`), so that directory must
-    be writable; the files are removed as they are read, and the
+    through a file in a directory readable only by the parsedmarc user,
+    inside the temporary directory (`TMPDIR`), which must therefore be
+    writable; the files are removed as they are read, and their
     directory once the batch has been parsed or the workers stopped.
     :::
 

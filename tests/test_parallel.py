@@ -5,6 +5,7 @@ import logging
 import math
 import multiprocessing
 import os
+import pickle
 import shutil
 import tempfile
 import time
@@ -426,7 +427,7 @@ class TestUnwritableTemporaryDirectory(unittest.TestCase):
     the CLI logs, instead of a raw ``OSError``. Without a timeout no such
     directory is used."""
 
-    _TEXT = "parse_timeout needs a writable temporary directory (TMPDIR or /tmp)"
+    _TEXT = "parse_timeout needs a writable temporary directory (TMPDIR)"
 
     def _timed_run(self):
         return list(
@@ -464,6 +465,61 @@ class TestUnwritableTemporaryDirectory(unittest.TestCase):
         self.assertIn(self._TEXT, str(caught.exception))
         self.assertIn("Permission denied", str(caught.exception))
         self.assertEqual(multiprocessing.active_children(), [])
+
+
+def _unpicklable_job(value):
+    """Return a lambda, which pickle cannot serialise, for ``None``, and
+    ``value`` otherwise. Module-level so the job itself pickles."""
+    if value is None:
+        return lambda: None
+    return value
+
+
+class _NeedsTwoArguments(Exception):
+    """An exception whose pickle does not load: pickling keeps only
+    ``args`` (one item here), and loading calls the class with them."""
+
+    def __init__(self, first, second):
+        super().__init__(f"{first} {second}")
+
+
+class TestOutcomesThatCannotBeHandedBack(unittest.TestCase):
+    """An outcome the worker cannot pickle, or the parent cannot unpickle,
+    becomes a ``ParserError`` saying so; the worker never sends it through
+    the executor, whose message must stay short."""
+
+    def test_unpicklable_result_raises_parser_error_and_the_pool_goes_on(self):
+        from parsedmarc import utils
+        from parsedmarc.parallel import _DeadlinePool
+
+        initargs = (logging.WARNING, [], utils._get_ip_worker_state(), [])
+        pool = _DeadlinePool(_unpicklable_job, 1, initargs)
+        self.addCleanup(pool.close)
+        pending = pool.submit(None)
+        pending.future.result(timeout=budget(10))
+        pool.settle(pending)
+        with self.assertRaises(parsedmarc.ParserError) as caught:
+            pending.future.result()
+        self.assertIn("could not be handed back", str(caught.exception))
+        # The pickler's own complaint about the lambda.
+        self.assertIn("Can't get local object", str(caught.exception))
+
+        following = pool.submit(5)
+        following.future.result(timeout=budget(10))
+        pool.settle(following)
+        self.assertEqual(following.future.result(), 5)
+
+    def test_result_file_that_does_not_load_raises_parser_error(self):
+        from parsedmarc import parallel
+
+        result_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, result_dir, ignore_errors=True)
+        with open(parallel._result_path(result_dir, 9), "wb") as result_file:
+            pickle.dump(("value", _NeedsTwoArguments("a", "b")), result_file)
+        with self.assertRaises(parsedmarc.ParserError) as caught:
+            parallel._take_outcome(result_dir, 9)
+        self.assertIn("could not be handed back", str(caught.exception))
+        self.assertIn("TypeError", str(caught.exception))
 
 
 def _raising_job(message):
@@ -988,7 +1044,10 @@ class TestKillDuringResultTransmission(unittest.TestCase):
                 # starts; the slow job alone would take a minute.
                 self.assertLess(time.monotonic() - start, budget(10))
                 self.assertEqual(results[:2], [_timeout_value(jobs[0], 0.5), 0.3])
-                self.assertEqual(results[2], b"x" * size)
+                large = results[2]
+                assert isinstance(large, bytes)
+                self.assertEqual(len(large), size)
+                self.assertEqual(large.count(b"x"), size)
                 self.assertGreaterEqual(len(managers), 1)
                 for manager in managers:
                     self.assertFalse(manager is not None and manager.is_alive())
