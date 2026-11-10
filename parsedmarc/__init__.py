@@ -3141,6 +3141,8 @@ def parse_report_file(
     object is read from but never closed, on either the success or the
     exception path; it is left open and positioned wherever its own
     ``read()`` left it, so the caller is free to ``seek(0)`` and reuse it.
+    When the input is over the size cap, that is one byte past the cap: no
+    more is read.
 
     Args:
         input_ (str | os.PathLike | bytes | BinaryIO): A path to a file,
@@ -3167,6 +3169,11 @@ def parse_report_file(
 
     Returns:
         dict: The parsed DMARC report
+
+    Raises:
+        ParserError: if the input is not a valid report, or is larger than
+            ``MAX_DECOMPRESSED_REPORT_SIZE`` (refused before it is read into
+            memory)
     """
     cfg = _resolve_config(
         config,
@@ -3182,15 +3189,23 @@ def parse_report_file(
         normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
     )
     file_object: BinaryIO
+    # An input over the cap is refused before it is held in memory (#949). A
+    # valid compressed report is smaller than its decompressed form, so the
+    # one cap serves both; the message is the one the content check gives.
+    too_large = ParserError(_size_cap_text(b""))
     if isinstance(input_, (str, os.PathLike)):
         file_path = os.fspath(input_)
         logger.debug(f"Parsing {file_path}")
+        if os.path.getsize(file_path) > MAX_DECOMPRESSED_REPORT_SIZE:
+            raise too_large
         # A path is a handle we opened ourselves, so it must be closed on
         # both the success and exception paths.
         with open(file_path, "rb") as file_object:
-            content = file_object.read()
+            content = file_object.read(MAX_DECOMPRESSED_REPORT_SIZE + 1)
     else:
         if isinstance(input_, (bytes, bytearray, memoryview)):
+            if len(input_) > MAX_DECOMPRESSED_REPORT_SIZE:
+                raise too_large
             # The BytesIO wrapper is created here, so this function owns
             # it and closes it once the bytes have been read out.
             file_object = BytesIO(bytes(input_))
@@ -3202,7 +3217,9 @@ def parse_report_file(
             # seek(0) and retry, inspect tell(), or otherwise reuse the
             # handle afterward.
             file_object = input_
-            content = file_object.read()
+            content = file_object.read(MAX_DECOMPRESSED_REPORT_SIZE + 1)
+    if len(content) > MAX_DECOMPRESSED_REPORT_SIZE:
+        raise too_large
     if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
         content = extract_report(content)
 

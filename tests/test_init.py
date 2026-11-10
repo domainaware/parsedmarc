@@ -3176,13 +3176,15 @@ class TestParseReportFile(unittest.TestCase):
         finally:
             tracemalloc.stop()
         email_parser.assert_not_called()
-        self.assertIn("exceeds the 33554432 byte limit", str(ctx.exception))
+        # parse_report_file() refuses the input before parsing any of it.
+        self.assertEqual(str(ctx.exception), "the report is larger than 32 MiB")
         self.assertLess(elapsed, limit)
         self.assertLess(peak, 100 * 2**20)
 
     def testParseReportFileCapsTextForTheEmailParser(self):
         """Text over the size cap that does not look like XML or JSON is not
-        handed to the email parser either."""
+        handed to the email parser either (refused before it is read,
+        #949)."""
         content = b"From: a@example.com\n\n" + b"x" * (
             parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE + 1
         )
@@ -3190,9 +3192,7 @@ class TestParseReportFile(unittest.TestCase):
             with self.assertRaises(parsedmarc.ParserError) as ctx:
                 parsedmarc.parse_report_file(content, offline=True)
         email_parser.assert_not_called()
-        self.assertEqual(
-            str(ctx.exception), "Invalid report email: the report is larger than 32 MiB"
-        )
+        self.assertEqual(str(ctx.exception), "the report is larger than 32 MiB")
 
     def testParseReportFileSkipsParsersThatCannotMatch(self):
         """Content that begins with "<" is not tried as JSON or as an email,
@@ -3322,7 +3322,7 @@ class TestParseReportFile(unittest.TestCase):
             def __init__(self):
                 self.closed = False
 
-            def read(self):
+            def read(self, size=-1):
                 raise OSError("boom")
 
             def close(self):
@@ -3337,7 +3337,11 @@ class TestParseReportFile(unittest.TestCase):
 
         fake_handle = _RaisingHandle()
 
-        with patch("builtins.open", return_value=fake_handle) as mock_open:
+        # The size is checked before the file is opened.
+        with (
+            patch("os.path.getsize", return_value=10),
+            patch("builtins.open", return_value=fake_handle) as mock_open,
+        ):
             with self.assertRaises(OSError):
                 parsedmarc.parse_report_file("some/path.xml", offline=True)
 
@@ -3365,7 +3369,7 @@ class TestParseReportFile(unittest.TestCase):
             def __init__(self):
                 self.close_called = False
 
-            def read(self):
+            def read(self, size=-1):
                 raise OSError("boom")
 
             def close(self):
@@ -9506,6 +9510,50 @@ class TestReportDateInTheFuture(unittest.TestCase):
             self._tls("2016-04-01T00:00:00Z", "2100-01-01T00:00:00Z")
         )
         self.assertEqual(report["end_date"], "2100-01-01T00:00:00Z")
+
+
+class TestParseReportFileSizeCap(unittest.TestCase):
+    """parse_report_file() refuses an input over the size cap before holding
+    it in memory (#949), with the message the content check gives."""
+
+    CAP = parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE
+    MESSAGE = "the report is larger than 32 MiB"
+
+    def testPathOverTheCapIsRejectedWithoutOpeningIt(self):
+        with NamedTemporaryFile() as f:
+            f.truncate(self.CAP + 1)
+            with patch("parsedmarc.open", create=True) as opened:
+                with self.assertRaises(parsedmarc.ParserError) as ctx:
+                    parsedmarc.parse_report_file(f.name, offline=True)
+            opened.assert_not_called()
+        self.assertEqual(str(ctx.exception), self.MESSAGE)
+
+    def testBytesOverTheCapAreRejected(self):
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            # bytearray is accepted at run time, though annotated as bytes
+            parsedmarc.parse_report_file(
+                cast(bytes, bytearray(self.CAP + 1)), offline=True
+            )
+        self.assertEqual(str(ctx.exception), self.MESSAGE)
+
+    def testFileObjectOverTheCapStopsReading(self):
+        stream = BytesIO(bytes(self.CAP + 100))
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(stream, offline=True)
+        self.assertEqual(str(ctx.exception), self.MESSAGE)
+        self.assertEqual(stream.tell(), self.CAP + 1)
+
+    def testInputOfExactlyTheCapIsNotRejectedForSize(self):
+        """Zero bytes are not a report, but the size check does not fire at
+        the cap."""
+        with NamedTemporaryFile() as f:
+            f.truncate(self.CAP)
+            inputs = [f.name, bytearray(self.CAP), BytesIO(bytes(self.CAP))]
+            for input_ in inputs:
+                with self.subTest(type=type(input_).__name__):
+                    with self.assertRaises(parsedmarc.ParserError) as ctx:
+                        parsedmarc.parse_report_file(input_, offline=True)
+                    self.assertNotEqual(str(ctx.exception), self.MESSAGE)
 
 
 if __name__ == "__main__":
