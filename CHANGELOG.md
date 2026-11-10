@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+- Keep parsed DMARC aggregate record identifiers and policy override reasons limited to their documented fields. Unknown child elements are ignored.
+
 ## 11.2.2
 
 ### Security

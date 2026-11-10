@@ -1309,6 +1309,31 @@ class Test(unittest.TestCase):
                 record, config=parsedmarc.ParserConfig(offline=True)
             )
 
+    def testAggregateRecordProjectsSchemaFields(self):
+        """Unknown identifier and override-reason keys stay out of parsed output."""
+        with open(
+            "samples/aggregate/!example.com!1538204542!1538463818.xml",
+            encoding="utf-8",
+        ) as sample:
+            xml = sample.read()
+        xml = xml.replace(
+            "<identifiers>", "<identifiers><reporter_note>sample</reporter_note>", 1
+        ).replace(
+            "</policy_evaluated>",
+            "<reason><type>other</type><comment>test</comment>"
+            "<reporter_note>sample</reporter_note></reason></policy_evaluated>",
+            1,
+        )
+        record = parsedmarc.parse_aggregate_report_xml(xml, offline=True)["records"][0]
+        self.assertEqual(
+            record["identifiers"],
+            {"header_from": "example.com", "envelope_from": None, "envelope_to": None},
+        )
+        self.assertEqual(
+            record["policy_evaluated"]["policy_override_reasons"],
+            [{"type": "other", "comment": "test"}],
+        )
+
     def testParseReportRecordMissingDkimSpf(self):
         """Record with missing dkim/spf auth results defaults correctly"""
         record = {
