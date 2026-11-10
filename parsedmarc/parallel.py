@@ -309,6 +309,7 @@ class _DeadlinePool(Generic[_J, _R]):
         """Shut the pool down once every job has finished."""
         self._executor.shutdown(wait=True)
         self._start_queue.close()
+        self._by_token.clear()
 
 
 def _kill_workers(executor: ProcessPoolExecutor) -> None:
@@ -442,6 +443,11 @@ def _map_with_timeout(
         next_heartbeat_at = time.monotonic() + heartbeat_interval
         stopping = False
         while window:
+            # Drained here as well as while waiting: when results are already
+            # done at harvest time the inner loop never runs, and the
+            # undrained tokens would keep each finished job (its whole input)
+            # in the pool's token map.
+            pool.stamp_starts(time.monotonic())
             oldest = window[0]
             while not oldest.future.done():
                 now = time.monotonic()

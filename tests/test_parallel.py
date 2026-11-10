@@ -730,6 +730,45 @@ class TestPlainPoolEarlyExit(unittest.TestCase):
         self.assertLessEqual(set(multiprocessing.active_children()), before)
 
 
+class TestStartTokensAreDrained(unittest.TestCase):
+    """With a ``parse_timeout`` the pool maps each job's start token to its
+    entry, input included, until the parent reads the token. When results
+    are already done at harvest time the parent never waits, so the tokens
+    must still be read every round, or the map keeps every finished job's
+    input and outgrows the submission window."""
+
+    def test_token_map_stays_within_the_window(self):
+        """The caller pauses after each result, so every later result is
+        done before it is harvested. Bound: the window, plus the job just
+        harvested, whose token may arrive after the last read. Before the
+        fix the map held every job of the run (200 entries for 200 jobs)."""
+        from parsedmarc.parallel import _DeadlinePool
+
+        sizes = []
+        resubmit = _DeadlinePool.resubmit
+
+        def recording_resubmit(pool, pending):
+            resubmit(pool, pending)
+            sizes.append(len(pool._by_token))
+
+        n_procs = 2
+        window_size = 2 * n_procs
+        results = []
+        with patch.object(_DeadlinePool, "resubmit", recording_resubmit):
+            for result in parallel_map(
+                _echo_job,
+                range(200),
+                n_procs,
+                parse_timeout=5.0,
+                timeout_result=_timeout_value,
+            ):
+                results.append(result)
+                time.sleep(0.005)
+        self.assertEqual(results, list(range(200)))
+        self.assertEqual(len(sizes), 200)
+        self.assertLessEqual(max(sizes), window_size + 1)
+
+
 class TestTimeoutResults(unittest.TestCase):
     """The values parallel_map yields for a timed-out email or file job have
     the shapes the callers handle for an unparseable input."""
