@@ -9,6 +9,7 @@ import http.client
 import json
 import logging
 import math
+import multiprocessing
 import os
 import shutil
 import signal
@@ -3509,6 +3510,11 @@ def _main():
     # "double tap": the first press is graceful, the second short-circuits
     # to os._exit(130). os._exit is async-signal-safe; sys.exit and
     # logging are not, so the handlers only set flags / call os._exit.
+    # Parsing workers ignore SIGINT and os._exit skips the pool's cleanup,
+    # so the second press first kills this process's child processes, or
+    # they would run on as orphans. Python runs a signal handler in the
+    # main thread between bytecodes, not in the C signal context, so
+    # multiprocessing.active_children() and Process.kill() are safe there.
     _reload_requested = False
     _shutdown_requested = False
     _sigint_count = 0
@@ -3525,6 +3531,8 @@ def _main():
         nonlocal _shutdown_requested, _sigint_count
         _sigint_count += 1
         if _sigint_count >= 2:
+            for child in multiprocessing.active_children():
+                child.kill()
             os._exit(130)
         _shutdown_requested = True
 

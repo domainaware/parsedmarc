@@ -10,12 +10,15 @@ import importlib.util
 import json
 import logging
 import mailbox
+import multiprocessing
 import os
 import shutil
 import signal
 import stat
+import subprocess
 import sys
 import tempfile
+import time
 import traceback
 import unittest
 import zipfile
@@ -5403,13 +5406,22 @@ watch = true
         mock_watch.side_effect = watch_side_effect
         cfg_path = self._write_config()
 
-        with patch("parsedmarc.cli.os._exit", side_effect=fake_exit) as mock_exit:
+        workers = [MagicMock(), MagicMock()]
+        with (
+            patch("parsedmarc.cli.os._exit", side_effect=fake_exit) as mock_exit,
+            patch(
+                "parsedmarc.cli.multiprocessing.active_children", return_value=workers
+            ),
+        ):
             with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
                 with self.assertRaises(SystemExit) as cm:
                     parsedmarc.cli._main()
 
         self.assertIs(cm.exception, sentinel)
         mock_exit.assert_called_once_with(130)
+        # Workers ignore SIGINT, and os._exit skips the pool's cleanup.
+        for worker in workers:
+            worker.kill.assert_called_once_with()
 
     @patch("parsedmarc.cli.get_dmarc_reports_from_mbox")
     @patch("parsedmarc.cli.is_mbox", side_effect=lambda p: p.endswith(".mbox"))
@@ -8918,6 +8930,103 @@ class TestWorkerDeathEndsTheRun(unittest.TestCase):
         progress.assert_called_once_with(total=2)
         with open(os.path.join(output_dir, "aggregate.json")) as saved:
             self.assertEqual(len(json.load(saved)), 2)
+
+
+_PID_DIR_VARIABLE = "TEST_PARSEDMARC_WORKER_PID_DIR"
+
+# Run in a child interpreter by TestSecondCtrlCKillsTheWorkers: _main()
+# parses the files named on its command line with the sleeping job below.
+# The start method is the first argument.
+_SLEEPING_CLI_SCRIPT = """
+import multiprocessing
+import sys
+from unittest.mock import patch
+
+import parsedmarc.cli
+from tests.test_cli import _pid_marking_sleeping_file_job
+
+if __name__ == "__main__":
+    multiprocessing.set_start_method(sys.argv[1], force=True)
+    with patch(
+        "parsedmarc.cli._parse_report_file_job", _pid_marking_sleeping_file_job
+    ):
+        sys.argv = ["parsedmarc", *sys.argv[2:]]
+        parsedmarc.cli._main()
+"""
+
+
+def _pid_marking_sleeping_file_job(file_path, *, config):
+    """Stand-in parse job that writes its worker's pid as a file name under
+    the directory ``_PID_DIR_VARIABLE`` names, then sleeps for a minute.
+    Module-level so it pickles; the variable is set before the child
+    interpreter starts, so every worker sees it."""
+    with open(os.path.join(os.environ[_PID_DIR_VARIABLE], str(os.getpid())), "w"):
+        pass
+    time.sleep(60)
+    return file_path, parsedmarc.ParserError("not parsed")
+
+
+def _process_exists(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+class TestSecondCtrlCKillsTheWorkers(unittest.TestCase):
+    """A second Ctrl-C ends parsedmarc with os._exit(130), which skips the
+    process pool's cleanup, and parsing workers ignore SIGINT; without the
+    handler killing them first they ran on as orphans. A real parsedmarc
+    process with two sleeping workers gets two SIGINTs here."""
+
+    def test_second_sigint_leaves_no_worker_running(self):
+        if not hasattr(signal, "SIGINT") or os.name != "posix":
+            self.skipTest("needs POSIX signals")
+        for method in multiprocessing.get_all_start_methods():
+            with self.subTest(start_method=method):
+                self._interrupt_twice(method)
+
+    def _interrupt_twice(self, method):
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        pid_dir = os.path.join(tmp_dir, "pids")
+        os.mkdir(pid_dir)
+        cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
+        with open(cfg_path, "w") as cfg:
+            cfg.write("[general]\nsilent = true\noffline = true\nn_procs = 2\n")
+        samples = [
+            "samples/aggregate/!example.com!1538204542!1538463818.xml",
+            "samples/aggregate/example.net!example.com!1529366400!1529452799.xml",
+        ]
+        command = [sys.executable, "-c", _SLEEPING_CLI_SCRIPT, method]
+        child = subprocess.Popen(
+            [*command, "-c", cfg_path, *samples],
+            env={**os.environ, _PID_DIR_VARIABLE: pid_dir},
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.addCleanup(lambda: child.poll() is None and child.kill())
+        deadline = time.monotonic() + 30.0
+        while len(os.listdir(pid_dir)) < 2 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        worker_pids = [int(name) for name in os.listdir(pid_dir)]
+        self.assertEqual(len(worker_pids), 2)
+        for pid in worker_pids:
+            self.addCleanup(
+                lambda pid=pid: _process_exists(pid) and os.kill(pid, signal.SIGKILL)
+            )
+
+        child.send_signal(signal.SIGINT)
+        # Apart, so the kernel cannot merge the two presses into one.
+        time.sleep(0.5)
+        child.send_signal(signal.SIGINT)
+        self.assertEqual(child.wait(timeout=30), 130)
+
+        deadline = time.monotonic() + 10.0
+        while any(map(_process_exists, worker_pids)) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertEqual([pid for pid in worker_pids if _process_exists(pid)], [])
 
 
 class TestParseConfigElasticsearch(unittest.TestCase):
