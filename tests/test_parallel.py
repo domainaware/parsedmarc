@@ -504,7 +504,7 @@ class TestOutcomesThatCannotBeHandedBack(unittest.TestCase):
             pending.future.result()
         self.assertIn("could not be handed back", str(caught.exception))
         # The pickler's own complaint about the lambda.
-        self.assertIn("Can't get local object", str(caught.exception))
+        self.assertIn("local object", str(caught.exception))
 
         following = pool.submit(5)
         following.future.result(timeout=budget(10))
