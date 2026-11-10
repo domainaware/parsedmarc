@@ -2797,6 +2797,8 @@ def parse_report_email(
     Raises:
         ParserError: If the message is not a valid report. Whatever the
             input, only ``ParserError`` subclasses are raised.
+            ``InvalidDMARCReport`` (a ``ParserError``) is raised when the
+            message or one of its attachments is not a valid report.
     """
     cfg = _resolve_config(
         config,
@@ -2999,7 +3001,7 @@ def parse_report_email(
 
                 except InvalidDMARCReport as e:
                     error = f'Message with subject "{subject_text}" is not a valid DMARC report: {e}'
-                    raise ParserError(error) from e
+                    raise InvalidDMARCReport(error) from e
 
                 except Exception as e:
                     error = f'Unable to parse message with subject "{subject_text}": {e}{_exc_origin(e)}'

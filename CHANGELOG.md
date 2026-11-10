@@ -8,6 +8,7 @@
 
 ### Bug fixes
 
+- **One invalid report attachment no longer stops the rest of an mbox file from being parsed.** `parse_report_email()` raised a bare `ParserError` for a message whose XML or JSON attachment was invalid (for example an aggregate report whose date range spans more than 366 days), and the mbox loop only skips `InvalidDMARCReport`, so that one message aborted the whole file. It now raises `InvalidDMARCReport` (still a `ParserError`), so the message is skipped with a warning and the rest is parsed; mailbox connections were not affected. Reported by mjatin2007.
 - **Unknown child elements under an aggregate record's `<identifiers>` and inside a `<reason>` are no longer copied into the parsed report** ([#948](https://github.com/domainaware/parsedmarc/issues/948)). `_parse_report_record()` copied both mappings whole, so an element that RFC 9990 Appendix A and RFC 7489 Appendix C do not define reached the JSON, Kafka, S3 and webhook outputs with whatever structure the report gave it. Only `header_from`, `envelope_from` and `envelope_to`, and a reason's `type` and `comment`, are kept. **Compatibility:** a consumer of those outputs that read such an extra key no longer receives it.
 
 ## 11.2.2
