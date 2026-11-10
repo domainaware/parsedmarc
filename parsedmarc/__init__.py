@@ -2797,8 +2797,11 @@ def parse_report_email(
     Raises:
         ParserError: If the message is not a valid report. Whatever the
             input, only ``ParserError`` subclasses are raised.
-            ``InvalidDMARCReport`` (a ``ParserError``) is raised when the
-            message or one of its attachments is not a valid report.
+            A message that is not a valid report, or whose attachment is
+            not one, raises ``InvalidDMARCReport``, or
+            ``InvalidSMTPTLSReport`` for an SMTP TLS attachment (both are
+            ``ParserError`` subclasses). Any other failure to parse the
+            message raises a plain ``ParserError``.
     """
     cfg = _resolve_config(
         config,
@@ -3003,9 +3006,19 @@ def parse_report_email(
                     error = f'Message with subject "{subject_text}" is not a valid DMARC report: {e}'
                     raise InvalidDMARCReport(error) from e
 
+                except InvalidSMTPTLSReport:
+                    # Named with the message's subject by the handler below.
+                    raise
+
                 except Exception as e:
                     error = f'Unable to parse message with subject "{subject_text}": {e}{_exc_origin(e)}'
                     raise ParserError(error) from e
+    except InvalidSMTPTLSReport as e:
+        # From either the tlsrpt content-type branches or a JSON attachment.
+        error = (
+            f'Message with subject "{subject_text}" is not a valid SMTP TLS report: {e}'
+        )
+        raise InvalidSMTPTLSReport(error) from e
     except ParserError:
         raise
     except Exception as e:
@@ -3560,7 +3573,7 @@ def get_dmarc_reports_from_mbox(
                 total=total_messages,
                 disable=None,
             ):
-                if isinstance(result, InvalidDMARCReport):
+                if isinstance(result, (InvalidDMARCReport, InvalidSMTPTLSReport)):
                     logger.warning(str(result))
                 elif isinstance(result, ParserError):
                     raise result
@@ -3586,7 +3599,7 @@ def get_dmarc_reports_from_mbox(
                         smtp_tls_reports,
                         seen_aggregate_report_ids=cfg.seen_aggregate_report_ids,
                     )
-                except InvalidDMARCReport as error:
+                except (InvalidDMARCReport, InvalidSMTPTLSReport) as error:
                     logger.warning(error.__str__())
     except mailbox.NoSuchMailboxError:
         raise InvalidDMARCReport(f"Mailbox {input_} does not exist")
