@@ -4124,6 +4124,133 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
         finally:
             os.remove(path)
 
+    def _invalid_then_valid_messages(self):
+        """Two report emails: the first carries an aggregate report whose
+        date range spans 4,000 years (invalid), the second a valid one."""
+        import re
+
+        with open("samples/aggregate/!example.com!1538204542!1538463818.xml") as f:
+            xml = f.read()
+        long_xml = re.sub(r"<begin>\d+</begin>", "<begin>0</begin>", xml)
+        long_xml = re.sub(r"<end>\d+</end>", "<end>126230400000</end>", long_xml)
+        valid_xml = re.sub(
+            r"<report_id>[^<]*</report_id>", "<report_id>second-id</report_id>", xml
+        )
+        self.assertNotEqual(long_xml, xml)
+        self.assertNotEqual(valid_xml, xml)
+        messages = []
+        for subject, report_xml in (("bad", long_xml), ("good", valid_xml)):
+            msg = MIMEMultipart()
+            msg["From"] = "dmarc@example.com"
+            msg["To"] = "postmaster@example.com"
+            msg["Subject"] = subject
+            msg["Date"] = "Thu, 1 Jan 2024 00:00:00 +0000"
+            att = MIMEApplication(gzip.compress(report_xml.encode()), "gzip")
+            att.add_header("Content-Disposition", "attachment", filename="r.xml.gz")
+            msg.attach(att)
+            messages.append(msg)
+        return messages
+
+    def testInvalidAttachmentRaisesInvalidDMARCReport(self):
+        """An invalid report attachment is an ``InvalidDMARCReport``, the
+        class the mbox loop skips, not a bare ``ParserError``."""
+        bad, _ = self._invalid_then_valid_messages()
+        with self.assertRaises(parsedmarc.InvalidDMARCReport) as ctx:
+            parsedmarc.parse_report_email(bad.as_bytes(), offline=True)
+        self.assertIn("spans more than 366 days", str(ctx.exception))
+
+    def testInvalidAttachmentDoesNotStopMbox(self):
+        """One message with an invalid report attachment is skipped with a
+        warning and the messages after it are still parsed, sequentially
+        and with n_procs=2.
+
+        Previously parse_report_email() raised a bare ``ParserError`` for it,
+        which get_dmarc_reports_from_mbox() re-raises, aborting the file."""
+        tmp = mkdtemp()
+        self.addCleanup(rmtree, tmp)
+        path = os.path.join(tmp, "reports.mbox")
+        box = mailbox.mbox(path)
+        box.lock()
+        try:
+            for msg in self._invalid_then_valid_messages():
+                box.add(msg)
+            box.flush()
+        finally:
+            box.unlock()
+        box.close()
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+                self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+                with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+                    result = parsedmarc.get_dmarc_reports_from_mbox(
+                        path, offline=True, n_procs=n_procs
+                    )
+                reports = result["aggregate_reports"]
+                self.assertEqual(len(reports), 1)
+                self.assertEqual(
+                    reports[0]["report_metadata"]["report_id"], "second-id"
+                )
+                warning = "\n".join(logs.output)
+                self.assertIn('subject "bad"', warning)
+                self.assertIn("spans more than 366 days", warning)
+
+    def testInvalidSmtpTlsAttachmentDoesNotStopMbox(self):
+        """A message whose SMTP TLS JSON attachment is invalid raises
+        ``InvalidSMTPTLSReport`` naming its subject, and the mbox loop skips
+        it like an invalid DMARC report, sequentially and with n_procs=2."""
+        _, good = self._invalid_then_valid_messages()
+        bad = MIMEMultipart()
+        bad["From"] = "tlsrpt@example.com"
+        bad["To"] = "postmaster@example.com"
+        bad["Subject"] = "bad tls"
+        bad["Date"] = "Thu, 1 Jan 2024 00:00:00 +0000"
+        att = MIMEApplication(
+            gzip.compress(b'{"organization-name": "x"}'), "tlsrpt+gzip"
+        )
+        att.add_header("Content-Disposition", "attachment", filename="r.json.gz")
+        bad.attach(att)
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_report_email(bad.as_bytes(), offline=True)
+        self.assertIn('subject "bad tls"', str(ctx.exception))
+        # The same invalid JSON as a generic attachment takes the other
+        # parsing branch and must end the same way.
+        generic = MIMEMultipart()
+        generic["Subject"] = "bad tls generic"
+        part = MIMEApplication(b'{"organization-name": "x"}', "octet-stream")
+        part.add_header("Content-Disposition", "attachment", filename="r.json")
+        generic.attach(part)
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_report_email(generic.as_bytes(), offline=True)
+        self.assertIn('subject "bad tls generic"', str(ctx.exception))
+
+        tmp = mkdtemp()
+        self.addCleanup(rmtree, tmp)
+        path = os.path.join(tmp, "reports.mbox")
+        box = mailbox.mbox(path)
+        box.lock()
+        try:
+            box.add(bad)
+            box.add(good)
+            box.flush()
+        finally:
+            box.unlock()
+        box.close()
+        for n_procs in (1, 2):
+            with self.subTest(n_procs=n_procs):
+                parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+                self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+                with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+                    result = parsedmarc.get_dmarc_reports_from_mbox(
+                        path, offline=True, n_procs=n_procs
+                    )
+                reports = result["aggregate_reports"]
+                self.assertEqual(len(reports), 1)
+                self.assertEqual(
+                    reports[0]["report_metadata"]["report_id"], "second-id"
+                )
+                self.assertIn('subject "bad tls"', "\n".join(logs.output))
+
     def testPoisonMessageRaisesParserError(self):
         """A message that cannot be re-serialized reaches the parser and
         surfaces as a ``ParserError``, sequentially and with n_procs=2.
@@ -4135,7 +4262,8 @@ class TestGetDmarcReportsFromMbox(unittest.TestCase):
         the message reached the parser. get_bytes() returns the stored
         message as-is, and parse_report_email() turns the content error into
         a ``ParserError``. The mbox loop's policy is unchanged: it skips only
-        ``InvalidDMARCReport`` and re-raises any other ``ParserError``."""
+        an invalid report (``InvalidDMARCReport`` or
+        ``InvalidSMTPTLSReport``) and re-raises any other ``ParserError``."""
         # The error text, not __cause__, identifies the content error: an
         # exception returned from a worker process loses its __cause__.
         exercised = 0
@@ -4195,7 +4323,7 @@ class TestGetDmarcReportsFromMboxParallel(unittest.TestCase):
     Confirms the parallel branch classifies and dedups identically to the
     sequential branch, and that the junk message produces a warning log
     instead of raising -- both branches must only catch InvalidDMARCReport
-    (a ParserError subclass) around a single message and continue, since a
+    and InvalidSMTPTLSReport (ParserError subclasses) around a single message and continue, since a
     bare ParserError is deliberately re-raised (see the n_procs > 1 branch
     of get_dmarc_reports_from_mbox, which mirrors the sequential branch's
     `except InvalidDMARCReport` scope).
