@@ -1309,6 +1309,45 @@ class Test(unittest.TestCase):
                 record, config=parsedmarc.ParserConfig(offline=True)
             )
 
+    def testAggregateRecordProjectsSchemaFields(self):
+        """Unknown identifier and override-reason children stay out of the output.
+
+        RFC 9990 Appendix A and RFC 7489 Appendix C define only header_from,
+        envelope_from and envelope_to under identifiers, and only type and
+        comment in a reason, so unknown children, nested or not, are not
+        copied into the parsed output (#948).
+        """
+        with open(
+            "samples/aggregate/!example.com!1538204542!1538463818.xml",
+            encoding="utf-8",
+        ) as sample:
+            xml = sample.read()
+        xml = xml.replace(
+            "<identifiers>",
+            "<identifiers><foo><x>1</x></foo>"
+            "<envelope_from>bounce.example.com</envelope_from>"
+            "<envelope_to>example.net</envelope_to>",
+            1,
+        ).replace(
+            "</policy_evaluated>",
+            "<reason><type>other</type><comment>test</comment>"
+            "<foo><x>1</x></foo></reason></policy_evaluated>",
+            1,
+        )
+        record = parsedmarc.parse_aggregate_report_xml(xml, offline=True)["records"][0]
+        self.assertEqual(
+            record["identifiers"],
+            {
+                "header_from": "example.com",
+                "envelope_from": "bounce.example.com",
+                "envelope_to": "example.net",
+            },
+        )
+        self.assertEqual(
+            record["policy_evaluated"]["policy_override_reasons"],
+            [{"type": "other", "comment": "test"}],
+        )
+
     def testParseReportRecordMissingDkimSpf(self):
         """Record with missing dkim/spf auth results defaults correctly"""
         record = {
@@ -1382,7 +1421,7 @@ class Test(unittest.TestCase):
         self.assertIsNone(reasons[1]["comment"])
 
     def testParseReportRecordIdentities(self):
-        """'identities' key is mapped to 'identifiers'"""
+        """'identities' key is mapped to 'identifiers'; an unknown key is dropped"""
         record = {
             "row": {
                 "source_ip": "192.0.2.1",
@@ -1396,14 +1435,21 @@ class Test(unittest.TestCase):
             "identities": {
                 "header_from": "Example.COM",
                 "envelope_from": "example.com",
+                "foo": {"x": "1"},
             },
             "auth_results": {"dkim": [], "spf": []},
         }
         result = parsedmarc._parse_report_record(
             record, config=parsedmarc.ParserConfig(offline=True)
         )
-        self.assertIn("identifiers", result)
-        self.assertEqual(result["identifiers"]["header_from"], "example.com")
+        self.assertEqual(
+            result["identifiers"],
+            {
+                "header_from": "example.com",
+                "envelope_from": "example.com",
+                "envelope_to": None,
+            },
+        )
 
     def testParseReportRecordDkimDefaults(self):
         """DKIM result defaults: selector='none', result='none' when missing"""
