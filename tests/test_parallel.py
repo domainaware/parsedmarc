@@ -16,11 +16,13 @@ from unittest.mock import patch
 
 import parsedmarc
 from parsedmarc.parallel import (
+    _MAX_ERROR_TEXT,
     _email_timeout_result,
     _file_timeout_result,
     _init_worker,
     _parse_report_email_job,
     _parse_report_file_job,
+    _short_error_text,
     parallel_map,
 )
 from tests.timing import budget
@@ -1319,3 +1321,20 @@ class TestWorkerDeath(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class _BrokenStr(Exception):
+    def __str__(self) -> str:
+        raise RuntimeError("no text")
+
+
+class TestShortErrorText(unittest.TestCase):
+    """The error text a worker hands back fits the pipe's atomic-write bound."""
+
+    def test_cap_is_in_bytes_not_characters(self):
+        text = _short_error_text(ValueError("\u00e9" * 300))
+        self.assertLessEqual(len(text.encode("utf-8")), _MAX_ERROR_TEXT)
+        self.assertTrue(text.startswith("ValueError: \u00e9"))
+
+    def test_broken_str_falls_back_to_the_type_name(self):
+        self.assertEqual(_short_error_text(_BrokenStr()), "_BrokenStr")

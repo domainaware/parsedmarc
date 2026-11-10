@@ -12,8 +12,9 @@ directory the pool owns, and the executor carries only ``None`` or a short
 error text. That message (about 115 bytes, under 400 with the longest
 error text) and the start tokens are below ``PIPE_BUF``, at least 512
 bytes on POSIX, which writes a message that size to a pipe in one piece,
-so a killed worker cannot leave a partial message on either pipe. The pool without a timeout never kills
-a worker while it runs and sends results through the executor.
+so a killed worker cannot leave a partial message on either pipe. The
+pool without a timeout never kills a worker while it runs and sends
+results through the executor.
 """
 
 from __future__ import annotations
@@ -156,8 +157,9 @@ def _run_timed_job(
     parent reads is always whole. Returns ``None``, or, when the outcome
     cannot be handed back, ``("directory", text)`` for a file that cannot
     be written and ``("outcome", text)`` for an outcome that cannot be
-    pickled, the text cut to ``_MAX_ERROR_TEXT`` characters so the
-    executor's message stays small.
+    pickled, the text cut to ``_MAX_ERROR_TEXT`` bytes of UTF-8 so the
+    executor's message stays small; a ``.tmp`` file a failed write leaves
+    behind goes with the pool's result directory.
     """
     if _start_queue is not None:
         _start_queue.put(token)
@@ -171,11 +173,26 @@ def _run_timed_job(
             pickle.dump(outcome, result_file, protocol=pickle.HIGHEST_PROTOCOL)
         os.replace(path + ".tmp", path)
     except OSError as error:
-        return "directory", str(error)[:_MAX_ERROR_TEXT]
+        return "directory", _short_error_text(error)
     except Exception as error:
         # An unpicklable result, or one too deep or too large to pickle.
-        return "outcome", f"{type(error).__name__}: {error}"[:_MAX_ERROR_TEXT]
+        return "outcome", _short_error_text(error)
     return None
+
+
+def _short_error_text(error: BaseException) -> str:
+    """Return ``error``'s type and text within ``_MAX_ERROR_TEXT`` bytes.
+
+    The limit is in bytes of UTF-8, since the pipe's atomic-write bound is
+    in bytes; an exception whose ``__str__`` itself fails is named by its
+    type alone, so nothing here can raise.
+    """
+    name = type(error).__name__
+    try:
+        text = f"{name}: {error}"
+    except Exception:
+        text = name
+    return text.encode("utf-8")[:_MAX_ERROR_TEXT].decode("utf-8", errors="ignore")
 
 
 def _temp_dir_error(reason: object) -> ParserError:
