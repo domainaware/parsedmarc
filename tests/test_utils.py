@@ -1148,6 +1148,59 @@ class TestTimestampAssumeUtc(unittest.TestCase):
         self.assertEqual(int(dt.timestamp()), self.TRUE_EPOCH)
 
 
+class TestTimestampLengthGuard(unittest.TestCase):
+    """``human_timestamp_to_datetime`` refuses a string too long to be a date.
+
+    dateutil's time grows with the length of a digit run: on 11.2.1 under
+    Python 3.12 a digit string of 65,536 characters failed in 0.06 s, one of
+    262,144 in 0.87 s and one of 1,000,000 in 12.4 s, each as an
+    ``OverflowError``. RFC 5322 dates, comments included, are far shorter
+    than the limit."""
+
+    def testLongDigitRunRaisesValueErrorQuickly(self):
+        """262,144 digits took 0.87 s to fail on 11.2.1, as an OverflowError"""
+        limit = budget(0.2)
+        start = time.perf_counter()
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.utils.human_timestamp_to_datetime("1" * 262_144)
+        elapsed = time.perf_counter() - start
+        self.assertIn("characters", str(ctx.exception))
+        self.assertNotIn("1111", str(ctx.exception))
+        self.assertLess(elapsed, limit)
+
+    def testLimitIsInclusive(self):
+        """A string at the limit is parsed, one character more is refused.
+        The padding is inside the date, where stripping leaves it and
+        dateutil skips it."""
+        limit = parsedmarc.utils.MAX_TIMESTAMP_LENGTH
+        at_limit = "2024-01-15" + " " * (limit - 18) + "12:00:00"
+        self.assertEqual(len(at_limit), limit)
+        self.assertEqual(
+            parsedmarc.utils.human_timestamp_to_datetime(at_limit).year, 2024
+        )
+        over_limit = "2024-01-15" + " " * (limit - 17) + "12:00:00"
+        with self.assertRaises(ValueError):
+            parsedmarc.utils.human_timestamp_to_datetime(over_limit)
+
+    def testRfc5322DateWithCommentsStillParses(self):
+        dt = parsedmarc.utils.human_timestamp_to_datetime(
+            "Mon, 15 Jan 2024 12:00:00 +0000 (Coordinated Universal Time)"
+        )
+        self.assertEqual(dt.hour, 12)
+
+    def testLongCommentIsNotCounted(self):
+        """RFC 5322 section 3.2.2 puts no limit on a comment's length, so the
+        limit applies once comments are removed: a valid date with a
+        300-character comment parses, and 300 digits are still refused."""
+        dt = parsedmarc.utils.human_timestamp_to_datetime(
+            "Mon, 15 Jan 2024 12:00:00 +0000 (" + "x" * 300 + ")"
+        )
+        self.assertEqual((dt.year, dt.hour), (2024, 12))
+        with self.assertRaises(ValueError) as ctx:
+            parsedmarc.utils.human_timestamp_to_datetime("1" * 300)
+        self.assertIn("characters", str(ctx.exception))
+
+
 class TestUtilsIpDbPaths(unittest.TestCase):
     """Tests for IP database path validation"""
 

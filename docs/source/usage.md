@@ -247,6 +247,34 @@ The full set of configuration options is:
     cache.
     :::
 
+  - `parse_timeout` - float: Stop parsing a report file or message
+      after this many seconds, and treat it as invalid: a report file
+      is logged as failed (and moved to `Invalid` under
+      `archive_directory`), an mbox message is skipped with a warning,
+      and a mailbox message is moved to the `Invalid` archive folder
+      (or deleted with `delete_invalid`). `0` means no limit
+      (Default: `0`, suggested: `300`)
+
+    :::{note}
+    With a timeout set, parsing always runs in worker processes, even
+    with `n_procs = 1`, because a parse can only be stopped by ending
+    the process that runs it. When a parse times out, every worker
+    process is stopped and new ones are started, and the other
+    messages or files that were still being parsed start again from
+    the beginning. parsedmarc checks the time only while it waits for
+    a parse result, so a parse is stopped within one second of
+    parsedmarc next waiting for a result after its time is up; while
+    parsedmarc is busy between results (moving messages, for example)
+    a parse can run on past the timeout. Choose a value well above the
+    time your largest legitimate reports take, including DNS lookups,
+    each of which can take up to `dns_timeout` seconds per try. With a
+    timeout set, the worker processes hand each parsed report back
+    through a file in a directory readable only by the parsedmarc user,
+    inside the temporary directory (`TMPDIR`), which must therefore be
+    writable; the files are removed as they are read, and their
+    directory once the batch has been parsed or the workers stopped.
+    :::
+
 - `mailbox`
   - `reports_folder` - str: The mailbox folder (or label for
       Gmail) where the incoming reports can be found
@@ -297,6 +325,16 @@ The full set of configuration options is:
       checks within one long-running process, not across separate one-shot
       runs. See
       [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved)
+      below.
+  - `attempts_file` - str: Path to a JSON file in which parsedmarc
+      counts the messages whose parsing never finished because the
+      process died, so that a message that keeps killing parsedmarc is
+      moved to the `Invalid` archive subfolder (or deleted, per
+      `delete_invalid`) after two such attempts instead of being parsed
+      on every run. The directory must be writable by the user running
+      parsedmarc; the file is created on first use. Unset by default
+      (no record is kept). See
+      [Messages that crash parsedmarc are not retried forever](#messages-that-crash-parsedmarc-are-not-retried-forever)
       below.
   - `since` - str: Search for messages since a certain time. (Examples: `5m|3h|2d|1w`)
       Acceptable units - {"m":"minutes", "h":"hours", "d":"days", "w":"weeks"}.
@@ -1150,14 +1188,17 @@ from `Archive/Unsaved` back into the reports folder, or run parsedmarc once
 with `reports_folder = Archive/Unsaved`.
 
 :::{note}
-The failure counts live in memory, so they are counted per parsedmarc
-process. In watch mode — a long-running process that checks the mailbox
-repeatedly — the cap works as described across checks. A one-shot run
-(`cron`, `systemd` timers) attempts each message exactly once and then
-exits, so its counts start over every time and the default cap is never
-reached: messages simply keep being retried on every run, which is the
-safe direction. Set `max_unsaved_retries = 0` if you want one-shot runs to
-move unsavable messages to `Unsaved` immediately instead.
+The failed-save counts live in memory, so they are counted per
+parsedmarc process. In watch mode — a long-running process that checks
+the mailbox repeatedly — the cap works as described across checks. A
+one-shot run (`cron`, `systemd` timers) attempts each message exactly once
+and then exits, so its counts start over every time and the default cap is
+never reached: messages simply keep being retried on every run, which is
+the safe direction. Set `max_unsaved_retries = 0` if you want one-shot
+runs to move unsavable messages to `Unsaved` immediately instead. A
+message that crashes parsedmarc while it is being parsed is a different
+case, counted on disk by `attempts_file`; see
+[Messages that crash parsedmarc are not retried forever](#messages-that-crash-parsedmarc-are-not-retried-forever).
 :::
 
 :::{warning}
@@ -1194,6 +1235,77 @@ automatically. It is never deleted or moved — it simply stays in the
 reports folder until it is processed by a run with a wider (or no)
 `since` window.
 :::
+
+### Messages that crash parsedmarc are not retried forever
+
+A message is only moved out of the reports folder after it has been
+parsed. If parsing a message kills the parsedmarc process — the
+out-of-memory killer, a container memory limit, a crash in a library —
+the message stays where it is, and every later run, or every restart of
+the service, fetches it again and dies on it again, so the reports behind
+it in the mailbox are never processed. parsedmarc rejects the message shapes known to
+do this, but cannot rule out new ones.
+
+Set `[mailbox]` `attempts_file` to a path to guard against that loop:
+
+```ini
+[mailbox]
+attempts_file = /var/lib/parsedmarc/attempts.json
+```
+
+parsedmarc then writes an entry to that file before it parses each
+message, and removes the entry as soon as the parse returns, whether it
+found a report or rejected the message as invalid. An entry that is still
+there on a later run belongs to a message whose parse never finished. Once
+a message has two such unfinished attempts, the next run logs an error
+naming the folder, the message and the count, and moves the message to
+`<archive_folder>/Invalid` without parsing it (or deletes it, if
+`delete_invalid` is set). Its entry is removed once the message has been
+moved, so moving it back into the reports folder tries it again from the
+start; if the move fails, the entry stays and the next run tries the move
+again. A set-aside message whose move failed, or one left in place in
+`test` mode, is not recorded again, so its entry is not refreshed and is
+dropped after 30 days, after which the message is parsed up to twice more
+before it is set aside again. Two attempts are allowed
+so that one crash for an unrelated reason (a reboot, a deployment) never
+sets a message aside. With `n_procs` above 1, or with `parse_timeout` set
+(which parses in worker processes even with `n_procs = 1`), several
+messages are parsed at once, so every message that was being parsed or
+waiting for a worker when a run died has an entry; on the next run each of
+them is parsed on its own after the rest of its batch, so a second crash
+counts against the one message that caused it. It is parsed in the main
+process, or, when `parse_timeout` is set, in a worker process of its own,
+so the timeout still applies to it. If a worker process dies while it
+parses (the out-of-memory killer can end a worker without ending
+parsedmarc), the batch ends with a logged error. A one-shot run saves the
+reports parsed from report files and mbox files before it and exits with
+status 1; for a mailbox, earlier batches are saved and the batch in
+progress stays in the mailbox. In watch mode the IMAP and Maildir watchers
+log it as a warning and check the mailbox again, so the process keeps
+running, while the Microsoft Graph and Gmail watchers exit with status 1.
+Either way the entries of the messages that were being parsed or waiting
+for a worker stay in the file, so the next run or check parses each of
+them on its own in the same way.
+
+This count is separate from the in-memory failed-save counts of
+`max_unsaved_retries` above: an entry is removed when the parse
+returns, before the reports are saved, so a message whose batch could not
+be saved is retried and moved to `Unsaved` as described above, never to
+`Invalid`. A message is identified by the reports folder, its id and a
+hash of its beginning, so a new message that reuses an old id starts with
+no attempts.
+
+Use one file per configuration (per mailbox and reports folder): two
+parsedmarc processes writing one file overwrite each other's entries. The
+file is written atomically, readable by its owner only, and entries older
+than 30 days are dropped. A file that is not a valid attempts file is
+logged as a warning and replaced. If the file cannot be written, an error
+is logged and the protection is off for the rest of that batch; reports are
+still processed. If the write that removes an entry after a successful
+parse is the one that fails, the entry stays (and the protection is off
+for the rest of that batch), so a healthy message can be set aside as
+invalid after two such failures; the write error is logged each time. In
+`test` mode messages are recorded and set aside as usual but never moved.
 
 ## Environment variable configuration
 
@@ -1257,10 +1369,23 @@ services:
       PARSEDMARC_IMAP_USER: dmarc@example.com
       PARSEDMARC_IMAP_PASSWORD: ${IMAP_PASSWORD}
       PARSEDMARC_MAILBOX_WATCH: "true"
+      PARSEDMARC_MAILBOX_ATTEMPTS_FILE: /home/parsedmarc/attempts.json
       PARSEDMARC_ELASTICSEARCH_HOSTS: http://elasticsearch:9200
       PARSEDMARC_GENERAL_SAVE_AGGREGATE: "true"
       PARSEDMARC_GENERAL_SAVE_FAILURE: "true"
+    volumes:
+      - parsedmarc-state:/home/parsedmarc
+
+volumes:
+  parsedmarc-state:
 ```
+
+The `parsedmarc-state` volume keeps the
+[attempts file](#messages-that-crash-parsedmarc-are-not-retried-forever)
+when the container is recreated, as it is on an image upgrade. It is
+mounted on the home directory of the image's `parsedmarc` user because
+Docker gives a new named volume the owner of the directory it is mounted
+on, and that directory is one the user can write.
 
 ### Docker secrets (`_FILE` suffix)
 
@@ -1300,7 +1425,8 @@ services:
 
 Note that a small set of config keys whose own names already end in
 `_file` (`[general] log_file`, `[msgraph] token_file`,
-`[gmail_api] credentials_file`, `[gmail_api] token_file`) keep their
+`[gmail_api] credentials_file`, `[gmail_api] token_file`,
+`[mailbox] attempts_file`) keep their
 pre-existing meaning when set via `PARSEDMARC_..._FILE` — that env var is
 the path itself, not a wrapper around a file containing the path. To pass
 *those* paths via a Docker secret, double up the suffix
@@ -1372,9 +1498,10 @@ A few things to keep in mind:
   (IP address info, seen aggregate report IDs, and the reverse DNS map).
   Omitting `config=` falls back to the process-wide caches shared by every
   call that doesn't pass one.
-- `keep_alive` and `n_procs` are not part of `ParserConfig` — they control
-  process/worker orchestration rather than parsing or enrichment behavior,
-  so they are always passed as separate keyword arguments.
+- `keep_alive`, `n_procs`, `parse_timeout` and `attempts_file` are not part
+  of `ParserConfig` — they control process/worker or mailbox orchestration
+  rather than parsing or enrichment behavior, so they are always passed as
+  separate keyword arguments.
 
 ## Performance tuning
 
@@ -1392,6 +1519,9 @@ imports more predictable:
   trade-off is memory and DNS load: at most roughly `2 * n_procs` messages
   are held in flight at once, each worker process keeps its own DNS/GeoIP
   cache, and DNS query volume can multiply by up to `n_procs`.
+- Set `parse_timeout` (for example to `300`) so that one message or file that
+  takes far too long to parse is set aside as invalid instead of holding up
+  the rest of the run.
 - Use `mailbox.since` to process reports in smaller time windows such as `1d`,
   `7d`, or another interval that fits the backlog. This makes it easier to catch
   up incrementally instead of loading an entire mailbox history in one run.
@@ -1466,14 +1596,33 @@ After=network.target network-online.target elasticsearch.service
 ExecStart=/opt/parsedmarc/venv/bin/parsedmarc -c /etc/parsedmarc.ini
 ExecReload=/bin/kill -HUP $MAINPID
 KillSignal=SIGTERM
+KillMode=mixed
 TimeoutStopSec=60
 User=parsedmarc
 Group=parsedmarc
+StateDirectory=parsedmarc
 Restart=always
 RestartSec=5m
 
 [Install]
 WantedBy=multi-user.target
+```
+
+`KillMode=mixed` sends the stop signal to the main parsedmarc process
+only, so the batch in progress can finish before it exits, within
+`TimeoutStopSec`, after which systemd kills the whole group; the default
+control-group mode would also stop its parsing worker processes at once
+and abandon the batch.
+
+`StateDirectory=parsedmarc` makes systemd create `/var/lib/parsedmarc`,
+owned by the `parsedmarc` user, before the service starts. Point the
+[attempts file](#messages-that-crash-parsedmarc-are-not-retried-forever)
+there in `/etc/parsedmarc.ini`, so a message that kills the service is
+not parsed again on every restart:
+
+```ini
+[mailbox]
+attempts_file = /var/lib/parsedmarc/attempts.json
 ```
 
 Then, enable the service
@@ -1533,7 +1682,7 @@ for that batch have completed. The following settings are reloaded:
 - DNS and GeoIP settings (`nameservers`, `dns_timeout`, `ip_db_path`,
   `ipinfo_url`, `offline`, etc.)
 - Processing flags (`strip_attachment_payloads`, `batch_size`,
-  `check_timeout`, etc.)
+  `check_timeout`, `parse_timeout`, `attempts_file`, etc.)
 - Log level (`debug`, `verbose`, `warnings`, `silent`)
 
 Mailbox connection settings (IMAP host/credentials, Microsoft Graph,

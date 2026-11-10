@@ -1373,7 +1373,12 @@ def save_failure_report_to_opensearch(
     sample_date = None
     if failure_report["parsed_sample"]["date"] is not None:
         sample_date = failure_report["parsed_sample"]["date"]
-        sample_date = human_timestamp_to_datetime(sample_date)
+        try:
+            sample_date = human_timestamp_to_datetime(sample_date)
+        except (ValueError, OverflowError) as error:
+            raise InvalidFailureReport(
+                f"Invalid sample Date: {sanitize_for_log(str(error))}"
+            ) from error
     original_headers = failure_report["parsed_sample"]["headers"]
     headers: dict[str, Any] = {}
     for original_header in original_headers:
@@ -1381,6 +1386,9 @@ def save_failure_report_to_opensearch(
         # header named "Subject.x" would turn sample.headers.subject into an
         # object and reject every later sample with a Subject header.
         header_name = original_header.lower().replace(".", "_")
+        if not header_name:
+            # An empty name is not a valid field name for the cluster.
+            continue
         headers[header_name] = original_headers[original_header]
 
     # arrival_date_utc is a UTC wall-clock string; without assume_utc the
@@ -1433,7 +1441,12 @@ def save_failure_report_to_opensearch(
         q = q & Q(subject_query)
 
     search.query = q
-    existing = search.execute()
+    try:
+        existing = search.execute()
+    except Exception as error_:
+        raise OpenSearchError(
+            f"OpenSearch's search for existing report error: {error_.__str__()}"
+        )
 
     if len(existing) > 0:
         raise AlreadySaved(

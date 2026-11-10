@@ -10,12 +10,15 @@ import importlib.util
 import json
 import logging
 import mailbox
+import multiprocessing
 import os
 import shutil
 import signal
 import stat
+import subprocess
 import sys
 import tempfile
+import time
 import traceback
 import unittest
 import zipfile
@@ -997,10 +1000,14 @@ hosts = localhost
             "PARSEDMARC_GMAIL_API_CREDENTIALS_FILE": "/etc/parsedmarc/gmail.json",
             "PARSEDMARC_GMAIL_API_TOKEN_FILE": "/etc/parsedmarc/gmail.token",
             "PARSEDMARC_MSGRAPH_TOKEN_FILE": "/etc/parsedmarc/msgraph.token",
+            "PARSEDMARC_MAILBOX_ATTEMPTS_FILE": "/var/lib/parsedmarc/attempts.json",
         }
         with patch.dict(os.environ, env, clear=False):
             _apply_env_overrides(config)
         self.assertEqual(config.get("general", "log_file"), "/var/log/parsedmarc.log")
+        self.assertEqual(
+            config.get("mailbox", "attempts_file"), "/var/lib/parsedmarc/attempts.json"
+        )
         self.assertEqual(
             config.get("gmail_api", "credentials_file"),
             "/etc/parsedmarc/gmail.json",
@@ -5399,13 +5406,22 @@ watch = true
         mock_watch.side_effect = watch_side_effect
         cfg_path = self._write_config()
 
-        with patch("parsedmarc.cli.os._exit", side_effect=fake_exit) as mock_exit:
+        workers = [MagicMock(), MagicMock()]
+        with (
+            patch("parsedmarc.cli.os._exit", side_effect=fake_exit) as mock_exit,
+            patch(
+                "parsedmarc.cli.multiprocessing.active_children", return_value=workers
+            ),
+        ):
             with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
                 with self.assertRaises(SystemExit) as cm:
                     parsedmarc.cli._main()
 
         self.assertIs(cm.exception, sentinel)
         mock_exit.assert_called_once_with(130)
+        # Workers ignore SIGINT, and os._exit skips the pool's cleanup.
+        for worker in workers:
+            worker.kill.assert_called_once_with()
 
     @patch("parsedmarc.cli.get_dmarc_reports_from_mbox")
     @patch("parsedmarc.cli.is_mbox", side_effect=lambda p: p.endswith(".mbox"))
@@ -7248,6 +7264,52 @@ max_unsaved_retries = 7
         self.assertEqual(watch_kwargs.get("max_unsaved_retries"), 7)
 
     @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
+    @patch("parsedmarc.cli.watch_inbox")
+    @patch("parsedmarc.cli.IMAPConnection")
+    def testAttemptsFileReachesBothCallSitesExpanded(
+        self, mock_imap_connection, mock_watch_inbox, mock_get_reports
+    ):
+        """[mailbox] attempts_file reaches the one-shot fetch and the
+        watcher, with ``$VAR`` expanded like every other file path; without
+        it both get None and keep no record."""
+        mock_imap_connection.return_value = object()
+        mock_get_reports.return_value = {
+            "aggregate_reports": [],
+            "failure_reports": [],
+            "smtp_tls_reports": [],
+        }
+        mock_watch_inbox.side_effect = FileExistsError("stop-watch-loop")
+        base = """[general]
+silent = true
+
+[imap]
+host = imap.example.com
+user = user
+password = pass
+
+[mailbox]
+watch = true
+"""
+        for extra, expected in (
+            ("attempts_file = $STATE_DIR/attempts.json\n", "/srv/state/attempts.json"),
+            ("", None),
+        ):
+            with self.subTest(expected=expected):
+                config_path = self._write_config(base + extra)
+                with patch.dict(os.environ, {"STATE_DIR": "/srv/state"}):
+                    with patch.object(sys, "argv", ["parsedmarc", "-c", config_path]):
+                        with self.assertRaises(SystemExit):
+                            parsedmarc.cli._main()
+                self.assertEqual(
+                    mock_get_reports.call_args.kwargs.get("attempts_file", "unset"),
+                    expected,
+                )
+                self.assertEqual(
+                    mock_watch_inbox.call_args.kwargs.get("attempts_file", "unset"),
+                    expected,
+                )
+
+    @patch("parsedmarc.cli.get_dmarc_reports_from_mailbox")
     @patch("parsedmarc.cli.IMAPConnection")
     def testFileOutputFailureIsRecordedAndReportsTheBatchUnsaved(
         self, mock_imap_connection, mock_get_reports
@@ -8013,6 +8075,22 @@ class TestParseConfigMailbox(unittest.TestCase):
         _parse_config(config, opts)
         self.assertEqual(opts.mailbox_max_unsaved_retries, 0)
 
+    def test_mailbox_attempts_file_expands_the_path(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("mailbox", {"attempts_file": "$STATE_DIR/attempts.json"})
+        opts = _opts()
+        with patch.dict(os.environ, {"STATE_DIR": "/srv/state"}):
+            _parse_config(cp, opts)
+        self.assertEqual(opts.mailbox_attempts_file, "/srv/state/attempts.json")
+
+    def test_mailbox_attempts_file_absent_is_not_set(self):
+        from parsedmarc.cli import _parse_config
+
+        opts = _opts()
+        _parse_config(_config_with("mailbox", {"watch": "true"}), opts)
+        self.assertFalse(hasattr(opts, "mailbox_attempts_file"))
+
     def test_mailbox_absent_per_type_delete_keys_are_not_set(self):
         from parsedmarc.cli import _parse_config
 
@@ -8479,6 +8557,476 @@ class TestParseConfigGeneral(unittest.TestCase):
         opts = _opts()
         _parse_config(cp, opts)
         self.assertFalse(hasattr(opts, "archive_directory"))
+
+
+class TestParseTimeoutOption(unittest.TestCase):
+    """``[general] parse_timeout``: read as seconds, rejected unless it is a
+    finite number 0 or greater, 0 by default, and passed to every parsing
+    call _main() makes, including watch_inbox() after a SIGHUP reload."""
+
+    def setUp(self):
+        from parsedmarc.log import logger as _logger
+
+        _logger.disabled = True
+        self.addCleanup(setattr, _logger, "disabled", False)
+        for stream in ("sys.stdout", "sys.stderr"):
+            patcher = patch(stream, new_callable=io.StringIO)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+
+    def test_parse_timeout_is_read_as_seconds(self):
+        from parsedmarc.cli import _parse_config
+
+        for value, expected in (("2.5", 2.5), ("300", 300.0), ("0", 0.0)):
+            with self.subTest(value=value):
+                opts = _opts()
+                _parse_config(_config_with("general", {"parse_timeout": value}), opts)
+                self.assertEqual(opts.parse_timeout, expected)
+
+    def test_parse_timeout_rejects_negative_and_non_numeric_values(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        for value in ("-1", "abc", "", "nan", "inf"):
+            with self.subTest(value=value):
+                config = _config_with("general", {"parse_timeout": value})
+                with self.assertRaises(ConfigurationError) as ctx:
+                    _parse_config(config, _opts())
+                self.assertIn("parse_timeout", str(ctx.exception))
+
+    def _write_config(self, text):
+        with tempfile.NamedTemporaryFile("w", suffix=".ini", delete=False) as cfg:
+            cfg.write(text)
+            cfg_path = cfg.name
+        self.addCleanup(lambda: os.path.exists(cfg_path) and os.remove(cfg_path))
+        return cfg_path
+
+    def _one_shot_mailbox_kwargs(self, general_lines):
+        cfg_path = self._write_config(
+            "\n".join(["[general]", "silent = true", "offline = true", *general_lines])
+            + "\n\n[imap]\nhost = imap.example.com\nuser = user\npassword = pass\n"
+        )
+        with (
+            patch("parsedmarc.cli.get_dmarc_reports_from_mailbox") as mock_get_reports,
+            patch("parsedmarc.cli.IMAPConnection") as mock_imap,
+        ):
+            mock_imap.return_value = object()
+            mock_get_reports.return_value = {
+                "aggregate_reports": [],
+                "failure_reports": [],
+                "smtp_tls_reports": [],
+            }
+            with patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]):
+                parsedmarc.cli._main()
+        return mock_get_reports.call_args.kwargs
+
+    def test_mailbox_run_gets_zero_by_default_and_the_configured_value(self):
+        self.assertEqual(self._one_shot_mailbox_kwargs([])["parse_timeout"], 0.0)
+        kwargs = self._one_shot_mailbox_kwargs(["parse_timeout = 45"])
+        self.assertEqual(kwargs["parse_timeout"], 45.0)
+
+    def test_report_files_and_mbox_are_parsed_with_the_timeout(self):
+        """The report file goes through parallel_map's timeout loop (real
+        worker processes) and is parsed; the mbox call gets the value."""
+        from parsedmarc.parallel import _file_timeout_result
+        from parsedmarc.parallel import parallel_map as real_parallel_map
+
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        output_dir = os.path.join(tmp_dir, "output")
+        mbox_path = os.path.join(tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            box.add(mailbox.mboxMessage(message.read()))
+        box.close()
+        cfg_path = self._write_config(
+            "[general]\noffline = True\nsilent = True\n"
+            f"output = {output_dir}\nparse_timeout = 30\n"
+        )
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        calls = []
+
+        def recording_parallel_map(func, jobs, n_procs, **kwargs):
+            calls.append(kwargs)
+            return real_parallel_map(func, jobs, n_procs, **kwargs)
+
+        with (
+            patch("parsedmarc.cli.parallel_map", recording_parallel_map),
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mbox",
+                return_value={
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ) as mock_mbox,
+            patch.object(
+                sys, "argv", ["parsedmarc", "-c", cfg_path, sample, mbox_path]
+            ),
+        ):
+            parsedmarc.cli._main()
+
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0]["parse_timeout"], 30.0)
+        self.assertIs(calls[0]["timeout_result"], _file_timeout_result)
+        self.assertEqual(mock_mbox.call_args.kwargs["parse_timeout"], 30.0)
+        with open(os.path.join(output_dir, "aggregate.json")) as f:
+            self.assertEqual(len(json.load(f)), 1)
+
+    @unittest.skipUnless(
+        hasattr(signal, "SIGHUP"),
+        "SIGHUP not available on this platform",
+    )
+    def test_watch_gets_the_reloaded_value_after_sighup(self):
+        def config(parse_timeout):
+            parser = ConfigParser()
+            parser.read_string(
+                "[general]\nsilent = true\noffline = true\n"
+                f"parse_timeout = {parse_timeout}\n\n"
+                "[imap]\nhost = imap.example.com\nuser = user\npassword = pass\n\n"
+                "[mailbox]\nwatch = true\n"
+            )
+            return parser
+
+        cfg_path = self._write_config("[general]\n")
+        seen = []
+
+        def watch_side_effect(**kwargs):
+            seen.append(kwargs["parse_timeout"])
+            if len(seen) == 1:
+                os.kill(os.getpid(), signal.SIGHUP)
+                return
+            raise FileExistsError("stop-watch-loop")
+
+        with (
+            patch("parsedmarc.cli._load_config", side_effect=[config(5), config(7.5)]),
+            patch("parsedmarc.cli._init_output_clients", return_value={}),
+            patch("parsedmarc.cli.IMAPConnection", return_value=object()),
+            patch(
+                "parsedmarc.cli.get_dmarc_reports_from_mailbox",
+                return_value={
+                    "aggregate_reports": [],
+                    "failure_reports": [],
+                    "smtp_tls_reports": [],
+                },
+            ),
+            patch("parsedmarc.cli.watch_inbox", side_effect=watch_side_effect),
+            patch.object(sys, "argv", ["parsedmarc", "-c", cfg_path]),
+        ):
+            with self.assertRaises(SystemExit):
+                parsedmarc.cli._main()
+
+        self.assertEqual(seen, [5.0, 7.5])
+
+
+def _dying_parse_job(job, *, config):
+    """Stand-in parse job that ends its worker process at once, as the
+    out-of-memory killer would. Module-level so it pickles."""
+    os._exit(1)
+
+
+class TestWorkerDeathEndsTheRun(unittest.TestCase):
+    """A parsing worker process that dies makes ``parallel_map`` raise
+    ``ParserError``. For report files and mbox files _main() logs it, saves
+    the reports parsed before it, and exits with status 1, instead of
+    ending in a traceback. The workers really die here, under the default
+    start method."""
+
+    def setUp(self):
+        # The run records the reports it parses in the shared dedup set;
+        # leaving them there would make later runs skip the same samples.
+        parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear()
+        self.addCleanup(parsedmarc.SEEN_AGGREGATE_REPORT_IDS.clear)
+        for stream in ("sys.stdout", "sys.stderr"):
+            patcher = patch(stream, new_callable=io.StringIO)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        self.tmp_dir = tmp_dir
+        self.cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
+        with open(self.cfg_path, "w") as cfg:
+            cfg.write("[general]\nsilent = true\noffline = true\nn_procs = 2\n")
+
+    def _run_main(self, *inputs):
+        from parsedmarc.log import logger as _logger
+
+        self.addCleanup(setattr, _logger, "disabled", _logger.disabled)
+        _logger.disabled = False
+        with (
+            patch.object(sys, "argv", ["parsedmarc", "-c", self.cfg_path, *inputs]),
+            self.assertLogs("parsedmarc.log", level="ERROR") as logs,
+            self.assertRaises(SystemExit) as system_exit,
+        ):
+            parsedmarc.cli._main()
+        self.assertEqual(system_exit.exception.code, 1)
+        self.assertTrue(
+            any("worker process died" in line for line in logs.output), logs.output
+        )
+        return logs.output
+
+    def test_report_files(self):
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        other = "samples/aggregate/example.net!example.com!1529366400!1529452799.xml"
+        with patch("parsedmarc.cli._parse_report_file_job", _dying_parse_job):
+            self._run_main(sample, other)
+
+    def test_mbox(self):
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            content = message.read()
+        for _ in range(2):
+            box.add(mailbox.mboxMessage(content))
+        box.close()
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            self._run_main(mbox_path)
+
+    def test_reports_parsed_before_the_death_are_saved(self):
+        """Report files are parsed before mbox files; a worker that dies on
+        the mbox must not discard the file's report, which with
+        archive_directory set has already been moved out of the input."""
+        output_dir = os.path.join(self.tmp_dir, "output")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {output_dir}\n")
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            content = message.read()
+        for _ in range(2):
+            box.add(mailbox.mboxMessage(content))
+        box.close()
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            self._run_main(sample, mbox_path)
+        with open(os.path.join(output_dir, "aggregate.json")) as saved:
+            reports = json.load(saved)
+        self.assertEqual(
+            [r["report_metadata"]["report_id"] for r in reports],
+            ["example.com:1538463741"],
+        )
+
+    def _write_twilight(self, box):
+        with open("samples/aggregate/twilight.eml", "rb") as message:
+            content = message.read()
+        for _ in range(2):
+            box.add(content)
+
+    def test_file_reports_are_saved_when_a_worker_dies_in_the_mailbox(self):
+        """A worker that dies while a mailbox batch is parsed leaves that
+        batch in the mailbox, but the report file parsed before the
+        mailbox was opened is still saved."""
+        output_dir = os.path.join(self.tmp_dir, "output")
+        maildir_path = os.path.join(self.tmp_dir, "maildir")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {output_dir}\n")
+            cfg.write(f"[maildir]\npath = {maildir_path}\ncreate = true\n")
+        self._write_twilight(mailbox.Maildir(maildir_path, create=True))
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            self._run_main(sample)
+        with open(os.path.join(output_dir, "aggregate.json")) as saved:
+            reports = json.load(saved)
+        self.assertEqual(
+            [r["report_metadata"]["report_id"] for r in reports],
+            ["example.com:1538463741"],
+        )
+        self.assertEqual(len(mailbox.Maildir(maildir_path)), 2)
+
+    def test_input_error_opens_no_mailbox_and_keeps_the_archived_file(self):
+        """After a worker dies on an mbox, the run opens no mailbox, and the
+        report file parsed before it stays under archive_directory."""
+        archive_dir = os.path.join(self.tmp_dir, "archive")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"archive_directory = {archive_dir}\n")
+            cfg.write(f"[maildir]\npath = {self.tmp_dir}/maildir\ncreate = true\n")
+        report_name = "!example.com!1538204542!1538463818.xml"
+        report_path = os.path.join(self.tmp_dir, report_name)
+        shutil.copy(os.path.join("samples/aggregate", report_name), report_path)
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        self._write_twilight(box)
+        box.close()
+        with (
+            patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job),
+            patch("parsedmarc.cli.MaildirConnection") as maildir_connection,
+        ):
+            self._run_main(report_path, mbox_path)
+        maildir_connection.assert_not_called()
+        self.assertFalse(os.path.exists(report_path))
+        archived = [name for _, _, names in os.walk(archive_dir) for name in names]
+        self.assertEqual(archived, [report_name])
+
+    def test_dying_file_worker_leaves_the_mbox_unread(self):
+        """With one report file the file loop's death is certain; the mbox
+        after it is never read."""
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        self._write_twilight(box)
+        box.close()
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with (
+            patch("parsedmarc.cli._parse_report_file_job", _dying_parse_job),
+            patch("parsedmarc.cli.get_dmarc_reports_from_mbox") as read_mbox,
+        ):
+            self._run_main(sample, mbox_path)
+        read_mbox.assert_not_called()
+
+    def _fail_file_output(self):
+        """Point ``output`` at a regular file, so saving there fails, and
+        make that failure a ``ParserError`` with fail_on_output_error."""
+        not_a_directory = os.path.join(self.tmp_dir, "not-a-directory")
+        with open(not_a_directory, "w"):
+            pass
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {not_a_directory}\nfail_on_output_error = true\n")
+
+    def _assert_both_errors_logged(self, logs):
+        joined = "\n".join(logs)
+        self.assertIn("worker process died", joined)
+        self.assertIn("Output destination failures detected", joined)
+
+    def test_failed_save_after_an_input_error_is_logged(self):
+        """The save before exiting can fail too: both errors are logged and
+        the run still exits with status 1."""
+        self._fail_file_output()
+        mbox_path = os.path.join(self.tmp_dir, "reports.mbox")
+        box = mailbox.mbox(mbox_path)
+        self._write_twilight(box)
+        box.close()
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            logs = self._run_main(sample, mbox_path)
+        self._assert_both_errors_logged(logs)
+
+    def test_failed_save_after_a_mailbox_worker_death_is_logged(self):
+        self._fail_file_output()
+        maildir_path = os.path.join(self.tmp_dir, "maildir")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"[maildir]\npath = {maildir_path}\ncreate = true\n")
+        self._write_twilight(mailbox.Maildir(maildir_path, create=True))
+        sample = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with patch("parsedmarc.parallel._parse_report_email_job", _dying_parse_job):
+            logs = self._run_main(sample)
+        self._assert_both_errors_logged(logs)
+
+    def test_report_files_with_the_progress_bar(self):
+        """On a terminal the file loop drives a progress bar; the files are
+        still parsed and saved."""
+        output_dir = os.path.join(self.tmp_dir, "output")
+        with open(self.cfg_path, "a") as cfg:
+            cfg.write(f"output = {output_dir}\n")
+        samples = [
+            "samples/aggregate/!example.com!1538204542!1538463818.xml",
+            "samples/aggregate/example.net!example.com!1529366400!1529452799.xml",
+        ]
+        with (
+            patch.object(sys.stderr, "isatty", return_value=True),
+            patch.object(sys, "argv", ["parsedmarc", "-c", self.cfg_path, *samples]),
+            patch("parsedmarc.cli.tqdm", wraps=parsedmarc.cli.tqdm) as progress,
+        ):
+            parsedmarc.cli._main()
+        progress.assert_called_once_with(total=2)
+        with open(os.path.join(output_dir, "aggregate.json")) as saved:
+            self.assertEqual(len(json.load(saved)), 2)
+
+
+_PID_DIR_VARIABLE = "TEST_PARSEDMARC_WORKER_PID_DIR"
+
+# Run in a child interpreter by TestSecondCtrlCKillsTheWorkers: _main()
+# parses the files named on its command line with the sleeping job below.
+# The start method is the first argument.
+_SLEEPING_CLI_SCRIPT = """
+import multiprocessing
+import sys
+from unittest.mock import patch
+
+import parsedmarc.cli
+from tests.test_cli import _pid_marking_sleeping_file_job
+
+if __name__ == "__main__":
+    multiprocessing.set_start_method(sys.argv[1], force=True)
+    with patch(
+        "parsedmarc.cli._parse_report_file_job", _pid_marking_sleeping_file_job
+    ):
+        sys.argv = ["parsedmarc", *sys.argv[2:]]
+        parsedmarc.cli._main()
+"""
+
+
+def _pid_marking_sleeping_file_job(file_path, *, config):
+    """Stand-in parse job that writes its worker's pid as a file name under
+    the directory ``_PID_DIR_VARIABLE`` names, then sleeps for a minute.
+    Module-level so it pickles; the variable is set before the child
+    interpreter starts, so every worker sees it."""
+    with open(os.path.join(os.environ[_PID_DIR_VARIABLE], str(os.getpid())), "w"):
+        pass
+    time.sleep(60)
+    return file_path, parsedmarc.ParserError("not parsed")
+
+
+def _process_exists(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+class TestSecondCtrlCKillsTheWorkers(unittest.TestCase):
+    """A second Ctrl-C ends parsedmarc with os._exit(130), which skips the
+    process pool's cleanup, and parsing workers ignore SIGINT; without the
+    handler killing them first they ran on as orphans. A real parsedmarc
+    process with two sleeping workers gets two SIGINTs here."""
+
+    def test_second_sigint_leaves_no_worker_running(self):
+        if not hasattr(signal, "SIGINT") or os.name != "posix":
+            self.skipTest("needs POSIX signals")
+        for method in multiprocessing.get_all_start_methods():
+            with self.subTest(start_method=method):
+                self._interrupt_twice(method)
+
+    def _interrupt_twice(self, method):
+        tmp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp_dir, ignore_errors=True)
+        pid_dir = os.path.join(tmp_dir, "pids")
+        os.mkdir(pid_dir)
+        cfg_path = os.path.join(tmp_dir, "parsedmarc.ini")
+        with open(cfg_path, "w") as cfg:
+            cfg.write("[general]\nsilent = true\noffline = true\nn_procs = 2\n")
+        samples = [
+            "samples/aggregate/!example.com!1538204542!1538463818.xml",
+            "samples/aggregate/example.net!example.com!1529366400!1529452799.xml",
+        ]
+        command = [sys.executable, "-c", _SLEEPING_CLI_SCRIPT, method]
+        child = subprocess.Popen(
+            [*command, "-c", cfg_path, *samples],
+            env={**os.environ, _PID_DIR_VARIABLE: pid_dir},
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        self.addCleanup(lambda: child.poll() is None and child.kill())
+        deadline = time.monotonic() + 30.0
+        while len(os.listdir(pid_dir)) < 2 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        worker_pids = [int(name) for name in os.listdir(pid_dir)]
+        self.assertEqual(len(worker_pids), 2)
+        for pid in worker_pids:
+            self.addCleanup(
+                lambda pid=pid: _process_exists(pid) and os.kill(pid, signal.SIGKILL)
+            )
+
+        child.send_signal(signal.SIGINT)
+        # Apart, so the kernel cannot merge the two presses into one.
+        time.sleep(0.5)
+        child.send_signal(signal.SIGINT)
+        self.assertEqual(child.wait(timeout=30), 130)
+
+        deadline = time.monotonic() + 10.0
+        while any(map(_process_exists, worker_pids)) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        self.assertEqual([pid for pid in worker_pids if _process_exists(pid)], [])
 
 
 class TestParseConfigElasticsearch(unittest.TestCase):

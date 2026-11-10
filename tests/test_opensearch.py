@@ -1145,6 +1145,57 @@ class TestSaveFailureReport(unittest.TestCase):
                 save_failure_report_to_opensearch(_failure_report())
         self.assertIn("disk", str(ctx.exception))
 
+    def test_search_exception_wraps_to_opensearch_error(self):
+        """The duplicate check's search failing is a OpenSearchError, as it is for
+        the aggregate and SMTP TLS saves, not the search library's own error."""
+        bad_search = MagicMock()
+        bad_search.execute.side_effect = RuntimeError("network")
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=bad_search),
+            patch("parsedmarc.opensearch.Index"),
+            patch.object(opensearch_module._FailureReportDoc, "save") as mock_save,
+        ):
+            with self.assertRaises(OpenSearchError) as ctx:
+                save_failure_report_to_opensearch(_failure_report())
+        self.assertIn("network", str(ctx.exception))
+        mock_save.assert_not_called()
+
+    def test_overlong_sample_date_is_invalid_failure_report(self):
+        """A sample Date too long to be a date is an InvalidFailureReport,
+        raised before the duplicate search, not a bare ValueError"""
+        report = _failure_report()
+        report["parsed_sample"]["date"] = "1" * 200
+        search = MagicMock()
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=search),
+            patch("parsedmarc.opensearch.Index"),
+            patch.object(opensearch_module._FailureReportDoc, "save") as mock_save,
+        ):
+            with self.assertRaises(InvalidFailureReport):
+                save_failure_report_to_opensearch(report)
+        search.execute.assert_not_called()
+        mock_save.assert_not_called()
+
+    def test_header_with_empty_name_is_left_out(self):
+        """An empty header name is not a valid field name, so the header is
+        skipped and the others are still saved. mail-parser drops a header
+        line that starts with ":" before it reaches the sample, so the
+        parsed sample is built directly."""
+        report = _failure_report()
+        report["parsed_sample"]["headers"][""] = "orphan value"
+        with (
+            patch("parsedmarc.opensearch.Search", return_value=_empty_search()),
+            patch("parsedmarc.opensearch.Index"),
+            patch.object(
+                opensearch_module._FailureReportDoc, "save", autospec=True
+            ) as mock_save,
+        ):
+            save_failure_report_to_opensearch(report)
+        mock_save.assert_called_once()
+        headers = mock_save.call_args.args[0].sample.headers
+        self.assertNotIn("", headers)
+        self.assertEqual(headers["subject"], "Test")
+
     def test_keyerror_wraps_to_invalid_failure_report(self):
         """A malformed failure report (missing a required field) is
         surfaced as InvalidFailureReport so the caller can route it

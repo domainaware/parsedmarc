@@ -8,6 +8,8 @@ import functools
 import http.client
 import json
 import logging
+import math
+import multiprocessing
 import os
 import shutil
 import signal
@@ -141,7 +143,11 @@ from parsedmarc.mail import (
     MaildirConnection,
     MSGraphConnection,
 )
-from parsedmarc.parallel import _parse_report_file_job, parallel_map
+from parsedmarc.parallel import (
+    _file_timeout_result,
+    _parse_report_file_job,
+    parallel_map,
+)
 from parsedmarc.types import ParsedReport, ParsingResults
 import parsedmarc.utils
 from parsedmarc.utils import (
@@ -570,6 +576,7 @@ _DIRECT_FILE_KEYS = frozenset(
         "MSGRAPH_TOKEN_FILE",
         "GMAIL_API_CREDENTIALS_FILE",
         "GMAIL_API_TOKEN_FILE",
+        "MAILBOX_ATTEMPTS_FILE",
     ]
 )
 
@@ -960,6 +967,20 @@ def _parse_config(config: ConfigParser, opts):
             opts.log_file = _expand_path(general_config["log_file"])
         if "n_procs" in general_config:
             opts.n_procs = general_config.getint("n_procs")
+        if "parse_timeout" in general_config:
+            raw_parse_timeout = general_config["parse_timeout"]
+            try:
+                parse_timeout = float(raw_parse_timeout)
+            except ValueError:
+                parse_timeout = math.nan
+            # float() also accepts "nan" and "inf", which are no number of
+            # seconds.
+            if not math.isfinite(parse_timeout) or parse_timeout < 0:
+                raise ConfigurationError(
+                    "parse_timeout must be a number of seconds, 0 or greater, "
+                    f"got {raw_parse_timeout!r}"
+                )
+            opts.parse_timeout = parse_timeout
         if "ip_db_path" in general_config:
             opts.ip_db_path = _expand_path(general_config["ip_db_path"])
         else:
@@ -1030,6 +1051,8 @@ def _parse_config(config: ConfigParser, opts):
             opts.mailbox_max_unsaved_retries = mailbox_config.getint(
                 "max_unsaved_retries"
             )
+        if "attempts_file" in mailbox_config:
+            opts.mailbox_attempts_file = _expand_path(mailbox_config["attempts_file"])
         if "since" in mailbox_config:
             opts.mailbox_since = mailbox_config["since"]
 
@@ -3210,6 +3233,7 @@ def _main():
         mailbox_batch_size=10,
         mailbox_check_timeout=30,
         mailbox_max_unsaved_retries=2,
+        mailbox_attempts_file=None,
         mailbox_since=None,
         imap_host=None,
         imap_skip_certificate_verification=False,
@@ -3315,6 +3339,7 @@ def _main():
         maildir_create=False,
         log_file=args.log_file,
         n_procs=1,
+        parse_timeout=0.0,
         archive_directory=None,
         ip_db_path=None,
         ipinfo_url=None,
@@ -3485,6 +3510,11 @@ def _main():
     # "double tap": the first press is graceful, the second short-circuits
     # to os._exit(130). os._exit is async-signal-safe; sys.exit and
     # logging are not, so the handlers only set flags / call os._exit.
+    # Parsing workers ignore SIGINT and os._exit skips the pool's cleanup,
+    # so the second press first kills this process's child processes, or
+    # they would run on as orphans. Python runs a signal handler in the
+    # main thread between bytecodes, not in the C signal context, so
+    # multiprocessing.active_children() and Process.kill() are safe there.
     _reload_requested = False
     _shutdown_requested = False
     _sigint_count = 0
@@ -3501,6 +3531,8 @@ def _main():
         nonlocal _shutdown_requested, _sigint_count
         _sigint_count += 1
         if _sigint_count >= 2:
+            for child in multiprocessing.active_children():
+                child.kill()
             os._exit(130)
         _shutdown_requested = True
 
@@ -3535,34 +3567,49 @@ def _main():
     parser_config = _build_parser_config(opts)
 
     func = functools.partial(_parse_report_file_job, config=parser_config)
-    for file_path, result in parallel_map(
-        func, file_paths, n_procs, should_stop=lambda: _shutdown_requested
-    ):
-        if pbar is not None:
-            pbar.update(1)
-        if isinstance(result, Exception):
-            logger.error(f"Failed to parse {file_path} - {result}")
-        else:
-            if result["report_type"] == "aggregate":
-                report_org = result["report"]["report_metadata"]["org_name"]
-                report_id = result["report"]["report_metadata"]["report_id"]
-                report_key = _aggregate_report_dedup_key(result["report"])
-                seen_ids = parser_config.seen_aggregate_report_ids
-                if report_key not in seen_ids:
-                    seen_ids[report_key] = True
-                    aggregate_reports.append(result["report"])
-                else:
-                    logger.debug(
-                        "Skipping duplicate aggregate report "
-                        f"from {sanitize_for_log(str(report_org))} "
-                        f"with ID: {sanitize_for_log(str(report_id))}"
-                    )
-            elif result["report_type"] == "failure":
-                failure_reports.append(result["report"])
-            elif result["report_type"] == "smtp_tls":
-                smtp_tls_reports.append(result["report"])
-        if opts.archive_directory:
-            _archive_processed_file(file_path, opts.archive_directory, result)
+    # Set when parsing report files or an mbox file ends in a ParserError
+    # (a worker process that died, a missing mbox). No more input is read;
+    # what was gathered is saved before the run exits with status 1, since
+    # files already moved under archive_directory are kept nowhere else.
+    input_error = False
+    try:
+        for file_path, result in parallel_map(
+            func,
+            file_paths,
+            n_procs,
+            should_stop=lambda: _shutdown_requested,
+            parse_timeout=opts.parse_timeout,
+            timeout_result=_file_timeout_result,
+        ):
+            if pbar is not None:
+                pbar.update(1)
+            if isinstance(result, Exception):
+                logger.error(f"Failed to parse {file_path} - {result}")
+            else:
+                if result["report_type"] == "aggregate":
+                    report_org = result["report"]["report_metadata"]["org_name"]
+                    report_id = result["report"]["report_metadata"]["report_id"]
+                    report_key = _aggregate_report_dedup_key(result["report"])
+                    seen_ids = parser_config.seen_aggregate_report_ids
+                    if report_key not in seen_ids:
+                        seen_ids[report_key] = True
+                        aggregate_reports.append(result["report"])
+                    else:
+                        logger.debug(
+                            "Skipping duplicate aggregate report "
+                            f"from {sanitize_for_log(str(report_org))} "
+                            f"with ID: {sanitize_for_log(str(report_id))}"
+                        )
+                elif result["report_type"] == "failure":
+                    failure_reports.append(result["report"])
+                elif result["report_type"] == "smtp_tls":
+                    smtp_tls_reports.append(result["report"])
+            if opts.archive_directory:
+                _archive_processed_file(file_path, opts.archive_directory, result)
+    except ParserError as error:
+        # parallel_map raises ParserError when a worker process dies.
+        logger.error(error.__str__())
+        input_error = True
 
     if pbar is not None:
         pbar.close()
@@ -3575,14 +3622,25 @@ def _main():
         logger.info("Shutdown requested, stopping file processing early")
 
     for mbox_path in mbox_paths:
+        if input_error:
+            break
         if _shutdown_requested:
             logger.info("Shutdown requested, skipping remaining mbox files")
             break
-        reports = get_dmarc_reports_from_mbox(
-            mbox_path,
-            config=parser_config,
-            n_procs=n_procs,
-        )
+        try:
+            reports = get_dmarc_reports_from_mbox(
+                mbox_path,
+                config=parser_config,
+                n_procs=n_procs,
+                parse_timeout=opts.parse_timeout,
+            )
+        except ParserError as error:
+            # A missing mbox, a message error that is not an invalid
+            # report, or a parsing worker process that died. The reports
+            # of this mbox are lost with the error; earlier ones are kept.
+            logger.error(error.__str__())
+            input_error = True
+            break
         aggregate_reports += reports["aggregate_reports"]
         failure_reports += reports["failure_reports"]
         smtp_tls_reports += reports["smtp_tls_reports"]
@@ -3599,6 +3657,15 @@ def _main():
         "failure_reports": list(failure_reports),
         "smtp_tls_reports": list(smtp_tls_reports),
     }
+
+    if input_error:
+        # Save what was parsed, then stop: no mailbox is opened and no
+        # results email is sent for a run whose input was cut short.
+        try:
+            process_reports(file_parsing_results)
+        except ParserError as error:
+            logger.error(error.__str__())
+        sys.exit(1)
 
     mailbox_connection = None
     msgraph_connection: MSGraphConnection | None = None
@@ -3814,8 +3881,10 @@ def _main():
                 since=opts.mailbox_since,
                 config=parser_config,
                 n_procs=n_procs,
+                parse_timeout=opts.parse_timeout,
                 save_callback=mailbox_save_callback,
                 max_unsaved_retries=mailbox_max_unsaved_retries_value,
+                attempts_file=opts.mailbox_attempts_file,
             )
 
             aggregate_reports += reports["aggregate_reports"]
@@ -3823,11 +3892,18 @@ def _main():
             smtp_tls_reports += reports["smtp_tls_reports"]
 
         except ParserError as error:
-            # fail_on_output_error turns a failed batch save into a
-            # ParserError inside mailbox_save_callback; it reaches here
-            # through get_dmarc_reports_from_mailbox, which leaves the
-            # batch's messages in the mailbox on its way out.
+            # A worker process that died during the fetch, or a failed
+            # batch save under fail_on_output_error (a ParserError raised
+            # inside mailbox_save_callback). Either way the batch's
+            # messages stay in the mailbox and earlier batches are saved;
+            # the reports from files and mbox inputs, some perhaps already
+            # moved under archive_directory, are saved before exiting.
             logger.error(error.__str__())
+            if any(file_parsing_results.values()):
+                try:
+                    process_reports(file_parsing_results)
+                except ParserError as save_error:
+                    logger.error(save_error.__str__())
             sys.exit(1)
         except (ClientAuthenticationError, APIError, httpx.HTTPError) as error:
             if msgraph_connection is None:
@@ -3964,7 +4040,9 @@ def _main():
                     config=parser_config,
                     config_reloading=lambda: _reload_requested or _shutdown_requested,
                     n_procs=n_procs,
+                    parse_timeout=opts.parse_timeout,
                     max_unsaved_retries=mailbox_max_unsaved_retries_value,
+                    attempts_file=opts.mailbox_attempts_file,
                 )
             except FileExistsError as error:
                 logger.error(f"{error.__str__()}")
