@@ -377,7 +377,7 @@ class TestRunTimedJob(unittest.TestCase):
 
         missing = os.path.join(self.result_dir, "missing")
         marker = parallel._run_timed_job(lambda value: value, 1, 1, missing)
-        self.assertIsNotNone(marker)
+        assert marker is not None, "the job should have reported a failure"
         kind, text = marker
         self.assertEqual(kind, "directory")
         self.assertIn("FileNotFoundError", text)
@@ -388,7 +388,7 @@ class TestRunTimedJob(unittest.TestCase):
         marker = parallel._run_timed_job(
             lambda value: lambda: value, 2, 2, self.result_dir
         )
-        self.assertIsNotNone(marker)
+        assert marker is not None, "the job should have reported a failure"
         kind, text = marker
         self.assertEqual(kind, "outcome")
         self.assertIn("local object", text)
