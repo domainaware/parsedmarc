@@ -2,7 +2,6 @@
 requires = [
     "hatchling>=1.27.0",
 ]
-requires_python = ">=3.10,<3.15"
 build-backend = "hatchling.build"
 
 [project]
@@ -29,13 +28,13 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 # The base install is the parsing core plus a working core CLI: file,
 # IMAP, Maildir, and mbox input; CSV/JSON, Splunk HEC, webhook, and
 # syslog output. Every other output and mailbox integration lives in an extra
@@ -204,7 +203,7 @@ exclude = [
 # effect.
 #
 # UP006/UP007/UP035/UP045 enforce modern type-hint syntax: with
-# requires-python >=3.10, PEP 585 builtins (list[int]) and PEP 604 unions
+# requires-python >=3.11, PEP 585 builtins (list[int]) and PEP 604 unions
 # (X | Y, X | None) are available, so keep the deprecated typing.List /
 # Union / Optional spellings out of the codebase.
 select = [

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- **Python 3.10 is no longer supported, and Python 3.15 is.** Python 3.10 reached end of life in October 2026; `requires-python` is now `>=3.11`. Python 3.15 is now tested in CI and listed as supported.
+
 ### Bug fixes
 
 - **Unknown child elements under an aggregate record's `<identifiers>` and inside a `<reason>` are no longer copied into the parsed report** ([#948](https://github.com/domainaware/parsedmarc/issues/948)). `_parse_report_record()` copied both mappings whole, so an element that RFC 9990 Appendix A and RFC 7489 Appendix C do not define reached the JSON, Kafka, S3 and webhook outputs with whatever structure the report gave it. Only `header_from`, `envelope_from` and `envelope_to`, and a reason's `type` and `comment`, are kept. **Compatibility:** a consumer of those outputs that read such an extra key no longer receives it.

@@ -1048,12 +1048,12 @@ class Test(unittest.TestCase):
         """A NUL character in an SMTP TLS report text field is stripped
         from CSV output instead of reaching the ``csv`` writer.
 
-        Python 3.10's ``csv`` module raises ``_csv.Error: need to escape,
+        Python 3.10's ``csv`` module raised ``_csv.Error: need to escape,
         but no escapechar set`` on any field containing NUL
         (https://github.com/python/cpython/issues/97503, a 3.10 regression
-        fixed in 3.11). This test fails on unfixed code on 3.10 with that
-        error, and on unfixed code on 3.11+ because the NUL passes through
-        to the CSV text uncleaned."""
+        fixed in 3.11; the floor is now 3.11). NUL is still dropped to match
+        ``get_filename_safe_string``, so this test fails on unfixed code
+        because the NUL passes through to the CSV text uncleaned."""
         result = parsedmarc.parse_report_file(
             "samples/smtp_tls/smtp_tls.json", offline=True
         )
@@ -2457,12 +2457,12 @@ class Test(unittest.TestCase):
         """A NUL character in a failure report text field is stripped from
         CSV output instead of reaching the ``csv`` writer.
 
-        Python 3.10's ``csv`` module raises ``_csv.Error: need to escape,
+        Python 3.10's ``csv`` module raised ``_csv.Error: need to escape,
         but no escapechar set`` on any field containing NUL
         (https://github.com/python/cpython/issues/97503, a 3.10 regression
-        fixed in 3.11). This test fails on unfixed code on 3.10 with that
-        error, and on unfixed code on 3.11+ because the NUL passes through
-        to the CSV text uncleaned."""
+        fixed in 3.11; the floor is now 3.11). NUL is still dropped to match
+        ``get_filename_safe_string``, so this test fails on unfixed code
+        because the NUL passes through to the CSV text uncleaned."""
         parsed_report = cast(
             FailureReport,
             parsedmarc.parse_report_file(
