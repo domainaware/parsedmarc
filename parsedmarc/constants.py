@@ -36,6 +36,11 @@ MAX_XML_TAG_LENGTH = 65_536
 # interval is 86400 seconds); a year leaves room for mistakes, and
 # normalization emits at most one record per day.
 MAX_REPORT_SPAN_DAYS = 366
+# The date that names a report's dated index (Elasticsearch, OpenSearch) may
+# not be more than this many days ahead of the current time. Two days absorb
+# a reporter's clock skew and time-zone mistakes. The past is not bounded: an
+# archive of old reports is legitimate input.
+MAX_REPORT_FUTURE_DAYS = 2
 # Most distinct dated indexes one report may create in Elasticsearch or
 # OpenSearch (one shard each); further records go to the report's first index.
 MAX_INDEXES_PER_REPORT = 31

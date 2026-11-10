@@ -53,6 +53,7 @@ from parsedmarc.constants import (
     DEFAULT_DNS_MAX_RETRIES,
     DEFAULT_DNS_TIMEOUT,
     MAX_NORMALIZED_RECORDS,
+    MAX_REPORT_FUTURE_DAYS,
     MAX_REPORT_SPAN_DAYS,
     MAX_XML_DEPTH,
     MAX_XML_NODES,
@@ -1040,7 +1041,10 @@ def _smtp_tls_datetime(value: Any, field: str) -> str:
     Splunk output (a UNIX timestamp) make later. dateutil also accepts a
     partial date such as ``"2016"``, which PostgreSQL may still reject; that
     failure is raised as ``PostgreSQLError`` and recorded as an output
-    error. Raises ``InvalidSMTPTLSReport`` otherwise.
+    error. A ``start-datetime`` more than ``MAX_REPORT_FUTURE_DAYS`` days in
+    the future is also rejected, because it names the dated index (#947);
+    ``end-datetime`` is not checked. Raises ``InvalidSMTPTLSReport``
+    otherwise.
     """
     value = _smtp_tls_string(value, field)
     if len(value) > _SMTP_TLS_MAX_DATETIME_LENGTH:
@@ -1048,12 +1052,17 @@ def _smtp_tls_datetime(value: Any, field: str) -> str:
             f"{field} is longer than {_SMTP_TLS_MAX_DATETIME_LENGTH} characters"
         )
     try:
-        human_timestamp_to_datetime(value, to_utc=True)
+        moment = human_timestamp_to_datetime(value, to_utc=True)
         human_timestamp_to_unix_timestamp(value)
     except (ValueError, OverflowError) as e:
         raise InvalidSMTPTLSReport(
             f"{field} is not a valid date-time: {sanitize_for_log(value)}"
         ) from e
+    if field == "start-datetime":
+        try:
+            _check_not_future(moment, field)
+        except ValueError as error:
+            raise InvalidSMTPTLSReport(str(error)) from error
     return value
 
 
@@ -1516,6 +1525,19 @@ def _check_report_span(span_seconds: int) -> None:
         )
 
 
+def _check_not_future(moment: datetime, what: str) -> None:
+    """Raise ``ValueError`` when ``moment`` is more than
+    ``MAX_REPORT_FUTURE_DAYS`` days ahead of the current time, because the
+    date that names a report's dated index would then create an index for a
+    date far in the future (#947). ``moment`` must be an aware UTC datetime;
+    each parser converts the error to its own ``Invalid*Report``."""
+    if moment > datetime.now(timezone.utc) + timedelta(days=MAX_REPORT_FUTURE_DAYS):
+        raise ValueError(
+            f"{what} {moment.isoformat()} is more than "
+            f"{MAX_REPORT_FUTURE_DAYS} days in the future"
+        )
+
+
 def _days_touched(begin: datetime, end: datetime) -> int:
     """Return how many calendar days of ``begin``'s timezone the interval
     [begin, end) touches: the number of buckets ``_bucket_interval_by_day()``
@@ -1747,6 +1769,17 @@ def parse_aggregate_report_xml(
         end_ts = int(date_range["end"].split(".")[0])
         span_seconds = end_ts - begin_ts
         _check_report_span(span_seconds)
+        # The end is checked as well as the begin: a normalized report's
+        # per-day records each name an index from their own interval start,
+        # and every interval start lies at or before the report's end.
+        try:
+            for stamp, what in (
+                (begin_ts, "Report begin date"),
+                (end_ts, "Report end date"),
+            ):
+                _check_not_future(datetime.fromtimestamp(stamp, timezone.utc), what)
+        except ValueError as error:
+            raise InvalidAggregateReport(str(error)) from error
 
         normalize_timespan = (
             span_seconds > cfg.normalize_timespan_threshold_hours * 3600
@@ -2432,6 +2465,10 @@ def parse_failure_report(
             raise InvalidFailureReport(
                 f"Invalid Arrival-Date: {sanitize_for_log(str(error))}"
             ) from error
+        try:
+            _check_not_future(arrival_utc, "Arrival-Date")
+        except ValueError as error:
+            raise InvalidFailureReport(str(error)) from error
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
         parsed_report["arrival_date_utc"] = arrival_utc
 
@@ -3089,6 +3126,22 @@ def _describe_parse_failure(
     )
 
 
+def _read_up_to(file_object: BinaryIO, limit: int) -> bytes:
+    """Read from ``file_object`` until end of file or ``limit`` bytes,
+    whichever comes first. A raw or unbuffered stream (a socket file, a
+    pipe) may return fewer bytes than asked for without being at its end, so
+    one sized ``read()`` could hand the parser a truncated report."""
+    # One growing buffer, not a list of chunks: a stream that returns a byte
+    # at a time would otherwise cost one bytes object per byte read.
+    content = bytearray()
+    while len(content) < limit:
+        chunk = file_object.read(limit - len(content))
+        if not chunk:
+            break
+        content += chunk
+    return bytes(content)
+
+
 def parse_report_file(
     input_: bytes | str | os.PathLike[str] | os.PathLike[bytes] | BinaryIO,
     *,
@@ -3112,6 +3165,8 @@ def parse_report_file(
     object is read from but never closed, on either the success or the
     exception path; it is left open and positioned wherever its own
     ``read()`` left it, so the caller is free to ``seek(0)`` and reuse it.
+    When the input is over the size cap, that is one byte past the cap: no
+    more is read.
 
     Args:
         input_ (str | os.PathLike | bytes | BinaryIO): A path to a file,
@@ -3138,6 +3193,11 @@ def parse_report_file(
 
     Returns:
         dict: The parsed DMARC report
+
+    Raises:
+        ParserError: if the input is not a valid report, or is larger than
+            ``MAX_DECOMPRESSED_REPORT_SIZE`` (refused before it is read into
+            memory)
     """
     cfg = _resolve_config(
         config,
@@ -3153,15 +3213,23 @@ def parse_report_file(
         normalize_timespan_threshold_hours=normalize_timespan_threshold_hours,
     )
     file_object: BinaryIO
+    # An input over the cap is refused before it is held in memory (#949). A
+    # valid compressed report is smaller than its decompressed form, so the
+    # one cap serves both; the message is the one the content check gives.
+    too_large = ParserError(_size_cap_text(b""))
     if isinstance(input_, (str, os.PathLike)):
         file_path = os.fspath(input_)
         logger.debug(f"Parsing {file_path}")
+        if os.path.getsize(file_path) > MAX_DECOMPRESSED_REPORT_SIZE:
+            raise too_large
         # A path is a handle we opened ourselves, so it must be closed on
         # both the success and exception paths.
         with open(file_path, "rb") as file_object:
-            content = file_object.read()
+            content = _read_up_to(file_object, MAX_DECOMPRESSED_REPORT_SIZE + 1)
     else:
         if isinstance(input_, (bytes, bytearray, memoryview)):
+            if memoryview(input_).nbytes > MAX_DECOMPRESSED_REPORT_SIZE:
+                raise too_large
             # The BytesIO wrapper is created here, so this function owns
             # it and closes it once the bytes have been read out.
             file_object = BytesIO(bytes(input_))
@@ -3173,7 +3241,9 @@ def parse_report_file(
             # seek(0) and retry, inspect tell(), or otherwise reuse the
             # handle afterward.
             file_object = input_
-            content = file_object.read()
+            content = _read_up_to(file_object, MAX_DECOMPRESSED_REPORT_SIZE + 1)
+    if len(content) > MAX_DECOMPRESSED_REPORT_SIZE:
+        raise too_large
     if content.startswith(MAGIC_ZIP) or content.startswith(MAGIC_GZIP):
         content = extract_report(content)
 

@@ -10,6 +10,7 @@ import binascii
 import csv
 import email
 import email.errors
+import email.utils
 import gc
 import gzip
 import inspect
@@ -18,6 +19,7 @@ import logging
 import mailbox
 import os
 import quopri
+import re
 import time
 import traceback
 import tracemalloc
@@ -31,6 +33,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.nonmultipart import MIMENonMultipart
 from email.mime.text import MIMEText
 from glob import glob
+import io
 from io import BytesIO, StringIO
 from pathlib import Path
 from shutil import rmtree
@@ -3220,13 +3223,15 @@ class TestParseReportFile(unittest.TestCase):
         finally:
             tracemalloc.stop()
         email_parser.assert_not_called()
-        self.assertIn("exceeds the 33554432 byte limit", str(ctx.exception))
+        # parse_report_file() refuses the input before parsing any of it.
+        self.assertEqual(str(ctx.exception), "the report is larger than 32 MiB")
         self.assertLess(elapsed, limit)
         self.assertLess(peak, 100 * 2**20)
 
     def testParseReportFileCapsTextForTheEmailParser(self):
         """Text over the size cap that does not look like XML or JSON is not
-        handed to the email parser either."""
+        handed to the email parser either (refused before it is read,
+        #949)."""
         content = b"From: a@example.com\n\n" + b"x" * (
             parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE + 1
         )
@@ -3234,9 +3239,7 @@ class TestParseReportFile(unittest.TestCase):
             with self.assertRaises(parsedmarc.ParserError) as ctx:
                 parsedmarc.parse_report_file(content, offline=True)
         email_parser.assert_not_called()
-        self.assertEqual(
-            str(ctx.exception), "Invalid report email: the report is larger than 32 MiB"
-        )
+        self.assertEqual(str(ctx.exception), "the report is larger than 32 MiB")
 
     def testParseReportFileSkipsParsersThatCannotMatch(self):
         """Content that begins with "<" is not tried as JSON or as an email,
@@ -3366,7 +3369,7 @@ class TestParseReportFile(unittest.TestCase):
             def __init__(self):
                 self.closed = False
 
-            def read(self):
+            def read(self, size=-1):
                 raise OSError("boom")
 
             def close(self):
@@ -3381,7 +3384,11 @@ class TestParseReportFile(unittest.TestCase):
 
         fake_handle = _RaisingHandle()
 
-        with patch("builtins.open", return_value=fake_handle) as mock_open:
+        # The size is checked before the file is opened.
+        with (
+            patch("os.path.getsize", return_value=10),
+            patch("builtins.open", return_value=fake_handle) as mock_open,
+        ):
             with self.assertRaises(OSError):
                 parsedmarc.parse_report_file("some/path.xml", offline=True)
 
@@ -3409,7 +3416,7 @@ class TestParseReportFile(unittest.TestCase):
             def __init__(self):
                 self.close_called = False
 
-            def read(self):
+            def read(self, size=-1):
                 raise OSError("boom")
 
             def close(self):
@@ -9429,6 +9436,241 @@ class TestFailureReportPartPrecedence(unittest.TestCase):
             "From: forged@example.com\nSubject: injected\n\n--s--\n\n"
         )
         self._assert_arf(self._parse(self.FEEDBACK + sample))
+
+
+class TestReportDateInTheFuture(unittest.TestCase):
+    """A report whose index-naming date is more than MAX_REPORT_FUTURE_DAYS
+    ahead is rejected (#947): that date names the dated Elasticsearch or
+    OpenSearch index, and nothing bounded it against the present."""
+
+    AGGREGATE = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+    SMTP_TLS = "samples/smtp_tls/rfc8460.json"
+    FAILURE = "samples/failure/dmarc_ruf_report_linkedin.crlf.eml"
+
+    @staticmethod
+    def _tomorrow() -> datetime:
+        return (datetime.now(timezone.utc) + timedelta(days=1)).replace(microsecond=0)
+
+    def _aggregate(self, moment: datetime | None) -> str:
+        with open(self.AGGREGATE, encoding="utf-8") as f:
+            xml = f.read()
+        if moment is None:
+            return xml
+        stamp = str(int(moment.timestamp()))
+        xml = re.sub(r"<begin>\d+</begin>", f"<begin>{stamp}</begin>", xml)
+        return re.sub(r"<end>\d+</end>", f"<end>{stamp}</end>", xml)
+
+    def _parse_failure(self, arrival: str):
+        feedback = "\n".join(
+            [
+                "Feedback-Type: auth-failure",
+                "User-Agent: test/1.0",
+                "Version: 1",
+                "Original-Mail-From: sender@example.com",
+                f"Arrival-Date: {arrival}",
+                "Source-IP: 203.0.113.1",
+                "Reported-Domain: example.com",
+                "Auth-Failure: dmarc",
+            ]
+        )
+        return parsedmarc.parse_failure_report(
+            feedback,
+            "From: a@example.com\n\nbody",
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            offline=True,
+        )
+
+    def _tls(self, start: str, end: str) -> str:
+        with open(self.SMTP_TLS, encoding="utf-8") as f:
+            report = json.load(f)
+        report["date-range"] = {"start-datetime": start, "end-datetime": end}
+        return json.dumps(report)
+
+    def testAggregateInTheFutureIsRejected(self):
+        xml = self._aggregate(datetime(2100, 1, 1, tzinfo=timezone.utc))
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIn("2100-01-01", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+        self.assertNotIn("Unexpected error", str(ctx.exception))
+
+    def testAggregateTomorrowIsAccepted(self):
+        tomorrow = self._tomorrow()
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._aggregate(tomorrow), offline=True
+        )
+        self.assertEqual(
+            report["report_metadata"]["begin_date"],
+            # begin_date is rendered in the machine's local time zone
+            datetime.fromtimestamp(tomorrow.timestamp()).strftime("%Y-%m-%d %H:%M:%S"),
+        )
+
+    def testAggregateEndingInTheFutureIsRejected(self):
+        """A normalized report's per-day records name their indexes from
+        their own interval starts, so a report that begins now and ends in
+        30 days would create indexes up to a month ahead. The end date is
+        bounded like the begin date."""
+        now = datetime.now(timezone.utc)
+        xml = self._aggregate(now)
+        end = str(int((now + timedelta(days=30)).timestamp()))
+        xml = re.sub(r"<end>\d+</end>", f"<end>{end}</end>", xml)
+        with self.assertRaises(parsedmarc.InvalidAggregateReport) as ctx:
+            parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        self.assertIn("Report end date", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+
+    def testAggregateSampleStillParses(self):
+        report = parsedmarc.parse_aggregate_report_xml(
+            self._aggregate(None), offline=True
+        )
+        self.assertEqual(report["report_metadata"]["begin_date"][:4], "2018")
+
+    def testFailureInTheFutureIsRejected(self):
+        with self.assertRaises(parsedmarc.InvalidFailureReport) as ctx:
+            self._parse_failure("Fri, 01 Jan 2100 00:00:00 +0000")
+        self.assertIn("2100-01-01", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+        self.assertNotIn("Unexpected error", str(ctx.exception))
+
+    def testFailureTomorrowIsAccepted(self):
+        tomorrow = self._tomorrow()
+        report = self._parse_failure(email.utils.format_datetime(tomorrow))
+        self.assertEqual(
+            report["arrival_date_utc"], tomorrow.strftime("%Y-%m-%d %H:%M:%S")
+        )
+
+    def testFailureSampleStillParses(self):
+        result = parsedmarc.parse_report_file(self.FAILURE, offline=True)
+        self.assertEqual(result["report_type"], "failure")
+
+    def testSmtpTlsInTheFutureIsRejected(self):
+        report = self._tls("2100-01-01T00:00:00Z", "2100-01-01T23:59:59Z")
+        with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+            parsedmarc.parse_smtp_tls_report_json(report)
+        self.assertIn("start-datetime", str(ctx.exception))
+        self.assertIn("2100-01-01", str(ctx.exception))
+        self.assertIn("in the future", str(ctx.exception))
+
+    def testSmtpTlsTomorrowIsAccepted(self):
+        tomorrow = self._tomorrow()
+        report = parsedmarc.parse_smtp_tls_report_json(
+            self._tls(tomorrow.isoformat(), tomorrow.isoformat())
+        )
+        self.assertEqual(report["begin_date"], tomorrow.isoformat())
+
+    def testSmtpTlsSampleStillParses(self):
+        with open(self.SMTP_TLS, encoding="utf-8") as f:
+            report = parsedmarc.parse_smtp_tls_report_json(f.read())
+        self.assertEqual(report["begin_date"], "2016-04-01T00:00:00Z")
+
+    def testSmtpTlsEndDatetimeInTheFutureIsAccepted(self):
+        """Only start-datetime names the index, so a far-future
+        end-datetime is not rejected by this check (a TLS report's span is
+        not bounded)."""
+        report = parsedmarc.parse_smtp_tls_report_json(
+            self._tls("2016-04-01T00:00:00Z", "2100-01-01T00:00:00Z")
+        )
+        self.assertEqual(report["end_date"], "2100-01-01T00:00:00Z")
+
+
+class TestParseReportFileSizeCap(unittest.TestCase):
+    """parse_report_file() refuses an input over the size cap before holding
+    it in memory (#949), with the message the content check gives."""
+
+    CAP = parsedmarc.MAX_DECOMPRESSED_REPORT_SIZE
+    MESSAGE = "the report is larger than 32 MiB"
+
+    def testPathOverTheCapIsRejectedWithoutOpeningIt(self):
+        with NamedTemporaryFile() as f:
+            f.truncate(self.CAP + 1)
+            with patch("parsedmarc.open", create=True) as opened:
+                with self.assertRaises(parsedmarc.ParserError) as ctx:
+                    parsedmarc.parse_report_file(f.name, offline=True)
+            opened.assert_not_called()
+        self.assertEqual(str(ctx.exception), self.MESSAGE)
+
+    def testBytesOverTheCapAreRejected(self):
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            # bytearray is accepted at run time, though annotated as bytes
+            parsedmarc.parse_report_file(
+                cast(bytes, bytearray(self.CAP + 1)), offline=True
+            )
+        self.assertEqual(str(ctx.exception), self.MESSAGE)
+
+    def testFileObjectOverTheCapStopsReading(self):
+        stream = BytesIO(bytes(self.CAP + 100))
+        with self.assertRaises(parsedmarc.ParserError) as ctx:
+            parsedmarc.parse_report_file(stream, offline=True)
+        self.assertEqual(str(ctx.exception), self.MESSAGE)
+        self.assertEqual(stream.tell(), self.CAP + 1)
+
+    def testShortReadingStreamIsReadToItsEnd(self):
+        """A raw stream may return fewer bytes than asked for before its
+        end. The whole report must still be read: a single sized read would
+        parse a truncated report."""
+
+        class HundredBytesAtATime(io.RawIOBase):
+            def __init__(self, data: bytes) -> None:
+                self._inner = io.BytesIO(data)
+
+            def readable(self) -> bool:
+                return True
+
+            def readinto(self, buffer) -> int:
+                chunk = self._inner.read(min(len(buffer), 100))
+                buffer[: len(chunk)] = chunk
+                return len(chunk)
+
+        path = "samples/aggregate/!example.com!1538204542!1538463818.xml"
+        with open(path, "rb") as f:
+            data = f.read()
+        self.assertGreater(len(data), 100)
+        result = parsedmarc.parse_report_file(
+            cast(BinaryIO, HundredBytesAtATime(data)), offline=True
+        )
+        self.assertEqual(result["report_type"], "aggregate")
+
+    def testByteAtATimeStreamDoesNotMultiplyMemory(self):
+        """Reading a stream that returns one byte per read costs memory in
+        proportion to the bytes read, not to the number of reads. Keeping
+        every chunk in a list cost about 85 bytes per byte read (89 MiB for
+        1 MiB of input), so 256 KiB read that way peaked above 20 MiB; one
+        growing buffer stays under 2 MiB."""
+
+        class OneByteAtATime(io.RawIOBase):
+            def __init__(self, data: bytes) -> None:
+                self._inner = io.BytesIO(data)
+
+            def readable(self) -> bool:
+                return True
+
+            def readinto(self, buffer) -> int:
+                chunk = self._inner.read(1)
+                buffer[: len(chunk)] = chunk
+                return len(chunk)
+
+        size = 256 * 1024
+        stream = cast(BinaryIO, OneByteAtATime(b"x" * size))
+        tracemalloc.start()
+        try:
+            content = parsedmarc._read_up_to(stream, size + 1)
+            peak = tracemalloc.get_traced_memory()[1]
+        finally:
+            tracemalloc.stop()
+        self.assertEqual(len(content), size)
+        self.assertLess(peak, 2 * 1024 * 1024)
+
+    def testInputOfExactlyTheCapIsNotRejectedForSize(self):
+        """Zero bytes are not a report, but the size check does not fire at
+        the cap."""
+        with NamedTemporaryFile() as f:
+            f.truncate(self.CAP)
+            inputs = [f.name, bytearray(self.CAP), BytesIO(bytes(self.CAP))]
+            for input_ in inputs:
+                with self.subTest(type=type(input_).__name__):
+                    with self.assertRaises(parsedmarc.ParserError) as ctx:
+                        parsedmarc.parse_report_file(input_, offline=True)
+                    self.assertNotEqual(str(ctx.exception), self.MESSAGE)
 
 
 if __name__ == "__main__":
