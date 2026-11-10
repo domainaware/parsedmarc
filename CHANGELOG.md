@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **Python 3.10 is no longer supported, and Python 3.15 is.** Python 3.10 reached end of life in October 2026; `requires-python` is now `>=3.11`. Python 3.15 is now tested in CI and listed as supported.
+
 ## 11.2.2
 
 ### Security

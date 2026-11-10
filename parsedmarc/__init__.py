@@ -1229,10 +1229,11 @@ def _csv_safe(value: Any) -> Any:
 
     Two things happen to a string, in this order:
 
-    1. NUL characters are stripped. Python 3.10's ``csv`` writer raises
+    1. NUL characters are stripped. Python 3.10's ``csv`` writer raised
        ``_csv.Error: need to escape, but no escapechar set`` on any field
-       containing NUL (CPython issue 97503, fixed in 3.11), and the
-       character is dropped to match ``get_filename_safe_string``.
+       containing NUL (CPython issue 97503, fixed in 3.11; the floor is now
+       3.11), and NUL is still dropped to match
+       ``get_filename_safe_string``.
     2. A string starting with ``=``, ``+``, ``-``, ``@``, tab, or carriage
        return gets a leading ``'``. Spreadsheet applications evaluate such
        a cell as a formula, and report text fields come from untrusted
