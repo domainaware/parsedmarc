@@ -3207,7 +3207,7 @@ def parse_report_file(
             content = file_object.read(MAX_DECOMPRESSED_REPORT_SIZE + 1)
     else:
         if isinstance(input_, (bytes, bytearray, memoryview)):
-            if len(input_) > MAX_DECOMPRESSED_REPORT_SIZE:
+            if memoryview(input_).nbytes > MAX_DECOMPRESSED_REPORT_SIZE:
                 raise too_large
             # The BytesIO wrapper is created here, so this function owns
             # it and closes it once the bytes have been read out.
