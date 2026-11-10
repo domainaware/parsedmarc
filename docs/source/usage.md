@@ -267,7 +267,12 @@ The full set of configuration options is:
     parsedmarc is busy between results (moving messages, for example)
     a parse can run on past the timeout. Choose a value well above the
     time your largest legitimate reports take, including DNS lookups,
-    each of which can take up to `dns_timeout` seconds per try.
+    each of which can take up to `dns_timeout` seconds per try. With a
+    timeout set, the worker processes hand each parsed report back
+    through a file in a temporary directory readable only by the
+    parsedmarc user (under `TMPDIR`, or `/tmp`), so that directory must
+    be writable; the files are removed as they are read, and the
+    directory once the batch has been parsed or the workers stopped.
     :::
 
 - `mailbox`

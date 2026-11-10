@@ -1,4 +1,19 @@
-"""Bounded-window multiprocessing helpers for parallel report parsing."""
+"""Bounded-window multiprocessing helpers for parallel report parsing.
+
+With a ``parse_timeout``, a job that runs too long is stopped by killing
+the worker processes, and a worker can be killed at any moment, including
+while it sends a result. ``ProcessPoolExecutor`` sends results over one
+pipe that the parent reads in a non-daemon management thread; a large
+result cut off part way leaves that thread waiting for the rest of the
+message forever, and the interpreter then hangs at exit joining it. So the
+pool built for a timeout never sends a result through the executor: the
+worker pickles it, error values included, into a file of its own in a
+directory the pool owns, and the executor carries only ``None``. That
+message and the start tokens are far below ``PIPE_BUF`` (4096 bytes),
+which POSIX writes to a pipe atomically, so a killed worker cannot leave
+a partial message on either pipe. The pool without a timeout never kills
+a worker while it runs and sends results through the executor.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +21,11 @@ import itertools
 import logging
 import math
 import multiprocessing
+import os
+import pickle
+import shutil
 import signal
+import tempfile
 import time
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator
@@ -111,18 +130,48 @@ def _init_timed_worker(start_queue: SimpleQueue[int], *initargs: Any) -> None:
     _init_worker(*initargs)
 
 
-def _run_timed_job(func: Callable[[_J], _R], token: int, job: _J) -> _R:
-    """Worker job that reports ``token`` as started, then returns ``func(job)``.
+def _result_path(result_dir: str, token: int) -> str:
+    """Return the file in which the job with ``token`` leaves its outcome."""
+    return os.path.join(result_dir, str(token))
+
+
+def _run_timed_job(
+    func: Callable[[_J], _R], token: int, job: _J, result_dir: str
+) -> None:
+    """Worker job that reports ``token`` as started, runs ``func(job)``, and
+    leaves the outcome in ``result_dir`` for ``_take_outcome()``.
 
     The parent cannot tell from the future alone when a job starts:
     ``ProcessPoolExecutor`` marks a future running when it moves the job to
     its call queue, which holds one job more than there are workers, so one
     job can be "running" while it still waits behind a slow neighbour. The
     token written here, before ``func`` runs, is what starts the job's clock.
+    The outcome, ``("value", result)`` or ``("error", exception)``, is
+    written to a temporary name and renamed into place, so the file the
+    parent reads is always whole.
     """
     if _start_queue is not None:
         _start_queue.put(token)
-    return func(job)
+    try:
+        outcome: tuple[str, Any] = ("value", func(job))
+    except Exception as error:
+        outcome = ("error", error)
+    path = _result_path(result_dir, token)
+    with open(path + ".tmp", "wb") as result_file:
+        pickle.dump(outcome, result_file, protocol=pickle.HIGHEST_PROTOCOL)
+    os.replace(path + ".tmp", path)
+
+
+def _take_outcome(result_dir: str, token: int) -> Any:
+    """Read, delete and return the outcome ``_run_timed_job()`` left for
+    ``token``, raising it when it is an exception."""
+    path = _result_path(result_dir, token)
+    with open(path, "rb") as result_file:
+        kind, value = pickle.load(result_file)
+    os.remove(path)
+    if kind == "error":
+        raise value
+    return value
 
 
 def _email_timeout_result(msg_content: bytes | str, seconds: float) -> ParserError:
@@ -224,17 +273,21 @@ class _Pending(Generic[_J, _R]):
     """One job in ``parallel_map()``'s submission window under a timeout.
 
     ``started_at`` is the ``time.monotonic()`` time at which the parent
-    learned that the job started, ``None`` until then. ``future`` is
-    replaced when the job is resubmitted to a new pool, and by an already
-    resolved future holding the ``timeout_result`` value when it times out.
+    learned that the job started, ``None`` until then. ``future`` is the
+    executor's future, whose result is only ``None`` (the outcome is in the
+    pool's result file), while ``in_pool`` is ``True``. It is replaced when
+    the job is resubmitted to a new pool, and by an already resolved future
+    holding the outcome once ``_DeadlinePool.settle()`` has read it or the
+    ``timeout_result`` value when the job times out.
     """
 
-    __slots__ = ("future", "job", "started_at", "token")
+    __slots__ = ("future", "in_pool", "job", "started_at", "token")
 
-    def __init__(self, job: _J, token: int, future: Future[_R]) -> None:
+    def __init__(self, job: _J, token: int, future: Future[Any]) -> None:
         self.job = job
         self.token = token
         self.future = future
+        self.in_pool = False
         self.started_at: float | None = None
 
 
@@ -242,9 +295,12 @@ class _DeadlinePool(Generic[_J, _R]):
     """A process pool whose jobs report when they start, and can be killed.
 
     Each job runs through ``_run_timed_job()``, which writes the job's token
-    to a queue the parent reads in ``stamp_starts()``. ``replace()`` kills
-    every worker process and builds a fresh pool with a fresh queue, since a
-    worker killed while writing to the old queue may leave it unusable.
+    to a queue the parent reads in ``stamp_starts()`` and leaves its outcome
+    in a file of the pool's result directory, which ``settle()`` reads.
+    ``replace()`` kills every worker process and builds a fresh pool with a
+    fresh queue and result directory, since a worker killed while writing to
+    the old queue may leave it unusable; ``kill()`` and ``close()`` remove
+    the result directory with any file left in it.
     """
 
     def __init__(
@@ -259,9 +315,11 @@ class _DeadlinePool(Generic[_J, _R]):
         self._tokens = itertools.count()
         self._by_token: dict[int, _Pending[_J, _R]] = {}
         self._context: BaseContext = multiprocessing.get_context()
-        self._executor, self._start_queue = self._new_executor()
+        self._executor, self._start_queue, self.result_dir = self._new_executor()
 
-    def _new_executor(self) -> tuple[ProcessPoolExecutor, SimpleQueue[int]]:
+    def _new_executor(self) -> tuple[ProcessPoolExecutor, SimpleQueue[int], str]:
+        # Readable by this user only (mkdtemp's mode): results hold reports.
+        result_dir = tempfile.mkdtemp(prefix="parsedmarc-results-")
         start_queue: SimpleQueue[int] = self._context.SimpleQueue()
         executor = ProcessPoolExecutor(
             max_workers=self._n_procs,
@@ -269,7 +327,7 @@ class _DeadlinePool(Generic[_J, _R]):
             initializer=_init_timed_worker,
             initargs=(start_queue, *self._initargs),
         )
-        return executor, start_queue
+        return executor, start_queue, result_dir
 
     def submit(self, job: _J) -> _Pending[_J, _R]:
         """Submit ``job`` and return its new, not yet started, entry."""
@@ -282,9 +340,29 @@ class _DeadlinePool(Generic[_J, _R]):
         pending.token = next(self._tokens)
         pending.started_at = None
         pending.future = self._executor.submit(
-            _run_timed_job, self._func, pending.token, pending.job
+            _run_timed_job, self._func, pending.token, pending.job, self.result_dir
         )
+        pending.in_pool = True
         self._by_token[pending.token] = pending
+
+    def settle(self, pending: _Pending[_J, _R]) -> None:
+        """Replace a done job's executor future by one holding its outcome.
+
+        The outcome is read from, and removed with, its result file. An
+        executor future that failed (``BrokenProcessPool``) is kept, so its
+        ``result()`` still raises.
+        """
+        if not pending.in_pool:
+            return
+        pending.in_pool = False
+        if pending.future.exception() is not None:
+            return
+        settled: Future[Any] = Future()
+        try:
+            settled.set_result(_take_outcome(self.result_dir, pending.token))
+        except Exception as error:
+            settled.set_exception(error)
+        pending.future = settled
 
     def stamp_starts(self, now: float) -> None:
         """Set ``started_at`` to ``now`` on each job that has reported starting."""
@@ -294,22 +372,24 @@ class _DeadlinePool(Generic[_J, _R]):
                 pending.started_at = now
 
     def kill(self) -> None:
-        """Kill the worker processes, as ``_kill_workers()`` does, and close
-        the start queue."""
+        """Kill the worker processes, as ``_kill_workers()`` does, close the
+        start queue and remove the result directory."""
         _kill_workers(self._executor)
         self._start_queue.close()
         self._by_token.clear()
+        shutil.rmtree(self.result_dir, ignore_errors=True)
 
     def replace(self) -> None:
         """Kill this pool's workers and continue with a fresh pool."""
         self.kill()
-        self._executor, self._start_queue = self._new_executor()
+        self._executor, self._start_queue, self.result_dir = self._new_executor()
 
     def close(self) -> None:
         """Shut the pool down once every job has finished."""
         self._executor.shutdown(wait=True)
         self._start_queue.close()
         self._by_token.clear()
+        shutil.rmtree(self.result_dir, ignore_errors=True)
 
 
 def _kill_workers(executor: ProcessPoolExecutor) -> None:
@@ -368,11 +448,12 @@ def _expire_overdue(
     """Stop every job in ``window`` running for ``parse_timeout`` or longer.
 
     Returns ``False`` when no job is overdue. Otherwise logs one warning per
-    overdue job, records which futures are already done (killing the pool
-    gives every other future ``BrokenProcessPool``), replaces the pool, and
-    then, in window order, keeps each done job's result, gives each overdue
-    job ``timeout_result(job, parse_timeout)``, and resubmits every other
-    job from scratch. Returns ``True``.
+    overdue job, records which futures are already done and reads their
+    outcomes (killing the pool gives every other future
+    ``BrokenProcessPool`` and removes the result files), replaces the pool,
+    and then, in window order, keeps each done job's result, gives each
+    overdue job ``timeout_result(job, parse_timeout)``, and resubmits every
+    other job from scratch. Returns ``True``.
     """
     from parsedmarc.log import logger
 
@@ -390,12 +471,16 @@ def _expire_overdue(
             f"A parsing job ran longer than parse_timeout ({parse_timeout:g} "
             f"seconds) and was stopped; restarting the worker processes"
         )
+    for pending, finished in zip(window, done):
+        if finished:
+            pool.settle(pending)
     pool.replace()
     for pending, finished, expired in zip(window, done, overdue):
         if finished:
             continue
         if expired:
             pending.started_at = None
+            pending.in_pool = False
             pending.future = _resolved(timeout_result(pending.job, parse_timeout))
         else:
             pool.resubmit(pending)
@@ -471,6 +556,7 @@ def _map_with_timeout(
                 wait([oldest.future], timeout=max(limit, 0.0))
 
             window.popleft()
+            pool.settle(oldest)
             yield oldest.future.result()
 
             if not stopping and should_stop is not None and should_stop():

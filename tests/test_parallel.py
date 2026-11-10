@@ -340,12 +340,20 @@ class TestInitWorkerLogging(unittest.TestCase):
 class TestRunTimedJob(unittest.TestCase):
     """``_run_timed_job`` writes its token to the worker's start queue before
     it runs the job, and only runs the job when the worker has no queue. It
-    runs in a worker, so it is called here in the test process."""
+    leaves the outcome, a value or an exception the job raised, in a file
+    ``_take_outcome`` reads back unchanged and removes. It runs in a worker,
+    so it is called here in the test process."""
+
+    def setUp(self):
+        from parsedmarc import parallel
+
+        self.addCleanup(setattr, parallel, "_start_queue", parallel._start_queue)
+        self.result_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.result_dir, ignore_errors=True)
 
     def test_token_is_put_on_the_start_queue_before_the_job_runs(self):
         from parsedmarc import parallel
 
-        self.addCleanup(setattr, parallel, "_start_queue", parallel._start_queue)
         start_queue = multiprocessing.get_context().SimpleQueue()
         self.addCleanup(start_queue.close)
         parallel._start_queue = start_queue
@@ -355,16 +363,65 @@ class TestRunTimedJob(unittest.TestCase):
             seen_before_the_job.append(start_queue.get())
             return value * 2
 
-        self.assertEqual(parallel._run_timed_job(job, 7, 21), 42)
+        self.assertIsNone(parallel._run_timed_job(job, 7, 21, self.result_dir))
         self.assertEqual(seen_before_the_job, [7])
         self.assertTrue(start_queue.empty())
+        self.assertEqual(parallel._take_outcome(self.result_dir, 7), 42)
+        self.assertEqual(os.listdir(self.result_dir), [])
 
     def test_without_a_start_queue_the_job_just_runs(self):
         from parsedmarc import parallel
 
-        self.addCleanup(setattr, parallel, "_start_queue", parallel._start_queue)
         parallel._start_queue = None
-        self.assertEqual(parallel._run_timed_job(_echo_job, 7, 21), _echo_job(21))
+        parallel._run_timed_job(_echo_job, 7, 21, self.result_dir)
+        self.assertEqual(parallel._take_outcome(self.result_dir, 7), _echo_job(21))
+
+    def test_an_error_value_travels_unchanged(self):
+        """The parse jobs return their errors as values, a file job paired
+        with its path."""
+        from parsedmarc import parallel
+
+        parallel._start_queue = None
+        error = parsedmarc.InvalidDMARCReport("not a report")
+        parallel._run_timed_job(_echo_job, 3, ("reports/a.xml", error), self.result_dir)
+        path, value = parallel._take_outcome(self.result_dir, 3)
+        self.assertEqual(path, "reports/a.xml")
+        self.assertIs(type(value), parsedmarc.InvalidDMARCReport)
+        self.assertEqual(str(value), "not a report")
+
+    def test_a_raised_exception_is_raised_again_by_the_reader(self):
+        from parsedmarc import parallel
+
+        parallel._start_queue = None
+        parallel._run_timed_job(_raising_job, 4, "boom", self.result_dir)
+        with self.assertRaises(ValueError) as caught:
+            parallel._take_outcome(self.result_dir, 4)
+        self.assertEqual(str(caught.exception), "boom")
+
+
+class TestTimedJobThatRaises(unittest.TestCase):
+    """A job that raises, rather than returning its error as a value, still
+    raises out of ``parallel_map`` with a ``parse_timeout``, as it does
+    without one, after its exception went through the result file."""
+
+    def test_exception_is_raised_to_the_caller(self):
+        with self.assertRaises(ValueError) as caught:
+            list(
+                parallel_map(
+                    _raising_job,
+                    ["boom"],
+                    1,
+                    parse_timeout=30.0,
+                    timeout_result=_timeout_value,
+                )
+            )
+        self.assertEqual(str(caught.exception), "boom")
+        self.assertEqual(multiprocessing.active_children(), [])
+
+
+def _raising_job(message):
+    """Raise ``ValueError(message)``. Module-level so it pickles."""
+    raise ValueError(message)
 
 
 class _ExecutorWithoutProcesses:
@@ -684,9 +741,9 @@ class TestParallelMapParseTimeout(unittest.TestCase):
         new_executor = _DeadlinePool._new_executor
 
         def recording_new_executor(pool):
-            executor, start_queue = new_executor(pool)
+            executor, start_queue, result_dir = new_executor(pool)
             start_queues.append(start_queue)
-            return executor, start_queue
+            return executor, start_queue, result_dir
 
         before = set(multiprocessing.active_children())
         with patch.object(_DeadlinePool, "_new_executor", recording_new_executor):
@@ -767,6 +824,189 @@ class TestStartTokensAreDrained(unittest.TestCase):
         self.assertEqual(results, list(range(200)))
         self.assertEqual(len(sizes), 200)
         self.assertLessEqual(max(sizes), window_size + 1)
+
+
+def _slow_or_large_job(job):
+    """``("sleep", seconds)`` sleeps and returns ``seconds``. ``("slow",
+    marker)`` writes the time it started to the file ``marker`` and sleeps
+    for a minute. ``("large", marker, offset, size)`` waits for ``marker``
+    and returns ``size`` bytes ``offset`` seconds after the time in it, so
+    that handing them back spans the moment the slow job's timeout kills
+    the workers. Module-level so it pickles."""
+    if job[0] == "sleep":
+        time.sleep(job[1])
+        return job[1]
+    if job[0] == "slow":
+        with open(job[1] + ".tmp", "w") as marker:
+            marker.write(repr(time.time()))
+        os.replace(job[1] + ".tmp", job[1])
+        time.sleep(60)
+        return None
+    _, marker_path, offset, size = job
+    deadline = time.monotonic() + 30
+    while not os.path.exists(marker_path) and time.monotonic() < deadline:
+        time.sleep(0.005)
+    with open(marker_path) as marker:
+        slow_started = float(marker.read())
+    payload = b"x" * size
+    time.sleep(max(0.0, slow_started + offset - time.time()))
+    return payload
+
+
+def _kill_during_large_result_jobs(marker_path, size):
+    """The jobs of a run in which a 0.5 s ``parse_timeout`` kills the
+    workers while the large job hands back its result. The large job runs
+    after a short one, so it has run only about 0.2 s when the slow job
+    expires and is not itself overdue; it returns 0.4 s after the slow job
+    started, and pickling and sending its result take longer than the
+    remaining 0.1 s."""
+    return [("slow", marker_path), ("sleep", 0.3), ("large", marker_path, 0.4, size)]
+
+
+# Run by TestKillDuringResultTransmission in a child interpreter. The start
+# method, a marker file path and the result size are the arguments.
+_KILL_DURING_LARGE_RESULT_SCRIPT = """
+import multiprocessing
+import sys
+
+from parsedmarc.parallel import parallel_map
+from tests.test_parallel import (
+    _kill_during_large_result_jobs, _slow_or_large_job, _timeout_value,
+)
+
+if __name__ == "__main__":
+    multiprocessing.set_start_method(sys.argv[1], force=True)
+    size = int(sys.argv[3])
+    jobs = _kill_during_large_result_jobs(sys.argv[2], size)
+    results = list(
+        parallel_map(
+            _slow_or_large_job, jobs, 2, parse_timeout=0.5,
+            timeout_result=_timeout_value,
+        )
+    )
+    assert results[:2] == [_timeout_value(jobs[0], 0.5), 0.3], results[:2]
+    assert len(results[2]) == size
+    print("done", flush=True)
+"""
+
+
+class TestKillDuringResultTransmission(unittest.TestCase):
+    """A timeout kills every worker, so it can kill one while it hands back
+    a large result. Sent through the executor's own pipe, the cut-off result
+    left the executor's management thread waiting for the rest forever, and
+    the interpreter then hung at exit joining that thread. Results now
+    travel through files, and every start method is tried."""
+
+    def _start_methods(self):
+        original_method = multiprocessing.get_start_method()
+        self.addCleanup(multiprocessing.set_start_method, original_method, force=True)
+        return [
+            m
+            for m in ("fork", "forkserver", "spawn")
+            if m in multiprocessing.get_all_start_methods()
+        ]
+
+    def test_large_result_survives_a_neighbour_timeout(self):
+        from parsedmarc import parallel
+
+        size = 128 * 1024 * 1024
+        managers = []
+        kill_workers = parallel._kill_workers
+
+        def recording_kill_workers(executor):
+            manager = getattr(executor, "_executor_manager_thread", None)
+            kill_workers(executor)
+            managers.append(manager)
+
+        for method in self._start_methods():
+            with self.subTest(start_method=method):
+                multiprocessing.set_start_method(method, force=True)
+                managers.clear()
+                marker_dir = tempfile.mkdtemp()
+                self.addCleanup(shutil.rmtree, marker_dir, ignore_errors=True)
+                marker_path = os.path.join(marker_dir, "slow-started")
+                jobs = _kill_during_large_result_jobs(marker_path, size)
+                start = time.monotonic()
+                with patch.object(parallel, "_kill_workers", recording_kill_workers):
+                    results = list(
+                        parallel_map(
+                            _slow_or_large_job,
+                            jobs,
+                            2,
+                            parse_timeout=0.5,
+                            timeout_result=_timeout_value,
+                        )
+                    )
+                # A timeout, at most one re-run of the large job and two pool
+                # starts; the slow job alone would take a minute.
+                self.assertLess(time.monotonic() - start, budget(10))
+                self.assertEqual(results[:2], [_timeout_value(jobs[0], 0.5), 0.3])
+                self.assertEqual(results[2], b"x" * size)
+                self.assertGreaterEqual(len(managers), 1)
+                for manager in managers:
+                    self.assertFalse(manager is not None and manager.is_alive())
+                self.assertEqual(multiprocessing.active_children(), [])
+
+    def test_interpreter_exits_after_a_kill_during_a_large_result(self):
+        """Before the fix the child interpreter never exited (killed after
+        25 s on the workstation, with a 400 MiB result)."""
+        import subprocess
+        import sys
+
+        for method in self._start_methods():
+            with self.subTest(start_method=method):
+                marker_dir = tempfile.mkdtemp()
+                self.addCleanup(shutil.rmtree, marker_dir, ignore_errors=True)
+                limit = budget(30)
+                start = time.monotonic()
+                completed = subprocess.run(
+                    [
+                        sys.executable,
+                        "-c",
+                        _KILL_DURING_LARGE_RESULT_SCRIPT,
+                        method,
+                        os.path.join(marker_dir, "slow-started"),
+                        str(256 * 1024 * 1024),
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=limit,
+                )
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                self.assertEqual(completed.stdout.strip(), "done")
+                self.assertLess(time.monotonic() - start, limit)
+
+
+class TestResultFilesAreRemoved(unittest.TestCase):
+    """The pool built for a timeout keeps results in a directory of its
+    own, removed with every file left in it when the pool is closed or
+    killed."""
+
+    def _pool(self):
+        from parsedmarc import utils
+        from parsedmarc.parallel import _DeadlinePool
+
+        initargs = (logging.WARNING, [], utils._get_ip_worker_state(), [])
+        return _DeadlinePool(_sleep_job, 1, initargs)
+
+    def test_close_removes_the_result_directory(self):
+        pool = self._pool()
+        pending = pool.submit(0.0)
+        pending.future.result(timeout=budget(10))
+        result_dir = pool.result_dir
+        self.assertEqual(os.listdir(result_dir), ["0"])
+        pool.close()
+        self.assertFalse(os.path.exists(result_dir))
+
+    def test_kill_removes_the_result_directory_and_its_files(self):
+        pool = self._pool()
+        pool.submit(0.0).future.result(timeout=budget(10))
+        pool.submit(_SLOW)
+        result_dir = pool.result_dir
+        self.assertEqual(os.listdir(result_dir), ["0"])
+        pool.kill()
+        self.assertFalse(os.path.exists(result_dir))
+        self.assertEqual(multiprocessing.active_children(), [])
 
 
 class TestTimeoutResults(unittest.TestCase):
