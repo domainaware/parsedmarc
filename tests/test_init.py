@@ -1008,6 +1008,96 @@ class Test(unittest.TestCase):
         self.assertEqual(rec["auth_results"]["dkim"][0]["human_result"], "looks fine")
         self.assertEqual(rec["auth_results"]["spf"][0]["human_result"], "spf-detail")
 
+    def testUnknownIdentifiersChildNotCopied(self):
+        """An element the schema does not define under <identifiers> must
+        not ride along into the parsed record. The JSON, Kafka, S3 and
+        webhook outputs write the identifiers dictionary whole, so an
+        unknown key changes their shape. Only the three fields the schema
+        types as strings are kept."""
+        xml = """<?xml version="1.0"?>
+        <feedback>
+            <report_metadata>
+                <org_name>Test</org_name>
+                <email>t@example.com</email>
+                <report_id>r1</report_id>
+                <date_range><begin>1700000000</begin><end>1700086399</end></date_range>
+            </report_metadata>
+            <policy_published>
+                <domain>example.com</domain>
+                <p>none</p>
+            </policy_published>
+            <record>
+                <row>
+                    <source_ip>192.0.2.1</source_ip>
+                    <count>1</count>
+                    <policy_evaluated>
+                        <disposition>none</disposition>
+                        <dkim>pass</dkim>
+                        <spf>pass</spf>
+                    </policy_evaluated>
+                </row>
+                <identifiers>
+                    <header_from>example.com</header_from>
+                    <envelope_from>bounce@example.com</envelope_from>
+                    <foo><x>1</x></foo>
+                </identifiers>
+                <auth_results></auth_results>
+            </record>
+        </feedback>"""
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        identifiers = report["records"][0]["identifiers"]
+        self.assertEqual(
+            sorted(identifiers.keys()),
+            ["envelope_from", "envelope_to", "header_from"],
+        )
+        self.assertEqual(identifiers["header_from"], "example.com")
+        self.assertEqual(identifiers["envelope_from"], "bounce@example.com")
+
+    def testUnknownReasonChildNotCopied(self):
+        """An element the schema does not define inside a <reason> must not
+        ride along into the parsed policy override reason. Only the two
+        fields the schema types as strings, type and comment, are kept."""
+        xml = """<?xml version="1.0"?>
+        <feedback>
+            <report_metadata>
+                <org_name>Test</org_name>
+                <email>t@example.com</email>
+                <report_id>r1</report_id>
+                <date_range><begin>1700000000</begin><end>1700086399</end></date_range>
+            </report_metadata>
+            <policy_published>
+                <domain>example.com</domain>
+                <p>none</p>
+            </policy_published>
+            <record>
+                <row>
+                    <source_ip>192.0.2.1</source_ip>
+                    <count>1</count>
+                    <policy_evaluated>
+                        <disposition>none</disposition>
+                        <dkim>pass</dkim>
+                        <spf>pass</spf>
+                        <reason>
+                            <type>local_policy</type>
+                            <comment>a comment</comment>
+                            <foo><x>1</x></foo>
+                        </reason>
+                    </policy_evaluated>
+                </row>
+                <identifiers><header_from>example.com</header_from></identifiers>
+                <auth_results></auth_results>
+            </record>
+        </feedback>"""
+        report = parsedmarc.parse_aggregate_report_xml(xml, offline=True)
+        reasons = report["records"][0]["policy_evaluated"]["policy_override_reasons"]
+        self.assertEqual(len(reasons), 1)
+        self.assertEqual(
+            sorted(reasons[0].keys()),
+            ["comment", "type"],
+        )
+        self.assertEqual(reasons[0]["type"], "local_policy")
+        self.assertEqual(reasons[0]["comment"], "a comment")
+
     def testSmtpTlsSamples(self):
         """Test sample SMTP TLS reports"""
         print()

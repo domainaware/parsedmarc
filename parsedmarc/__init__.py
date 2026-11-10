@@ -836,6 +836,12 @@ def _parse_report_record(
         # the rule of every other string field: see _scalar().
         reason["comment"] = _scalar(reason.get("comment"))
         reason["type"] = _scalar(reason.get("type"))
+        # A reason carries only the two fields the schema defines; anything
+        # else is unknown input that the JSON, Kafka, S3 and webhook outputs
+        # would otherwise copy whole into the parsed report.
+        for key in list(reason.keys()):
+            if key not in ("comment", "type"):
+                del reason[key]
         reason_type = reason["type"]
         if is_rfc_9990 and reason_type in RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES:
             logger.warning(
@@ -861,6 +867,13 @@ def _parse_report_record(
         new_record["identifiers"] = record["identities"].copy()
     else:
         new_record["identifiers"] = record["identifiers"].copy()
+    # Keep only the three fields the schema types as strings. Unknown
+    # children ride along with the whole-dictionary copies that the JSON,
+    # Kafka, S3 and webhook outputs write, so an element the schema does
+    # not define would otherwise change their shape.
+    for key in list(new_record["identifiers"].keys()):
+        if key not in ("header_from", "envelope_from", "envelope_to"):
+            del new_record["identifiers"][key]
     _scalar_fields(
         new_record["identifiers"], ("header_from", "envelope_from", "envelope_to")
     )
