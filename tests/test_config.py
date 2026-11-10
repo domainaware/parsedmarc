@@ -2,7 +2,10 @@
 
 import dataclasses
 import pickle
+import time
 import unittest
+from collections import OrderedDict
+from unittest import mock
 
 import parsedmarc
 import parsedmarc.config as parsedmarc_config
@@ -68,6 +71,79 @@ class TestParserConfigCaches(unittest.TestCase):
             parsedmarc_config.SEEN_AGGREGATE_REPORT_IDS,
         )
         self.assertIs(parsedmarc.REVERSE_DNS_MAP, parsedmarc_config.REVERSE_DNS_MAP)
+
+
+class TestSeenReportCache(unittest.TestCase):
+    """Covers `SeenReportCache`, the seen-aggregate-report-ID cache that
+    drops expired entries on insert (GHSA-9fw6-mwqr-p43m)."""
+
+    def test_expired_entry_is_removed_when_another_is_added(self):
+        """An entry older than ``max_age`` is removed from storage when a
+        different key is added, not only when its own key is read again.
+
+        On a plain ``ExpiringDict`` the same sequence leaves both entries
+        stored (``len == 2``, measured against expiringdict 1.2.2), which is
+        how every distinct report stayed in memory for the life of a watch
+        process. ``len()`` and ``OrderedDict.keys()`` look at storage
+        directly; ``in`` would hide the stale entry by expiring it on read.
+        """
+        cache = parsedmarc_config.SeenReportCache(max_len=100, max_age_seconds=3600)
+        cache.__setitem__("old", True, set_time=time.time() - 7200)
+
+        cache["new"] = True
+
+        self.assertEqual(len(cache), 1)
+        self.assertEqual(list(OrderedDict.keys(cache)), ["new"])
+
+    def test_unexpired_entry_survives_the_next_insert(self):
+        """The sweep stops at the first entry that has not expired, so an
+        entry still inside ``max_age`` is kept and still reads as seen."""
+        cache = parsedmarc_config.SeenReportCache(max_len=100, max_age_seconds=3600)
+        cache.__setitem__("recent", True, set_time=time.time() - 60)
+
+        cache["new"] = True
+
+        self.assertEqual(len(cache), 2)
+        self.assertEqual(list(OrderedDict.keys(cache)), ["recent", "new"])
+        self.assertIn("recent", cache)
+
+    def test_re_added_key_moves_to_the_tail(self):
+        """A key set again while still stored moves to the tail, so an
+        expired entry behind it is still swept on the next insert.
+
+        A is added, B a second later, A again 30 minutes later (still
+        unexpired, so the sweep keeps it), and C once B is over an hour old
+        but A is not. Without the move, ``OrderedDict.__setitem__`` refreshed
+        A in place at the head, the sweep stopped there, and B survived:
+        storage held ``['A', 'B', 'C']`` (measured on c8b3c26 with this same
+        fake clock).
+        """
+        clock = [1_000_000.0]
+        with mock.patch("time.time", side_effect=lambda: clock[0]):
+            cache = parsedmarc_config.SeenReportCache(max_len=100, max_age_seconds=3600)
+            cache["A"] = True
+            clock[0] += 1
+            cache["B"] = True
+            clock[0] += 1800
+            cache["A"] = True
+            clock[0] += 1900
+            cache["C"] = True
+
+            self.assertEqual(list(OrderedDict.keys(cache)), ["A", "C"])
+            self.assertIn("A", cache)
+
+    def test_default_seen_report_cache_is_bounded(self):
+        """The factory builds a `SeenReportCache` with a one-hour expiry and
+        a hard ceiling of 100,000 entries (it was 100 million)."""
+        cache = parsedmarc_config._new_seen_aggregate_report_ids()
+
+        self.assertIsInstance(cache, parsedmarc_config.SeenReportCache)
+        self.assertEqual(cache.max_len, 100_000)
+        self.assertEqual(cache.max_age, 3600)
+        self.assertIsInstance(
+            parsedmarc_config.SEEN_AGGREGATE_REPORT_IDS,
+            parsedmarc_config.SeenReportCache,
+        )
 
 
 class TestParserConfigPickling(unittest.TestCase):

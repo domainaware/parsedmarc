@@ -41,10 +41,14 @@ from tempfile import NamedTemporaryFile, mkdtemp
 from typing import Any, BinaryIO, cast
 from unittest.mock import MagicMock, patch
 
+import dns.exception
+import dns.resolver
+import xmltodict
 from lxml import etree  # type: ignore[import-untyped]
 
 import parsedmarc
 import parsedmarc.constants as constants
+from parsedmarc.constants import MAX_MESSAGE_COUNT
 from parsedmarc.attempts import MAX_PARSE_ATTEMPTS, attempt_key
 from parsedmarc.mail import IMAPConnection, MaildirConnection, MSGraphConnection
 from parsedmarc.parallel import _parse_report_email_job
@@ -2960,6 +2964,329 @@ class TestMalformedXmlRecovery(unittest.TestCase):
         self.assertIn("DOCTYPE", str(ctx.exception))
 
 
+def _aggregate_xml_with_sources(ips: list[str]) -> str:
+    """Build an aggregate report with one record per entry of ``ips``."""
+    records = "".join(
+        f"<record><row><source_ip>{ip}</source_ip><count>1</count>"
+        "<policy_evaluated><disposition>none</disposition><dkim>pass</dkim>"
+        "<spf>pass</spf></policy_evaluated></row><identifiers>"
+        "<header_from>example.com</header_from></identifiers><auth_results>"
+        "<spf><domain>example.com</domain><result>pass</result></spf>"
+        "</auth_results></record>"
+        for ip in ips
+    )
+    return (
+        '<?xml version="1.0"?><feedback><report_metadata><org_name>T'
+        "</org_name><email>t@example.net</email><report_id>dns-budget"
+        "</report_id><date_range><begin>1704067200</begin><end>1704153599"
+        "</end></date_range></report_metadata><policy_published><domain>"
+        f"example.com</domain><p>none</p></policy_published>{records}"
+        "</feedback>"
+    )
+
+
+class _FakePTR:
+    """The one thing ``query_dns()`` reads from an answer's rdata."""
+
+    def __init__(self, text: str):
+        self._text = text
+
+    def to_text(self) -> str:
+        return self._text
+
+
+class TestReverseDNSBudget(unittest.TestCase):
+    """Covers the per-report bounds on reverse DNS lookups
+    (GHSA-rwfh-ww9c-jm9m). DNS is mocked at ``dns.resolver.Resolver.resolve``;
+    the source IPs are in 8.8.8.0/24, which the bundled IP database maps to
+    AS15169, so local-only enrichment is observable."""
+
+    IPS = [f"8.8.8.{i}" for i in range(1, 51)]
+
+    def setUp(self):
+        parsedmarc.IP_ADDRESS_CACHE.clear()
+        self.addCleanup(parsedmarc.IP_ADDRESS_CACHE.clear)
+
+    def _parse(self, ips: list[str]) -> dict[str, Any]:
+        return cast(
+            dict[str, Any],
+            parsedmarc.parse_aggregate_report_xml(
+                _aggregate_xml_with_sources(ips),
+                always_use_local_files=True,
+                nameservers=["192.0.2.254"],
+            ),
+        )
+
+    def test_unanswered_lookups_stop_at_the_budget(self):
+        """Once failed lookups have used the report's budget, the remaining
+        records are enriched from the local IP database and reverse DNS map
+        without DNS, one
+        warning is logged, and those results are not cached.
+
+        Before the bound, every record made its own lookup: 50 calls here,
+        and a measured 2.2 s per record with one unanswering nameserver and
+        8.2 s with the four default ones, so a 3,500-record report took
+        hours."""
+
+        def unanswered(*args, **kwargs):
+            time.sleep(0.02)
+            raise dns.exception.Timeout()
+
+        with (
+            patch.object(
+                dns.resolver.Resolver, "resolve", side_effect=unanswered
+            ) as resolve,
+            patch.object(parsedmarc, "MAX_FAILED_REVERSE_DNS_SECONDS_PER_REPORT", 0.05),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            report = self._parse(self.IPS)
+
+        self.assertLess(resolve.call_count, 10)
+        records = report["records"]
+        self.assertEqual([r["source"]["ip_address"] for r in records], self.IPS)
+        for r in records:
+            self.assertIsNone(r["source"]["reverse_dns"])
+            self.assertEqual(r["source"]["asn"], 15169)
+            self.assertEqual(r["source"]["country"], "US")
+        warnings = [
+            m
+            for m in cm.output
+            if "Reverse DNS lookups for this report failed or were slow" in m
+        ]
+        self.assertEqual(len(warnings), 1)
+        self.assertIn(
+            "the remaining records are enriched from the local IP database "
+            "and reverse DNS map only",
+            warnings[0],
+        )
+        looked_up = self.IPS[: resolve.call_count]
+        for ip in self.IPS[resolve.call_count :]:
+            self.assertNotIn(ip, parsedmarc.IP_ADDRESS_CACHE)
+        # The IPs that were looked up went through the cache as before.
+        for ip in looked_up:
+            self.assertIn(ip, parsedmarc.IP_ADDRESS_CACHE)
+
+    def test_repeated_ip_is_looked_up_once_per_report(self):
+        """A source IP repeated in many records is looked up once per report,
+        even when its result is never cached: 9.9.9.9 has no PTR here and its
+        AS domain (quad9.net) is not in the reverse DNS map, so
+        ``get_ip_address_info()`` keeps the weak ASN fallback out of the IP
+        cache and, before the per-report memo, looked it up in every record
+        (20 calls here)."""
+        with patch.object(
+            dns.resolver.Resolver, "resolve", side_effect=dns.resolver.NXDOMAIN()
+        ) as resolve:
+            report = self._parse(["9.9.9.9"] * 20)
+
+        self.assertEqual(resolve.call_count, 1)
+        self.assertNotIn("9.9.9.9", parsedmarc.IP_ADDRESS_CACHE)
+        self.assertEqual(len(report["records"]), 20)
+        for r in report["records"]:
+            self.assertEqual(r["source"]["asn"], 19281)
+            self.assertEqual(r["source"]["name"], "Quad9")
+
+    def test_records_without_a_budget_share_one(self):
+        """``_parse_report_records()`` called without ``dns_budget`` gives
+        all of its records one shared budget, not one per record, so a
+        repeated IP is still looked up once."""
+        record = xmltodict.parse(_aggregate_xml_with_sources(["9.9.9.9"]))["feedback"][
+            "record"
+        ]
+        config = parsedmarc.ParserConfig(
+            always_use_local_files=True, nameservers=["192.0.2.254"]
+        )
+        begin = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        with patch.object(
+            dns.resolver.Resolver, "resolve", side_effect=dns.resolver.NXDOMAIN()
+        ) as resolve:
+            records = parsedmarc._parse_report_records(
+                [record] * 5,
+                config=config,
+                is_rfc_9990=False,
+                begin_dt=begin,
+                end_dt=begin + timedelta(days=1),
+                normalize=False,
+                keep_alive=None,
+            )
+
+        self.assertEqual(resolve.call_count, 1)
+        self.assertEqual(len(records), 5)
+
+    def test_slow_answered_lookups_are_charged(self):
+        """A sender who controls a reverse zone can answer every PTR query
+        with a name just before the timeout. Before slow lookups were
+        charged, only lookups that returned no PTR used the budget, so such
+        a report made every lookup at full cost: 50 calls here. A lookup
+        that takes at least SLOW_REVERSE_DNS_SECONDS is now charged whether
+        or not it found a name, so lookups stop at the budget, one warning
+        is logged, and the remaining records are enriched offline."""
+
+        def slow_answer(qname, *args, **kwargs):
+            time.sleep(0.02)
+            return [_FakePTR(f"host-{str(qname).split('.')[0]}.attacker.example.")]
+
+        with (
+            patch.object(
+                dns.resolver.Resolver, "resolve", side_effect=slow_answer
+            ) as resolve,
+            patch.object(parsedmarc, "SLOW_REVERSE_DNS_SECONDS", 0.01),
+            patch.object(parsedmarc, "MAX_FAILED_REVERSE_DNS_SECONDS_PER_REPORT", 0.05),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            report = self._parse(self.IPS)
+
+        self.assertLess(resolve.call_count, 10)
+        records = report["records"]
+        self.assertEqual([r["source"]["ip_address"] for r in records], self.IPS)
+        for r in records[: resolve.call_count]:
+            self.assertTrue(r["source"]["reverse_dns"].endswith(".attacker.example"))
+        for r in records[resolve.call_count :]:
+            self.assertIsNone(r["source"]["reverse_dns"])
+            self.assertEqual(r["source"]["asn"], 15169)
+            self.assertEqual(r["source"]["country"], "US")
+        warnings = [
+            m
+            for m in cm.output
+            if "Reverse DNS lookups for this report failed or were slow" in m
+        ]
+        self.assertEqual(len(warnings), 1)
+
+    def test_source_ip_zone_id_is_stripped(self):
+        """An IPv6 zone ID (fe80::1%eth0) is local to the reporting host and
+        the PostgreSQL inet type cannot hold one (GHSA-fxr7-7h9q-v949).
+        Everything from the first "%" is removed from a record's source IP,
+        with one warning naming the field, and the record is kept with the
+        bare address; ``%25eth0`` (a URI-style encoded "%") and a bare "%"
+        give the same address."""
+        for source_ip in ("fe80::1%eth0", "fe80::1%25eth0", "fe80::1%"):
+            with self.subTest(source_ip=source_ip):
+                parsedmarc.IP_ADDRESS_CACHE.clear()
+                with (
+                    patch.object(
+                        dns.resolver.Resolver,
+                        "resolve",
+                        side_effect=dns.resolver.NXDOMAIN(),
+                    ) as resolve,
+                    self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+                ):
+                    report = self._parse([source_ip, "8.8.8.8"])
+
+                self.assertEqual(
+                    [r["source"]["ip_address"] for r in report["records"]],
+                    ["fe80::1", "8.8.8.8"],
+                )
+                self.assertEqual(resolve.call_count, 2)
+                self.assertEqual(
+                    str(resolve.call_args_list[0].args[0]).lower(),
+                    "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.e.f"
+                    ".ip6.arpa.",
+                )
+                zone_warnings = [m for m in cm.output if "zone ID" in m]
+                self.assertEqual(
+                    zone_warnings,
+                    [
+                        "WARNING:parsedmarc.log:Removed the IPv6 zone ID from "
+                        f"source_ip: {source_ip}"
+                    ],
+                )
+
+    def test_source_ip_that_is_not_an_ip_after_stripping_is_skipped(self):
+        """The text left once the zone ID is removed must still be an IP
+        address: ``not-an-ip%eth0`` and a lone "%" leave a record that is
+        skipped with the "Could not parse record" warning, as any other
+        invalid source IP is, and the report's other records are kept."""
+        for source_ip in ("not-an-ip%eth0", "%"):
+            with self.subTest(source_ip=source_ip):
+                with (
+                    patch.object(
+                        dns.resolver.Resolver,
+                        "resolve",
+                        side_effect=dns.resolver.NXDOMAIN(),
+                    ),
+                    self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+                ):
+                    report = self._parse([source_ip, "8.8.8.8"])
+
+                self.assertEqual(
+                    [r["source"]["ip_address"] for r in report["records"]],
+                    ["8.8.8.8"],
+                )
+                self.assertTrue(
+                    any("Could not parse record" in m for m in cm.output), cm.output
+                )
+
+    def test_fast_answered_lookups_stop_at_the_total_budget(self):
+        """Every lookup's time is charged to the total budget
+        (MAX_REVERSE_DNS_SECONDS_PER_REPORT), so a reverse zone that answers
+        every query with a name just under SLOW_REVERSE_DNS_SECONDS, which
+        the failed-or-slow budget never charges, is still cut off. Before
+        the total budget, all 50 lookups here were made (with a fake clock,
+        10,000 such lookups spent 9,900 s and left the budget untouched).
+        With each answer taking 0.99 s on a fake clock and a 5 s total,
+        lookups stop after the sixth, one warning names the total limit,
+        and the remaining records are enriched offline."""
+        clock = [0.0]
+
+        def slow_answer(qname, *args, **kwargs):
+            clock[0] += parsedmarc.SLOW_REVERSE_DNS_SECONDS - 0.01
+            return [_FakePTR(f"host-{str(qname).split('.')[0]}.attacker.example.")]
+
+        with (
+            patch.object(
+                dns.resolver.Resolver, "resolve", side_effect=slow_answer
+            ) as resolve,
+            patch.object(parsedmarc.time, "monotonic", side_effect=lambda: clock[0]),
+            patch.object(parsedmarc, "MAX_REVERSE_DNS_SECONDS_PER_REPORT", 5.0),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            report = self._parse(self.IPS)
+
+        self.assertEqual(resolve.call_count, 6)
+        records = report["records"]
+        self.assertEqual([r["source"]["ip_address"] for r in records], self.IPS)
+        for r in records[:6]:
+            self.assertTrue(r["source"]["reverse_dns"].endswith(".attacker.example"))
+        for r in records[6:]:
+            self.assertIsNone(r["source"]["reverse_dns"])
+            self.assertEqual(r["source"]["asn"], 15169)
+        budget_warnings = [m for m in cm.output if "Reverse DNS lookups" in m]
+        self.assertEqual(
+            budget_warnings,
+            [
+                "WARNING:parsedmarc.log:Reverse DNS lookups for this report took "
+                "more than 5 seconds; the remaining records are enriched from "
+                "the local IP database and reverse DNS map only"
+            ],
+        )
+
+    def test_answered_lookups_are_not_charged(self):
+        """Lookups that find a PTR faster than SLOW_REVERSE_DNS_SECONDS do
+        not use the failed-or-slow budget, however many there are (they
+        count toward the total budget only, which 50 fast lookups are far
+        from): every record keeps its reverse DNS and nothing is logged."""
+
+        def answered(qname, *args, **kwargs):
+            time.sleep(0.002)
+            return [_FakePTR(f"host-{str(qname).split('.')[0]}.google.com.")]
+
+        with (
+            patch.object(
+                dns.resolver.Resolver, "resolve", side_effect=answered
+            ) as resolve,
+            patch.object(parsedmarc, "MAX_FAILED_REVERSE_DNS_SECONDS_PER_REPORT", 0.05),
+            self.assertNoLogs("parsedmarc.log", level="WARNING"),
+        ):
+            report = self._parse(self.IPS)
+
+        self.assertEqual(resolve.call_count, 50)
+        for ip, r in zip(self.IPS, report["records"]):
+            last_octet = ip.rsplit(".", 1)[1]
+            self.assertEqual(
+                r["source"]["reverse_dns"], f"host-{last_octet}.google.com"
+            )
+            self.assertEqual(r["source"]["base_domain"], "google.com")
+
+
 class TestPolicyPublishedEdgeCases(unittest.TestCase):
     """Tests for edge cases in policy_published parsing"""
 
@@ -3846,6 +4173,44 @@ Test body"""
         self.assertIn("Arrival-Date", str(ctx.exception))
         self.assertNotIn("Unexpected error", str(ctx.exception))
 
+    def testSourceIPZoneIDIsStripped(self):
+        """An IPv6 zone ID (fe80::1%eth0) is local to the reporting host and
+        the PostgreSQL inet type cannot hold one (GHSA-fxr7-7h9q-v949).
+        Everything from the first "%" of Source-IP is removed, with one
+        warning naming the field, and the report is kept with the bare
+        address; ``%25eth0`` and a bare "%" give the same address."""
+        for source_ip in ("fe80::1%eth0", "fe80::1%25eth0", "fe80::1%"):
+            with self.subTest(source_ip=source_ip):
+                report_str = self._make_feedback_report(**{"Source-IP": source_ip})
+                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                    report = parsedmarc.parse_failure_report(
+                        report_str,
+                        self._make_sample(),
+                        self._default_msg_date(),
+                        offline=True,
+                    )
+                self.assertEqual(report["source"]["ip_address"], "fe80::1")
+                self.assertIn(
+                    "WARNING:parsedmarc.log:Removed the IPv6 zone ID from "
+                    f"Source-IP: {source_ip}",
+                    cm.output,
+                )
+
+    def testSourceIPNotAnIPAfterStrippingIsInvalid(self):
+        """The text left once the zone ID is removed must still be an IP
+        address; otherwise the report is invalid, as with any other
+        Source-IP that is not one."""
+        for source_ip in ("not-an-ip%eth0", "%"):
+            with self.subTest(source_ip=source_ip):
+                report_str = self._make_feedback_report(**{"Source-IP": source_ip})
+                with self.assertRaises(parsedmarc.InvalidFailureReport):
+                    parsedmarc.parse_failure_report(
+                        report_str,
+                        self._make_sample(),
+                        self._default_msg_date(),
+                        offline=True,
+                    )
+
     def testMissingUserAgent(self):
         """Missing user_agent defaults to None"""
         report_str = self._make_feedback_report()
@@ -4044,6 +4409,206 @@ class TestSmtpTlsReportErrors(unittest.TestCase):
             parsedmarc.parse_smtp_tls_report_json(report)
         self.assertIn("start-datetime", str(ctx.exception))
         self.assertIsInstance(ctx.exception.__cause__, KeyError)
+
+
+def _aggregate_xml_with_counts(counts: list[str]) -> str:
+    """Build an aggregate report with one record per entry of ``counts``."""
+    records = "".join(
+        f"<record><row><source_ip>192.0.2.{i}</source_ip><count>{count}</count>"
+        "<policy_evaluated><disposition>none</disposition><dkim>pass</dkim>"
+        "<spf>pass</spf></policy_evaluated></row><identifiers>"
+        "<header_from>example.com</header_from></identifiers><auth_results>"
+        "<spf><domain>example.com</domain><result>pass</result></spf>"
+        "</auth_results></record>"
+        for i, count in enumerate(counts, start=1)
+    )
+    return (
+        '<?xml version="1.0"?><feedback><report_metadata><org_name>T'
+        "</org_name><email>t@example.net</email><report_id>counts"
+        "</report_id><date_range><begin>1704067200</begin><end>1704153599"
+        "</end></date_range></report_metadata><policy_published><domain>"
+        f"example.com</domain><p>none</p></policy_published>{records}"
+        "</feedback>"
+    )
+
+
+def _smtp_tls_report_json(summary=None, failure_details=None) -> str:
+    """Build an SMTP TLS report with one policy."""
+    return json.dumps(
+        {
+            "organization-name": "Org",
+            "date-range": {
+                "start-datetime": "2024-01-01T00:00:00Z",
+                "end-datetime": "2024-01-02T00:00:00Z",
+            },
+            "contact-info": "a@b.example",
+            "report-id": "r1",
+            "policies": [
+                {
+                    "policy": {
+                        "policy-type": "sts",
+                        "policy-domain": "example.com",
+                    },
+                    "summary": summary
+                    or {
+                        "total-successful-session-count": 10,
+                        "total-failure-session-count": 1,
+                    },
+                    "failure-details": failure_details or [],
+                }
+            ],
+        }
+    )
+
+
+class TestValuesTypedOutputsReject(unittest.TestCase):
+    """GHSA-fxr7-7h9q-v949: values the PostgreSQL output's typed columns
+    (and the Elasticsearch/OpenSearch Integer and ip mappings) reject are
+    kept out of the parsed report. Before the fix, an aggregate <count> of
+    3000000000 failed the PostgreSQL save with "integer out of range" and an
+    SMTP TLS sending-mta-ip of "not-an-ip" with "invalid input syntax for
+    type inet", and either failure held back the whole batch."""
+
+    def _parse_aggregate(self, counts: list[str]) -> dict[str, Any]:
+        return cast(
+            dict[str, Any],
+            parsedmarc.parse_aggregate_report_xml(
+                _aggregate_xml_with_counts(counts),
+                always_use_local_files=True,
+                offline=True,
+            ),
+        )
+
+    def test_record_count_outside_32_bit_range_is_skipped(self):
+        for bad in ("3000000000", str(MAX_MESSAGE_COUNT + 1), "-1"):
+            with self.subTest(count=bad):
+                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+                    report = self._parse_aggregate(["5", bad, "7"])
+                self.assertEqual([r["count"] for r in report["records"]], [5, 7])
+                warnings = [m for m in cm.output if "Could not parse record" in m]
+                self.assertEqual(len(warnings), 1)
+                self.assertIn(f"count {bad} is outside", warnings[0])
+
+    def test_record_counts_at_the_bounds_are_kept(self):
+        report = self._parse_aggregate(["0", str(MAX_MESSAGE_COUNT)])
+        self.assertEqual(
+            [r["count"] for r in report["records"]], [0, MAX_MESSAGE_COUNT]
+        )
+
+    def test_single_record_with_bad_count_invalidates_the_report(self):
+        with self.assertRaises(parsedmarc.InvalidAggregateReport):
+            self._parse_aggregate(["3000000000"])
+
+    def test_record_with_bad_count_is_dropped_before_its_dns_lookup(self):
+        """The count is checked before the source IP's reverse DNS lookup,
+        so a record that is dropped for its count does not spend lookup
+        time (up to 8 s with unanswering nameservers). DNS is mocked at
+        ``dns.resolver.Resolver.resolve``; before the reorder, the lookup for
+        192.0.2.2 ran and its record was dropped afterwards."""
+        parsedmarc.IP_ADDRESS_CACHE.clear()
+        self.addCleanup(parsedmarc.IP_ADDRESS_CACHE.clear)
+        with patch.object(
+            dns.resolver.Resolver, "resolve", side_effect=dns.resolver.NXDOMAIN()
+        ) as resolve:
+            report = parsedmarc.parse_aggregate_report_xml(
+                _aggregate_xml_with_counts(["5", "3000000000", "7"]),
+                always_use_local_files=True,
+                nameservers=["192.0.2.254"],
+            )
+
+        self.assertEqual([r["count"] for r in report["records"]], [5, 7])
+        queried = {str(c.args[0]) for c in resolve.call_args_list}
+        self.assertIn("1.2.0.192.in-addr.arpa.", queried)
+        self.assertIn("3.2.0.192.in-addr.arpa.", queried)
+        self.assertNotIn("2.2.0.192.in-addr.arpa.", queried)
+
+    def test_smtp_tls_session_count_outside_32_bit_range_is_rejected(self):
+        cases = {
+            "total-successful-session-count": _smtp_tls_report_json(
+                summary={
+                    "total-successful-session-count": MAX_MESSAGE_COUNT + 1,
+                    "total-failure-session-count": 0,
+                }
+            ),
+            "total-failure-session-count": _smtp_tls_report_json(
+                summary={
+                    "total-successful-session-count": 0,
+                    "total-failure-session-count": -1,
+                }
+            ),
+            "failed-session-count": _smtp_tls_report_json(
+                failure_details=[
+                    {
+                        "result-type": "certificate-expired",
+                        "failed-session-count": 3000000000,
+                    }
+                ]
+            ),
+        }
+        for field, report in cases.items():
+            with self.subTest(field=field):
+                with self.assertRaises(parsedmarc.InvalidSMTPTLSReport) as ctx:
+                    parsedmarc.parse_smtp_tls_report_json(report)
+                self.assertIn(
+                    f"{field} must be between 0 and {MAX_MESSAGE_COUNT}",
+                    str(ctx.exception),
+                )
+
+    def test_smtp_tls_session_count_at_the_bound_is_kept(self):
+        parsed = parsedmarc.parse_smtp_tls_report_json(
+            _smtp_tls_report_json(
+                summary={
+                    "total-successful-session-count": MAX_MESSAGE_COUNT,
+                    "total-failure-session-count": 0,
+                }
+            )
+        )
+        self.assertEqual(
+            parsed["policies"][0]["successful_session_count"], MAX_MESSAGE_COUNT
+        )
+
+    def test_smtp_tls_ip_that_is_not_an_ip_address_is_dropped(self):
+        """RFC 8460 §4.4 defines sending-mta-ip and receiving-ip as the IP
+        address of the sending and receiving MTA; both are optional."""
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            parsed = parsedmarc.parse_smtp_tls_report_json(
+                _smtp_tls_report_json(
+                    failure_details=[
+                        {
+                            "result-type": "certificate-expired",
+                            "failed-session-count": 1,
+                            "sending-mta-ip": "not-an-ip\r\nFAKE",
+                            "receiving-ip": "2001:db8::1",
+                        },
+                        {
+                            "result-type": "certificate-expired",
+                            "failed-session-count": 1,
+                            "sending-mta-ip": "203.0.113.5",
+                            "receiving-ip": "fe80::1%eth0",
+                        },
+                    ]
+                )
+            )
+        first, second = cast(dict[str, Any], parsed)["policies"][0]["failure_details"]
+        self.assertNotIn("sending_mta_ip", first)
+        self.assertEqual(first["receiving_ip"], "2001:db8::1")
+        self.assertEqual(second["sending_mta_ip"], "203.0.113.5")
+        self.assertNotIn("receiving_ip", second)
+        self.assertTrue(
+            any(
+                "Ignoring sending-mta-ip that is not an IP address: "
+                "not-an-ip\\r\\nFAKE" in m
+                for m in cm.output
+            ),
+            cm.output,
+        )
+        self.assertTrue(
+            any(
+                "Ignoring receiving-ip that is not an IP address: fe80::1%eth0" in m
+                for m in cm.output
+            ),
+            cm.output,
+        )
 
 
 class TestBucketIntervalEdgeCases(unittest.TestCase):
@@ -7817,6 +8382,46 @@ class TestAggregateReportIdentityIsDomainScoped(unittest.TestCase):
                 for report in result["aggregate_reports"]
             ],
             ["a_b", "a"],
+        )
+
+
+class TestAggregateReportDedupKey(unittest.TestCase):
+    """``_aggregate_report_dedup_key()`` returns a fixed-size digest of the
+    reporter, Report-ID and policy domain (GHSA-9fw6-mwqr-p43m).
+
+    The key used to be the JSON of the three sender-controlled fields, so a
+    report with a multi-megabyte ``<report_id>`` kept that many bytes in the
+    seen-report cache.
+    """
+
+    @staticmethod
+    def _key(
+        policy_domain: str = "a.example",
+        report_id: str = DOMAIN_SCOPE_REPORT_ID,
+    ) -> str:
+        report = parsedmarc.parse_aggregate_report_xml(
+            _domain_scope_aggregate_xml(policy_domain, 1, report_id=report_id),
+            offline=True,
+        )
+        return parsedmarc._aggregate_report_dedup_key(report)
+
+    def test_key_size_does_not_depend_on_report_id_size(self):
+        """A 1 MiB Report-ID still yields a 64-character hex key."""
+        report_id = "x" * (1024 * 1024)
+
+        key = self._key(report_id=report_id)
+
+        self.assertEqual(len(key), 64)
+        self.assertEqual(set(key) - set("0123456789abcdef"), set())
+
+    def test_domain_case_is_folded_before_hashing(self):
+        """RFC 4343 §3: domain names compare without ASCII case, so two
+        reports differing only in the policy domain's case share one key."""
+        self.assertEqual(self._key("A.Example"), self._key("a.example"))
+
+    def test_different_report_ids_give_different_keys(self):
+        self.assertNotEqual(
+            self._key(report_id="id-one"), self._key(report_id="id-two")
         )
 
 

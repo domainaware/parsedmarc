@@ -1225,8 +1225,8 @@ class TestMixedInputAggregateDedup(unittest.TestCase):
     ``SEEN_AGGREGATE_REPORT_IDS`` cache, so they must key it identically.
 
     If the direct-file path in ``_main()`` wrote ``{org_name}_{report_id}``
-    while ``get_dmarc_reports_from_mbox`` looked up a JSON
-    ``[org_name, report_id, policy_domain]`` key, a report passed both as a
+    while ``get_dmarc_reports_from_mbox`` looked up a key built from
+    ``[org_name, report_id, policy_domain]``, a report passed both as a
     file and inside an mbox in the same run would be saved twice. RFC 9990
     §3.5.1 scopes Report-ID uniqueness to "reports to the same domain", so
     the shared key also keeps same-ID reports for different domains apart in
@@ -4724,6 +4724,9 @@ batch_size = {batch_size}
         # copy some earlier run downloaded and must reach the bundled file.
         cache_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, cache_dir, True)
+        old_cache_dir = parsedmarc.utils._IP_DB_CACHE_DIR
+        self.addCleanup(setattr, parsedmarc.utils, "_IP_DB_CACHE_DIR", old_cache_dir)
+        parsedmarc.utils._IP_DB_CACHE_DIR = None
 
         real_files = parsedmarc.utils.files
 
@@ -4737,7 +4740,7 @@ batch_size = {batch_size}
 
         with (
             patch("parsedmarc.utils.files", side_effect=files_without_bundled_mmdb),
-            patch("parsedmarc.utils.tempfile.gettempdir", return_value=cache_dir),
+            patch.dict(os.environ, {"XDG_CACHE_HOME": cache_dir}),
         ):
             state, mock_watch, logs = self._drive_reload(
                 # Startup resolves the local file directly and never reaches
@@ -5888,6 +5891,176 @@ class TestInitOutputClientsDoesNotLogCredentials(unittest.TestCase):
                 matching = [line for line in lines if marker in line]
                 self.assertEqual(len(matching), 1)
                 self.assertIn("https://u:***@127.0.0.1:9299", matching[0])
+
+
+class TestSearchClientBuildErrorsDoNotLeakCredentials(unittest.TestCase):
+    """GHSA-74xv-rmpx-2pjm (an incomplete fix for GHSA-hjr3-rx4c-24cv): a
+    password with an unencoded "/", "?" or "#" in an Elasticsearch or
+    OpenSearch ``hosts`` URL makes the SDK raise a ValueError quoting the
+    URL -- elastic_transport's ``url_to_node_config()`` raises ``Could not
+    parse URL '<url>'`` -- or the start of the password -- opensearch-py's
+    ``_normalize_hosts()`` reads ``urllib.parse``'s ``port``, which raises
+    ``Port could not be cast to integer value as '<prefix>'``. The wrapping
+    RuntimeError repeated that text, and was chained to the original, so
+    the startup retry loop logged the password at ERROR without --debug and
+    the SIGHUP reload's logger.exception printed it again."""
+
+    WITHHELD = (
+        ": could not build a client from the hosts setting (details withheld "
+        "because they may include credentials; URL-encode special characters "
+        "in the password, or use the separate user and password settings)"
+    )
+
+    def setUp(self):
+        _isolate_default_alias(self, parsedmarc.elastic.connections)
+        _isolate_default_alias(self, opensearch_module.connections)
+
+    def _init_error(self, opts):
+        """Run _init_output_clients(), which must fail; return the error, its
+        formatted traceback, and the captured log."""
+        with (
+            self.assertRaises(RuntimeError) as ctx,
+            self.assertLogs("parsedmarc.log", level="DEBUG") as logs,
+        ):
+            parsedmarc.cli._init_output_clients(opts)
+        trace = "".join(traceback.format_exception(ctx.exception))
+        return ctx.exception, trace, "\n".join(logs.output)
+
+    def _assert_withheld(self, label, opts, secret):
+        exc, trace, output = self._init_error(opts)
+        self.assertEqual(str(exc), label + self.WITHHELD)
+        self.assertIsNone(exc.__cause__)
+        self.assertIsNone(exc.__context__)
+        for text in (str(exc), trace, output):
+            self.assertNotIn(secret, text)
+
+    def test_elasticsearch_unparsable_hosts_password_is_withheld(self):
+        malformed = (
+            ("https://dmarc:Pa/ss-S3cret@es.example:9200", "Pa/ss-S3cret"),
+            ("https://dmarc:Pa?ss-S3cret@es.example:9200", "ss-S3cret"),
+            ("https://dmarc:Pa#ss-S3cret@es.example:9200", "ss-S3cret"),
+        )
+        for url, secret in malformed:
+            with self.subTest(url=url):
+                opts = _output_client_opts(
+                    save_aggregate=True,
+                    elasticsearch_hosts=[url],
+                    elasticsearch_timeout=1.0,
+                )
+                self._assert_withheld("Elasticsearch", opts, secret)
+
+    def test_opensearch_unparsable_hosts_password_is_withheld(self):
+        malformed = (
+            ("https://dmarc:S3cretPrefix/rest@os.example:9200", "S3cretPrefix"),
+            ("https://dmarc:S3cretPrefix?rest@os.example:9200", "S3cretPrefix"),
+            ("https://dmarc:S3cretPrefix#rest@os.example:9200", "S3cretPrefix"),
+        )
+        for url, secret in malformed:
+            with self.subTest(url=url):
+                opts = _output_client_opts(
+                    save_aggregate=True,
+                    opensearch_hosts=[url],
+                    opensearch_timeout=1.0,
+                )
+                self._assert_withheld("OpenSearch", opts, secret)
+
+    def test_other_errors_mask_url_credentials_and_are_not_chained(self):
+        """An error after set_hosts() succeeded -- here from the index
+        migration, and a ValueError, which must not be mistaken for an
+        unparsable hosts value -- keeps its text with credentials masked."""
+        cases = (
+            ("Elasticsearch", "elastic", "elasticsearch"),
+            ("OpenSearch", "opensearch", "opensearch"),
+        )
+        for label, module, prefix in cases:
+            for error_class in (Exception, ValueError):
+                with self.subTest(label=label, error=error_class.__name__):
+                    opts = _output_client_opts(
+                        save_aggregate=True,
+                        **{
+                            f"{prefix}_hosts": ["https://u:p4ss@127.0.0.1:9299"],
+                            f"{prefix}_timeout": 1.0,
+                        },
+                    )
+                    with patch(
+                        f"parsedmarc.cli.{module}.migrate_indexes",
+                        side_effect=error_class("boom https://u:p@h/x"),
+                    ):
+                        exc, trace, _output = self._init_error(opts)
+                    self.assertEqual(str(exc), f"{label}: boom https://u:***@h/x")
+                    self.assertIsNone(exc.__cause__)
+                    self.assertNotIn("u:p@", trace)
+
+
+class TestPostgreSQLClientBuildErrorsDoNotLeakCredentials(unittest.TestCase):
+    """Fifth review of GHSA-xvp7-7762-gx9g: _init_output_clients() wrapped
+    any PostgreSQL construction failure as ``RuntimeError(f"PostgreSQL:
+    {e}") from e``, so a non-driver error carrying the password (psycopg's
+    UnicodeEncodeError for a password with a lone surrogate quotes the
+    whole connection string it built) was printed in full by the chained
+    traceback the SIGHUP reload logs with logger.exception. The wrapper is
+    now not chained, and an error that is not a PostgreSQLError gets a
+    fixed message."""
+
+    def _init_error(self, opts):
+        with (
+            self.assertRaises(RuntimeError) as ctx,
+            self.assertLogs("parsedmarc.log", level="DEBUG") as logs,
+        ):
+            parsedmarc.cli._init_output_clients(opts)
+        trace = "".join(traceback.format_exception(ctx.exception))
+        return ctx.exception, trace, "\n".join(logs.output)
+
+    def _assert_clean(self, exc, trace, output):
+        self.assertIsNone(exc.__cause__)
+        self.assertTrue(exc.__suppress_context__)
+        for text in (str(exc), repr(exc), trace, output):
+            self.assertNotIn("SECRETX", text)
+
+    def test_driver_boundary_error_is_not_chained(self):
+        """psycopg.connect raising UnicodeEncodeError with the password
+        (the real driver's behaviour for a surrogate in the password)
+        surfaces as the client's fixed PostgreSQLError text, unchained."""
+        opts = _output_client_opts(
+            postgresql_host="db.invalid",
+            postgresql_user="u",
+            postgresql_password="SECRETX",
+            postgresql_sslmode="verify-full",
+        )
+        mock_psycopg = MagicMock()
+        mock_psycopg.Error = type("Error", (Exception,), {})
+        mock_psycopg.connect.side_effect = UnicodeEncodeError(
+            "utf-8", "host=db.invalid user=u password=SECRETX", 0, 1, "x"
+        )
+        with patch.object(parsedmarc.cli.postgres, "psycopg", mock_psycopg):
+            exc, trace, output = self._init_error(opts)
+        self.assertEqual(
+            str(exc),
+            "PostgreSQL: PostgreSQL connection failed: a connection setting "
+            "could not be passed to the driver (details withheld because they "
+            "may include the password)",
+        )
+        self._assert_clean(exc, trace, output)
+
+    def test_other_errors_get_a_fixed_message(self):
+        """An error that is not a PostgreSQLError (whose text postgres.py
+        builds) is replaced with a fixed message, also unchained."""
+        opts = _output_client_opts(postgresql_host="db.invalid")
+        with (
+            patch.object(parsedmarc.cli.postgres, "psycopg", MagicMock()),
+            patch.object(
+                parsedmarc.cli.postgres,
+                "PostgreSQLClient",
+                side_effect=ValueError("SECRETX"),
+            ),
+        ):
+            exc, trace, output = self._init_error(opts)
+        self.assertEqual(
+            str(exc),
+            "PostgreSQL: the client could not be created (details withheld "
+            "because they may include the password)",
+        )
+        self._assert_clean(exc, trace, output)
 
 
 class TestHttpxLogRedaction(unittest.TestCase):
@@ -9902,6 +10075,65 @@ class TestParseConfigPostgreSQL(unittest.TestCase):
             _parse_config(cp, _opts())
         self.assertIn("postgresql", str(ctx.exception))
 
+    def test_postgresql_sslmode_and_sslrootcert_with_host_and_dsn(self):
+        """sslmode and sslrootcert are read with either connection style
+        (GHSA-xvp7-7762-gx9g), and sslmode is matched case-insensitively."""
+        from parsedmarc.cli import _parse_config
+
+        for connection in (
+            {"host": "db.example.com"},
+            {"connection_string": "host=db.example.com"},
+        ):
+            with self.subTest(connection=connection):
+                cp = _config_with(
+                    "postgresql",
+                    {
+                        **connection,
+                        "sslmode": "Verify-Full",
+                        "sslrootcert": "/etc/ssl/db-ca.pem",
+                    },
+                )
+                opts = _opts()
+                _parse_config(cp, opts)
+                self.assertEqual(opts.postgresql_sslmode, "verify-full")
+                self.assertEqual(opts.postgresql_sslrootcert, "/etc/ssl/db-ca.pem")
+
+    def test_postgresql_sslmode_unset_leaves_defaults(self):
+        """Without the keys, _parse_config sets neither option, so the
+        Namespace defaults (None) reach the client."""
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with("postgresql", {"host": "db.example.com"})
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertFalse(hasattr(opts, "postgresql_sslmode"))
+        self.assertFalse(hasattr(opts, "postgresql_sslrootcert"))
+
+    def test_postgresql_invalid_sslmode_raises(self):
+        from parsedmarc.cli import ConfigurationError, _parse_config
+
+        cp = _config_with("postgresql", {"host": "h", "sslmode": "on"})
+        with self.assertRaises(ConfigurationError) as ctx:
+            _parse_config(cp, _opts())
+        self.assertEqual(
+            str(ctx.exception),
+            "postgresql sslmode must be one of disable, allow, prefer, "
+            "require, verify-ca, verify-full",
+        )
+
+    def test_postgresql_sslrootcert_path_is_expanded(self):
+        from parsedmarc.cli import _parse_config
+
+        cp = _config_with(
+            "postgresql", {"host": "h", "sslrootcert": "~/certs/db-ca.pem"}
+        )
+        opts = _opts()
+        _parse_config(cp, opts)
+        self.assertEqual(
+            opts.postgresql_sslrootcert,
+            os.path.join(os.path.expanduser("~"), "certs", "db-ca.pem"),
+        )
+
 
 class TestPostgreSQLCliWiring(unittest.TestCase):
     """End-to-end: a [postgresql] config reaches PostgreSQLClient + create_tables.
@@ -9938,6 +10170,7 @@ port = 6543
 user = pmarc
 password = secret
 database = dmarc
+sslmode = verify-ca
 """
         with tempfile.NamedTemporaryFile(
             "w", suffix=".ini", delete=False
@@ -9967,6 +10200,8 @@ database = dmarc
         self.assertEqual(kwargs.get("port"), 6543)
         self.assertEqual(kwargs.get("user"), "pmarc")
         self.assertEqual(kwargs.get("database"), "dmarc")
+        self.assertEqual(kwargs.get("sslmode"), "verify-ca")
+        self.assertIsNone(kwargs.get("sslrootcert"))
         mock_client_cls.return_value.create_tables.assert_called_once()
 
     def test_postgresql_aggregate_report_is_saved(self):
@@ -10585,6 +10820,8 @@ def _output_client_opts(**overrides) -> SimpleNamespace:
         "postgresql_host",
         "postgresql_password",
         "postgresql_port",
+        "postgresql_sslmode",
+        "postgresql_sslrootcert",
         "postgresql_user",
         "s3_access_key_id",
         "s3_bucket",
@@ -10825,6 +11062,37 @@ class TestOptionalIntegrationExtras(unittest.TestCase):
             clients = parsedmarc.cli._init_output_clients(opts)
         self.assertEqual(sorted(clients), ["postgresql_client"])
         self.assertIs(clients["postgresql_client"], mock_client.return_value)
+
+    def test_postgresql_tls_options_reach_the_client(self):
+        """_init_output_clients passes sslmode and sslrootcert to
+        PostgreSQLClient, and passes None for both when they are unset so
+        the client applies its own default (GHSA-xvp7-7762-gx9g)."""
+        cases = (
+            (
+                {
+                    "postgresql_sslmode": "verify-full",
+                    "postgresql_sslrootcert": "/etc/ssl/db-ca.pem",
+                },
+                ("verify-full", "/etc/ssl/db-ca.pem"),
+            ),
+            ({}, (None, None)),
+        )
+        for overrides, expected in cases:
+            with self.subTest(overrides=overrides):
+                opts = _output_client_opts(
+                    postgresql_host="db.example.com", **overrides
+                )
+                with (
+                    patch.object(parsedmarc.cli.postgres, "psycopg", MagicMock()),
+                    patch.object(
+                        parsedmarc.cli.postgres, "PostgreSQLClient"
+                    ) as mock_client,
+                ):
+                    clients = parsedmarc.cli._init_output_clients(opts)
+                kwargs = mock_client.call_args.kwargs
+                self.assertEqual((kwargs["sslmode"], kwargs["sslrootcert"]), expected)
+                self.assertEqual(kwargs["host"], "db.example.com")
+                self.assertIs(clients["postgresql_client"], mock_client.return_value)
 
     def test_missing_mailbox_extras_fail_fast_at_config_time(self):
         """[msgraph]/[gmail_api] sections without their extra fail in
@@ -11340,6 +11608,116 @@ class TestOutputDestinationExceptionsMarkTheBatchUnsaved(unittest.TestCase):
             output,
         )
         self.assertFalse(any("Mailbox Error" in line for line in output), output)
+
+
+class TestPostgreSQLRejectedReportKeepsTheBatch(unittest.TestCase):
+    """GHSA-fxr7-7h9q-v949: a value PostgreSQL rejected in one report raised
+    PostgreSQLError, which process_reports() recorded as an output error, so
+    the whole batch was reported unsaved and none of its messages was
+    archived, including legitimate reports from other senders. Such a
+    rejection now raises PostgreSQLRejectedReport, which is logged and skips
+    only that report in the PostgreSQL output, unless fail_on_output_error
+    is set."""
+
+    _REPORTS = (
+        ("aggregate", "aggregate_reports", {"policy_published": {"domain": "a"}}),
+        ("failure", "failure_reports", {"reported_domain": "example.com"}),
+        ("smtp_tls", "smtp_tls_reports", {"policies": []}),
+    )
+
+    setUp = TestOutputDestinationExceptionsMarkTheBatchUnsaved.setUp
+    _run = TestOutputDestinationExceptionsMarkTheBatchUnsaved._run
+
+    def _run_with_save_error(self, report_type, batch_key, reports, error, **kw):
+        saver = f"save_{report_type}_report_to_postgresql"
+        client_cls = MagicMock()
+        getattr(client_cls.return_value, saver).side_effect = [error] + [None] * (
+            len(reports) - 1
+        )
+        result = self._run(
+            "[postgresql]\nhost = db.example.com\n",
+            {batch_key: reports},
+            patch("parsedmarc.cli.postgres.PostgreSQLClient", client_cls),
+            # The startup guard checks the SDK, not the client class.
+            patch("parsedmarc.cli.postgres.psycopg", object()),
+            **kw,
+        )
+        return result, getattr(client_cls.return_value, saver)
+
+    def test_rejected_report_is_logged_and_the_batch_is_saved(self):
+        from parsedmarc import postgres
+
+        for report_type, batch_key, report in self._REPORTS:
+            message = f"PostgreSQL rejected a value of the {report_type} report"
+            with self.subTest(report_type=report_type):
+                other = dict(report, marker="second")
+                (verdicts, output, exit_code, _mocks), saver = (
+                    self._run_with_save_error(
+                        report_type,
+                        batch_key,
+                        [report, other],
+                        postgres.PostgreSQLRejectedReport(message),
+                    )
+                )
+                self.assertIsNone(exit_code)
+                self.assertEqual(verdicts, [True])
+                # The next report of the batch is still saved.
+                self.assertEqual(
+                    [c.args[0] for c in saver.call_args_list], [report, other]
+                )
+                self.assertTrue(any(message in line for line in output), output)
+                self.assertFalse(
+                    any("PostgreSQL Error:" in line for line in output), output
+                )
+
+    def test_other_postgresql_error_still_marks_the_batch_unsaved(self):
+        from parsedmarc import postgres
+
+        for report_type, batch_key, report in self._REPORTS:
+            with self.subTest(report_type=report_type):
+                (verdicts, output, exit_code, _mocks), _saver = (
+                    self._run_with_save_error(
+                        report_type,
+                        batch_key,
+                        [report],
+                        postgres.PostgreSQLError("server closed the connection"),
+                    )
+                )
+                self.assertIsNone(exit_code)
+                self.assertEqual(verdicts, [False])
+                self.assertTrue(
+                    any(
+                        "PostgreSQL Error: server closed the connection" in line
+                        for line in output
+                    ),
+                    output,
+                )
+
+    def test_rejected_report_is_an_output_error_with_fail_on_output_error(self):
+        from parsedmarc import postgres
+
+        for report_type, batch_key, report in self._REPORTS:
+            message = f"PostgreSQL rejected a value of the {report_type} report"
+            with self.subTest(report_type=report_type):
+                (verdicts, output, exit_code, _mocks), _saver = (
+                    self._run_with_save_error(
+                        report_type,
+                        batch_key,
+                        [report],
+                        postgres.PostgreSQLRejectedReport(message),
+                        general="fail_on_output_error = true",
+                    )
+                )
+                self.assertEqual(exit_code, 1)
+                self.assertEqual(verdicts, [])
+                self.assertTrue(
+                    any(
+                        "Output destination failures detected" in line
+                        and f"PostgreSQL Error: {message}" in line
+                        for line in output
+                    ),
+                    output,
+                )
 
 
 if __name__ == "__main__":

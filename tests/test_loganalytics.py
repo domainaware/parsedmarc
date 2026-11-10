@@ -1,11 +1,18 @@
 """Tests for parsedmarc.loganalytics"""
 
+import json
 import unittest
 from unittest.mock import MagicMock, patch
 
-from azure.core.exceptions import HttpResponseError
+from azure.core.exceptions import (
+    AzureError,
+    HttpResponseError,
+    ServiceRequestError,
+    ServiceResponseError,
+)
 
 from parsedmarc.loganalytics import (
+    MAX_UPLOAD_ITEM_BYTES,
     LogAnalyticsClient,
     LogAnalyticsConfig,
     LogAnalyticsException,
@@ -25,6 +32,26 @@ def _valid_kwargs(**overrides):
     )
     base.update(overrides)
     return base
+
+
+def _json_size(report):
+    """The size LogsIngestionClient.upload() measures a report at."""
+    return len(json.dumps(report).encode("utf-8"))
+
+
+def _aggregate_report(org_name, report_id, size=None):
+    """An aggregate report, padded with records to ``size`` bytes of JSON."""
+    report = {
+        "report_metadata": {"org_name": org_name, "report_id": report_id},
+        "policy_published": {"domain": "example.com"},
+        "records": [],
+    }
+    if size is not None:
+        padding = size - _json_size(report)
+        # One record of the required length: ``"x"`` is 3 bytes of JSON,
+        # and each extra character of the string adds one
+        report["records"].append("x" * (padding - 2))
+    return report
 
 
 class TestLogAnalyticsConfig(unittest.TestCase):
@@ -93,6 +120,90 @@ class TestPublishJson(unittest.TestCase):
         with self.assertRaises(LogAnalyticsException) as ctx:
             client.publish_json([{"a": 1}], logs_client, "stream")
         self.assertIn("forbidden", str(ctx.exception))
+
+
+class TestPublishJsonSizeLimit(unittest.TestCase):
+    """The Logs Ingestion API rejects a call over 1 MB, and the SDK sends a
+    report larger than its 1 MiB chunk as a call of its own, so one
+    oversize report used to fail the upload of every report in the batch
+    (GHSA-rg4h-58fm-8pc9). Such a report is now left out with a warning."""
+
+    def test_oversize_report_is_skipped_and_the_rest_uploaded(self):
+        client = LogAnalyticsClient(**_valid_kwargs())
+        logs_client = MagicMock()
+        big = _aggregate_report("Big Sender", "big-1", size=1_200_000)
+        small = _aggregate_report("Small Sender", "small-1")
+        self.assertGreater(_json_size(big), MAX_UPLOAD_ITEM_BYTES)
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            published = client.publish_json([big, small], logs_client, "agg-stream")
+        logs_client.upload.assert_called_once_with("dcr-123", "agg-stream", [small])
+        self.assertEqual(published, 1)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn(f"{_json_size(big)} bytes", logs.output[0])
+        self.assertIn("agg-stream", logs.output[0])
+        self.assertIn("Big Sender", logs.output[0])
+        self.assertIn("big-1", logs.output[0])
+
+    def test_all_reports_oversize_uploads_nothing(self):
+        client = LogAnalyticsClient(**_valid_kwargs())
+        logs_client = MagicMock()
+        reports = [
+            _aggregate_report("Sender A", "a-1", size=1_100_000),
+            _aggregate_report("Sender B", "b-1", size=1_100_000),
+        ]
+        for report in reports:
+            self.assertGreater(_json_size(report), MAX_UPLOAD_ITEM_BYTES)
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            published = client.publish_json(reports, logs_client, "agg-stream")
+        logs_client.upload.assert_not_called()
+        self.assertEqual(published, 0)
+        self.assertEqual(len(logs.output), 2)
+        self.assertIn("a-1", logs.output[0])
+        self.assertIn("b-1", logs.output[1])
+
+    def test_report_just_under_the_limit_is_uploaded(self):
+        client = LogAnalyticsClient(**_valid_kwargs())
+        logs_client = MagicMock()
+        report = _aggregate_report("Sender", "r-1", size=MAX_UPLOAD_ITEM_BYTES - 1)
+        self.assertEqual(_json_size(report), MAX_UPLOAD_ITEM_BYTES - 1)
+        client.publish_json([report], logs_client, "agg-stream")
+        logs_client.upload.assert_called_once_with("dcr-123", "agg-stream", [report])
+
+    def test_report_one_byte_over_the_limit_is_skipped(self):
+        client = LogAnalyticsClient(**_valid_kwargs())
+        logs_client = MagicMock()
+        report = _aggregate_report("Sender", "r-1", size=MAX_UPLOAD_ITEM_BYTES + 1)
+        self.assertEqual(_json_size(report), MAX_UPLOAD_ITEM_BYTES + 1)
+        with self.assertLogs("parsedmarc.log", level="WARNING"):
+            client.publish_json([report], logs_client, "agg-stream")
+        logs_client.upload.assert_not_called()
+
+    def test_warning_names_smtp_tls_and_failure_reports(self):
+        """SMTP TLS reports are named by organization and report ID, and
+        failure reports by reported domain and arrival date; a CR/LF a
+        sender planted in a name is escaped so it cannot forge a line."""
+        client = LogAnalyticsClient(**_valid_kwargs())
+        logs_client = MagicMock()
+        padding = "x" * 1_100_000
+        tls = {
+            "organization_name": "TLS\r\nForged line",
+            "report_id": "tls-1",
+            "policies": [padding],
+        }
+        failure = {
+            "reported_domain": "example.org",
+            "arrival_date_utc": "2026-11-10 12:00:00",
+            "sample": padding,
+        }
+        with self.assertLogs("parsedmarc.log", level="WARNING") as logs:
+            client.publish_json([tls], logs_client, "tls-stream")
+            client.publish_json([failure], logs_client, "fail-stream")
+        logs_client.upload.assert_not_called()
+        self.assertIn("organization_name TLS\\r\\nForged line", logs.output[0])
+        self.assertNotIn("\n", logs.output[0])
+        self.assertIn("report_id tls-1", logs.output[0])
+        self.assertIn("reported_domain example.org", logs.output[1])
+        self.assertIn("arrival_date_utc 2026-11-10 12:00:00", logs.output[1])
 
 
 class TestPublishResults(unittest.TestCase):
@@ -205,6 +316,103 @@ class TestPublishResults(unittest.TestCase):
             }
         )
         logs_client.upload.assert_not_called()
+
+    def test_stream_whose_reports_are_all_oversize_logs_no_success(self):
+        """A stream whose every report is over the size limit uploads
+        nothing, so it must not log "Successfully pushed" (it used to,
+        after the per-report warnings), while the other streams still
+        upload and log their success."""
+        big = _aggregate_report("Big Sender", "big-1", size=1_100_000)
+        with self.assertLogs("parsedmarc.log", level="INFO") as logs:
+            logs_client = self._publish_with(
+                {
+                    "aggregate_reports": [big],
+                    "failure_reports": [{"id": "f"}],
+                    "smtp_tls_reports": [{"id": "t"}],
+                }
+            )
+        streams_uploaded = [call.args[1] for call in logs_client.upload.call_args_list]
+        self.assertEqual(streams_uploaded, ["fail-stream", "tls-stream"])
+        messages = [record.getMessage() for record in logs.records]
+        self.assertNotIn("Successfully pushed aggregate reports.", messages)
+        self.assertIn("Successfully pushed failure reports.", messages)
+        self.assertIn("Successfully pushed SMTP TLS reports.", messages)
+        self.assertTrue(any("big-1" in message for message in messages))
+
+    def _publish_failing(
+        self, failing_streams, error_class: type[AzureError] = HttpResponseError
+    ):
+        """Publishes one report of each kind with upload() raising
+        ``error_class`` for the streams in ``failing_streams``."""
+
+        def upload(rule_id, stream_name, logs):
+            if stream_name in failing_streams:
+                raise error_class(f"rejected by {stream_name}")
+
+        client = LogAnalyticsClient(**_valid_kwargs())
+        with (
+            patch("parsedmarc.loganalytics.ClientSecretCredential"),
+            patch("parsedmarc.loganalytics.LogsIngestionClient") as mock_client_cls,
+        ):
+            mock_logs_client = mock_client_cls.return_value
+            mock_logs_client.upload.side_effect = upload
+            with self.assertRaises(LogAnalyticsException) as ctx:
+                client.publish_results(
+                    {
+                        "aggregate_reports": [{"id": "a"}],
+                        "failure_reports": [{"id": "f"}],
+                        "smtp_tls_reports": [{"id": "t"}],
+                    },
+                    save_aggregate=True,
+                    save_failure=True,
+                    save_smtp_tls=True,
+                )
+        streams = [call.args[1] for call in mock_logs_client.upload.call_args_list]
+        return streams, str(ctx.exception)
+
+    def test_failed_aggregate_upload_does_not_stop_other_streams(self):
+        """GHSA-rg4h-58fm-8pc9: a failed aggregate upload returned before
+        the failure and SMTP TLS streams were sent."""
+        streams, message = self._publish_failing({"agg-stream"})
+        self.assertEqual(streams, ["agg-stream", "fail-stream", "tls-stream"])
+        self.assertIn("aggregate reports", message)
+        self.assertIn("rejected by agg-stream", message)
+        self.assertNotIn("failure reports", message)
+        self.assertNotIn("SMTP TLS reports", message)
+
+    def test_connection_error_does_not_stop_other_streams(self):
+        """upload() re-raises any exception, and a connection reset or
+        timeout is a ServiceRequestError or ServiceResponseError: an
+        AzureError but not an HttpResponseError, so it escaped
+        publish_results at the first stream and the other two were never
+        attempted."""
+        for error_class in (ServiceRequestError, ServiceResponseError):
+            with self.subTest(error_class=error_class.__name__):
+                streams, message = self._publish_failing(
+                    {"agg-stream"}, error_class=error_class
+                )
+                self.assertEqual(streams, ["agg-stream", "fail-stream", "tls-stream"])
+                self.assertEqual(
+                    message, "aggregate reports: Upload failed: rejected by agg-stream"
+                )
+
+    def test_two_failed_streams_raise_one_exception_naming_both(self):
+        streams, message = self._publish_failing({"agg-stream", "tls-stream"})
+        self.assertEqual(streams, ["agg-stream", "fail-stream", "tls-stream"])
+        self.assertIn(
+            "aggregate reports: Upload failed: rejected by agg-stream", message
+        )
+        self.assertIn(
+            "SMTP TLS reports: Upload failed: rejected by tls-stream", message
+        )
+        self.assertNotIn("failure reports", message)
+
+    def test_failed_failure_upload_does_not_stop_smtp_tls_stream(self):
+        streams, message = self._publish_failing({"fail-stream"})
+        self.assertEqual(streams, ["agg-stream", "fail-stream", "tls-stream"])
+        self.assertEqual(
+            message, "failure reports: Upload failed: rejected by fail-stream"
+        )
 
     def test_missing_aggregate_stream_skips_aggregate(self):
         """If the operator hasn't configured a stream for one of the

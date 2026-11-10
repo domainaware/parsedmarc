@@ -187,6 +187,27 @@ The full set of configuration options is:
       bundled IPinfo Lite MMDB (env var:
       `PARSEDMARC_GENERAL_IPINFO_URL`). The pre-9.10 name `ip_db_url` is
       still accepted as a deprecated alias and logs a warning.
+
+    :::{note}
+    The downloaded database is cached as `ipinfo_lite.mmdb` in a per-user
+    directory: `$XDG_CACHE_HOME/parsedmarc` (when `XDG_CACHE_HOME` is an
+    absolute path), otherwise `~/.cache/parsedmarc`, or
+    `%LOCALAPPDATA%\parsedmarc\cache` on Windows. parsedmarc creates the
+    directory with mode `0700` and uses it only if it is a real directory
+    (not a symlink) that the user can write to and, on Linux and macOS,
+    owns and is not writable by its group or by others; an existing
+    directory's permissions are never changed. Otherwise it logs a warning
+    and caches the download in a new private temporary directory that is
+    removed when parsedmarc exits, so the database is downloaded again on
+    every run. A download is cached only if it opens as a valid MMDB file,
+    and when the download fails (or `offline` or `always_use_local_files`
+    is set) the cached copy is used only if it is a regular file (not a
+    symlink) and, on Linux and macOS, owned by the user; otherwise the
+    bundled copy is used. Earlier releases cached the download at a shared
+    path in the system temporary directory
+    (`/tmp/parsedmarc/ipinfo_lite.mmdb` on Linux), which is no longer read;
+    its owner can delete it.
+    :::
   - `ipinfo_api_token` - str: Optional [IPinfo Lite REST API] token. When
       set, IP lookups hit the API first for the freshest country/ASN data
       and fall back to the local MMDB on rate limit, quota exhaustion, or
@@ -210,7 +231,12 @@ The full set of configuration options is:
       see [Encrypted DNS](#encrypted-dns)
   - `dns_test_address` - str: A dummy address used for the DNS pre-flight
       check that runs when `nameservers` is set (Default: `1.1.1.1`)
-  - `dns_timeout` - float: DNS timeout period in seconds (Default: `2.0`)
+  - `dns_timeout` - float: DNS timeout period in seconds (Default: `2.0`).
+      Reverse DNS lookups that fail or are slow (one second or more) are
+      limited to 120 seconds per aggregate report in total, and all of a
+      report's reverse DNS lookups, however fast, to 600 seconds; after
+      either limit, the report's remaining records are enriched from the
+      local IP database and reverse DNS map only, and a warning is logged.
   - `dns_retries` - int: Number of times to retry a DNS query after a
       timeout or other transient error (Default: `0`)
   - `debug` - bool: Print debugging messages
@@ -221,7 +247,10 @@ The full set of configuration options is:
       reports (Default: `False`)
 
     :::{note}
-    This option only controls the process exit code. Retaining mailbox
+    This option only controls the process exit code, with one exception:
+    a report containing a value PostgreSQL rejects is logged and skipped
+    by the PostgreSQL output unless this option is set, and counts as an
+    output error when it is (see `postgresql` below). Retaining mailbox
     messages whose reports could not be saved is automatic and happens
     either way — see
     [Mailbox messages are only archived once the reports are saved](#mailbox-messages-are-only-archived-once-the-reports-are-saved).
@@ -615,7 +644,7 @@ The full set of configuration options is:
     |---|---|---|
     | *"...needs permission to access resources in your organization that only an admin can grant"* / "Admin consent required" | A delegated auth method (`UsernamePassword`, `DeviceCode`) is authenticating with a scope (`Mail.ReadWrite` or `Mail.ReadWrite.Shared`) the tenant admin hasn't consented to yet. | Have an Entra ID admin grant consent: Azure Portal → **Enterprise Applications** → *your app* → **Permissions** → **Grant admin consent**, or `az ad app permission admin-consent --id <CLIENT_ID>`. This is separate from the `New-ApplicationAccessPolicy` step above, which only applies to app-only auth. |
     | `ErrorItemNotFound: ... Default folder Root not found` | `mailsuite` can resolve the well-known folders (`Inbox`, `Archive`, `Drafts`, `Sent Items`, `Deleted Items`, `Junk Email`) even when a mailbox's folder hierarchy hasn't fully provisioned, but a **custom, non-well-known** `reports_folder` name still fails to resolve on such a mailbox. | Point `reports_folder` at (or under) one of the six well-known folder names above, or sign into the (shared) mailbox once via Outlook/OWA to force Exchange to provision it, then retry. |
-    | `RuntimeError: Event loop is closed` | Historical bug, fixed in `mailsuite` 2.0.2. Not reachable with the `mailsuite>=2.2.2` this project requires. | Confirm your installed `mailsuite` version is current (`pip show mailsuite`); upgrade if it's somehow pinned below 2.0.2. |
+    | `RuntimeError: Event loop is closed` | Historical bug, fixed in `mailsuite` 2.0.2. Not reachable with the `mailsuite>=2.3.7` this project requires. | Confirm your installed `mailsuite` version is current (`pip show mailsuite`); upgrade if it's somehow pinned below 2.0.2. |
     | Invalid/rejected timestamp in the `since`/`receivedDateTime` filter | Historical bug (parsedmarc [#706](https://github.com/domainaware/parsedmarc/pull/706)/[#708](https://github.com/domainaware/parsedmarc/pull/708)): older versions appended a spurious `Z` to an already-UTC-offset ISO timestamp. Fixed since parsedmarc 9.5.1/9.5.5. | Upgrade parsedmarc if you're on a version older than 9.5.5. |
     :::
 - `elasticsearch`
@@ -777,8 +806,50 @@ The full set of configuration options is:
     `host`, `port`, `user`, `password`, and `database` settings and do
     not put the password in the connection string: a malformed
     connection string can make the driver echo it back in an error
-    message. parsedmarc replaces such errors with a fixed message in
-    its log, but cannot stop the driver from producing them.
+    message. With a connection string, parsedmarc withholds the
+    driver's message for a connection failure (keeping only the
+    server's SQLSTATE code, when there is one) and does not name the
+    server in its startup warning, because either could repeat part of
+    a password; the separate settings give full diagnostics. An `@` or
+    `/` in a URI's user name or password must be percent-encoded (`@`
+    as `%40`, `/` as `%2F`): libpq ends the user name and password at
+    the first `@` or `/`, so the rest of the password would be parsed
+    as the host, port, database name, or a query parameter. As a
+    convenience, a URI that libpq would parse that way is refused with a
+    fixed error before anything is logged: one with an unencoded `@` in
+    its host list or database name, or in a query value written before
+    the first `/`, or with an `@` after a host whose port is not a
+    number. An `@` in such a place is written `%40` (an abstract socket
+    host as `%40sock`, a database name `d@x` as `d%40x`); an `@` in a
+    query value after a `/`, such as a certificate path, is accepted as
+    written. A keyword/value connection string is not checked: its
+    password is a keyword of its own, and libpq does not percent-decode
+    it.
+  - `sslmode` - str: The libpq TLS mode of the connection, one of
+    `disable`, `allow`, `prefer`, `require`, `verify-ca`, or
+    `verify-full` (Default: `require`). It applies with `host` and with
+    `connection_string`.
+    - `require` encrypts the connection but does not check the server's
+      identity, so a server that offers no TLS is refused, but anyone
+      who can impersonate the server still receives the password.
+    - `verify-ca` also checks that the server's certificate was issued
+      by the CA in `sslrootcert`, and `verify-full` also checks that it
+      names the host. Use `verify-full` with `sslrootcert` for any
+      remote server.
+    - `disable`, `allow`, and `prefer` can let the connection, and the
+      password, travel without encryption. Use them only for a server
+      without TLS on a trusted network. A Unix socket or the loopback
+      address does not need TLS.
+
+    When `sslmode` is not set, an `sslmode=` inside `connection_string`
+    and the `PGSSLMODE` environment variable are respected, in that
+    order, before the default. A warning is logged at startup when the
+    host is a TCP host other than `localhost` or a loopback address and
+    the mode is below `verify-ca`, except `require` with an existing
+    `sslrootcert` file, which libpq verifies as `verify-ca` does.
+  - `sslrootcert` - str: Path to the CA certificate file that
+    `verify-ca` and `verify-full` check the server's certificate
+    against (Optional; `~` and environment variables are expanded)
 
   The PostgreSQL backend is an optional extra. Install it with
   `pip install "parsedmarc[postgresql]"` (it pulls in `psycopg`); the
@@ -798,11 +869,13 @@ The full set of configuration options is:
 
   ```ini
   [postgresql]
-  host = localhost
+  host = db.example.com
   port = 5432
   user = parsedmarc
   password = secret
   database = parsedmarc
+  sslmode = verify-full
+  sslrootcert = /etc/ssl/certs/db-ca.pem
   ```
 
   Or using a DSN/URI, with the password supplied separately (for
@@ -811,8 +884,14 @@ The full set of configuration options is:
 
   ```ini
   [postgresql]
-  connection_string = postgresql://parsedmarc@localhost/parsedmarc
+  connection_string = postgresql:///parsedmarc?host=/var/run/postgresql
   ```
+
+  That example connects over the local Unix socket, which needs no TLS. A
+  TCP connection to `localhost` (`postgresql://parsedmarc@localhost/parsedmarc`)
+  is refused under the default `sslmode = require` unless the server has
+  TLS enabled; for a server without TLS, set `sslmode = disable`, which
+  is safe only for the loopback address, as described under `sslmode`.
 
   Saving parsed data to PostgreSQL is controlled by the `[general]`
   options `save_aggregate`, `save_failure`, and `save_smtp_tls`
@@ -821,6 +900,13 @@ The full set of configuration options is:
   corresponding report types (aggregate DMARC, failure DMARC, and
   SMTP TLS reports) or no data will be written to PostgreSQL, even if
   this section is configured.
+
+  A report with a value PostgreSQL rejects (the server raises a data
+  error, so the connection and the tables are fine) is logged and
+  skipped by the PostgreSQL output, and the rest of the batch is saved
+  and archived as usual; the other outputs still receive that report. Set
+  `fail_on_output_error` to treat it as an output error that stops the
+  run instead.
 
 - `s3`
 
@@ -977,6 +1063,9 @@ The full set of configuration options is:
   - `dcr_aggregate_stream` - str: The stream name for aggregate reports in the DCR
   - `dcr_failure_stream` - str: The stream name for the failure reports in the DCR
   - `dcr_smtp_tls_stream` - str: The stream name for the SMTP TLS reports in the DCR
+
+  A report whose JSON is larger than 1,000,000 bytes, the limit of one Logs Ingestion API call, is not published to Log Analytics, and a warning naming it is logged.
+  The client library packs several reports into one call of up to 1 MiB (1,048,576 bytes), slightly over the API's 1 MB, so a call of several reports that are each under the limit can still be rejected; that failure is reported as an output error, and the batch is retried.
 
   :::{note}
   Information regarding the setup of the Data Collection Rule can be found [in the Azure documentation](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/tutorial-logs-ingestion-portal).
@@ -1176,7 +1265,9 @@ destinations accepted it would still permanently lose the data for the one
 that didn't. It also applies regardless of `fail_on_output_error`, which
 only controls the process exit code. Messages that could not be parsed at
 all carry no report data, so they are filed under `Invalid` (or deleted per
-`delete_invalid`) as usual.
+`delete_invalid`) as usual. A report whose value PostgreSQL rejects is
+not a failure of the destination: the PostgreSQL output logs and skips it
+unless `fail_on_output_error` is set (see `postgresql` above).
 
 A destination that is broken rather than briefly unavailable would
 otherwise be retried forever, so retries are capped. Once a message's batch
@@ -1713,7 +1804,7 @@ could not be opened when parsedmarc started (a warning at startup) is
 retried by the next reload even if the setting is unchanged. (One thing
 an aborted reload does not put back: if it got as far as downloading a
 new IP database from a changed `ipinfo_url`, that file stays in the
-shared cache directory. Which database parsedmarc *uses* is unchanged,
+cache directory. Which database parsedmarc *uses* is unchanged,
 and the cached file is the same one the next restart would download.)
 Elasticsearch and OpenSearch are the exception to "cannot be reached":
 their clients connect lazily and the index migration only warns when the

@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import stat
 import tempfile
 import time
 import traceback
@@ -739,8 +740,11 @@ class TestDownloadUrlCredentialsNotLogged(unittest.TestCase):
         old_path = parsedmarc.utils._IP_DB_PATH
         self.addCleanup(setattr, parsedmarc.utils, "_IP_DB_PATH", old_path)
         parsedmarc.utils._IP_DB_PATH = None
+        old_cache_dir = parsedmarc.utils._IP_DB_CACHE_DIR
+        self.addCleanup(setattr, parsedmarc.utils, "_IP_DB_CACHE_DIR", old_cache_dir)
+        parsedmarc.utils._IP_DB_CACHE_DIR = None
         with (
-            patch("parsedmarc.utils.tempfile.gettempdir", return_value=tmp_dir),
+            patch.dict(os.environ, {"XDG_CACHE_HOME": tmp_dir}),
             self.assertLogs("parsedmarc.log", level="DEBUG") as logs,
         ):
             parsedmarc.utils.load_ip_db(url=url or self.URL)
@@ -2249,26 +2253,85 @@ class TestNameserverCredentialsNotLeaked(unittest.TestCase):
 
 class TestLoadIpDb(unittest.TestCase):
     """Tests for the load_ip_db() download/cache/bundled fallback chain,
-    mocking at the httpx SDK boundary."""
+    mocking at the httpx SDK boundary, and for the per-user cache directory
+    and cached-file checks added for GHSA-5f56-8ph8-v9q5 (the cache used to
+    live at the fixed, shared <tmp>/parsedmarc/ipinfo_lite.mmdb, where
+    another local user could plant a symlink or a database)."""
+
+    _bundled_bytes: bytes | None = None
+
+    @classmethod
+    def bundled_bytes(cls) -> bytes:
+        """A real MMDB body for a download to return."""
+        if cls._bundled_bytes is None:
+            cls._bundled_bytes = (
+                files(parsedmarc.resources.ipinfo)
+                .joinpath("ipinfo_lite.mmdb")
+                .read_bytes()
+            )
+        return cls._bundled_bytes
 
     def setUp(self):
         old_ip_db_path = parsedmarc.utils._IP_DB_PATH
+        old_cache_dir = parsedmarc.utils._IP_DB_CACHE_DIR
         parsedmarc.utils._IP_DB_PATH = None
+        parsedmarc.utils._IP_DB_CACHE_DIR = None
 
         def restore():
             parsedmarc.utils._IP_DB_PATH = old_ip_db_path
+            parsedmarc.utils._IP_DB_CACHE_DIR = old_cache_dir
 
         self.addCleanup(restore)
 
-        # Redirect the download cache into a per-test directory so the
-        # tests never touch (or depend on) the real tempdir cache.
+        # Point the per-user cache into a per-test directory so the tests
+        # never touch (or depend on) the real ~/.cache/parsedmarc.
         self.tmp_dir = tempfile.mkdtemp()
         self.addCleanup(lambda: shutil.rmtree(self.tmp_dir, ignore_errors=True))
-        patcher = patch(
-            "parsedmarc.utils.tempfile.gettempdir", return_value=self.tmp_dir
-        )
+        self.cache_home = os.path.join(self.tmp_dir, "cache-home")
+        self.cache_dir = os.path.join(self.cache_home, "parsedmarc")
+        self.cached_path = os.path.join(self.cache_dir, "ipinfo_lite.mmdb")
+        patcher = patch.dict(os.environ, {"XDG_CACHE_HOME": self.cache_home})
         patcher.start()
         self.addCleanup(patcher.stop)
+
+    @property
+    def bundled(self) -> str:
+        return str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
+
+    def _response(self, content: bytes) -> MagicMock:
+        response = MagicMock()
+        response.content = content
+        response.raise_for_status.return_value = None
+        return response
+
+    def _track_temp_fallback(self) -> None:
+        """Removes the temporary directory a rejected cache directory made
+        load_ip_db() create, once the test ends."""
+
+        def remove():
+            chosen = parsedmarc.utils._IP_DB_CACHE_DIR
+            if chosen is not None and chosen[1] != chosen[0]:
+                shutil.rmtree(chosen[1], ignore_errors=True)
+
+        self.addCleanup(remove)
+
+    def _assert_temp_fallback(self, cm) -> str:
+        """Asserts the rejected-directory warning and that the cache moved
+        to a fresh parsedmarc- directory under the system temp dir, and
+        returns that directory."""
+        self.assertTrue(
+            any(
+                f"Not using {self.cache_dir} for the IP database cache" in m
+                for m in cm.output
+            ),
+            cm.output,
+        )
+        chosen = parsedmarc.utils._IP_DB_CACHE_DIR
+        assert chosen is not None
+        fallback = chosen[1]
+        self.assertEqual(os.path.dirname(fallback), tempfile.gettempdir())
+        self.assertTrue(os.path.basename(fallback).startswith("parsedmarc-"))
+        return fallback
 
     def testExistingLocalFileIsUsedDirectly(self):
         """An existing local_file_path wins without any network request"""
@@ -2281,24 +2344,25 @@ class TestLoadIpDb(unittest.TestCase):
         self.assertEqual(parsedmarc.utils._IP_DB_PATH, local_path)
 
     def testDownloadSuccessWritesCacheFile(self):
-        """A successful download is written to the cache path and selected"""
-        response = MagicMock()
-        response.content = b"downloaded db bytes"
-        response.raise_for_status.return_value = None
-        with patch("parsedmarc.utils.httpx.get", return_value=response) as mock_get:
+        """A successful download of a valid MMDB is written to the per-user
+        cache path, created 0700, and selected; no temporary file is left"""
+        body = self.bundled_bytes()
+        with patch(
+            "parsedmarc.utils.httpx.get", return_value=self._response(body)
+        ) as mock_get:
             parsedmarc.utils.load_ip_db(url="https://example.com/db.mmdb")
         self.assertEqual(mock_get.call_args.args[0], "https://example.com/db.mmdb")
-        cached_path = os.path.join(self.tmp_dir, "parsedmarc", "ipinfo_lite.mmdb")
-        self.assertEqual(parsedmarc.utils._IP_DB_PATH, cached_path)
-        with open(cached_path, "rb") as f:
-            self.assertEqual(f.read(), b"downloaded db bytes")
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.cached_path)
+        with open(self.cached_path, "rb") as f:
+            self.assertEqual(f.read(), body)
+        self.assertEqual(os.listdir(self.cache_dir), ["ipinfo_lite.mmdb"])
+        if os.name != "nt":
+            self.assertEqual(os.stat(self.cache_dir).st_mode & 0o777, 0o700)
 
     def testDownloadFailureFallsBackToCachedCopy(self):
         """On a network error, a previously cached copy is selected"""
-        cache_dir = os.path.join(self.tmp_dir, "parsedmarc")
-        os.makedirs(cache_dir)
-        cached_path = os.path.join(cache_dir, "ipinfo_lite.mmdb")
-        with open(cached_path, "wb") as f:
+        os.makedirs(self.cache_dir, mode=0o700)
+        with open(self.cached_path, "wb") as f:
             f.write(b"stale cached db")
         with patch(
             "parsedmarc.utils.httpx.get",
@@ -2309,7 +2373,7 @@ class TestLoadIpDb(unittest.TestCase):
         self.assertTrue(
             any("Failed to fetch IP database" in message for message in cm.output)
         )
-        self.assertEqual(parsedmarc.utils._IP_DB_PATH, cached_path)
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.cached_path)
 
     def testDownloadFailureFallsBackToBundledCopy(self):
         """On a network error with no cached copy, the bundled db is used"""
@@ -2318,28 +2382,418 @@ class TestLoadIpDb(unittest.TestCase):
             side_effect=httpx.ConnectError("no network"),
         ):
             parsedmarc.utils.load_ip_db()
-        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
-        self.assertEqual(parsedmarc.utils._IP_DB_PATH, bundled)
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
 
     def testSaveFailureFallsBackToBundledCopy(self):
-        """A download that cannot be written to disk logs a warning and
-        falls back to the bundled db instead of crashing. The cache dir is
-        made uncreatable by pointing gettempdir at a regular file."""
-        blocker = os.path.join(self.tmp_dir, "blocker")
-        with open(blocker, "wb") as f:
-            f.write(b"not a directory")
-        response = MagicMock()
-        response.content = b"downloaded db bytes"
-        response.raise_for_status.return_value = None
-        with patch("parsedmarc.utils.tempfile.gettempdir", return_value=blocker):
-            with patch("parsedmarc.utils.httpx.get", return_value=response):
-                with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
-                    parsedmarc.utils.load_ip_db()
+        """A download that cannot be written to disk logs a warning, leaves
+        no temporary file, and falls back to the bundled db instead of
+        crashing."""
+        with (
+            patch(
+                "parsedmarc.utils.httpx.get",
+                return_value=self._response(self.bundled_bytes()),
+            ),
+            patch("parsedmarc.utils.os.replace", side_effect=OSError("disk full")),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            parsedmarc.utils.load_ip_db()
         self.assertTrue(
-            any("Failed to save IP database" in message for message in cm.output)
+            any(
+                "Failed to save IP database: disk full" in message
+                for message in cm.output
+            ),
+            cm.output,
         )
-        bundled = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
-        self.assertEqual(parsedmarc.utils._IP_DB_PATH, bundled)
+        self.assertEqual(os.listdir(self.cache_dir), [])
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    def testUncreatableCacheDirUsesTemporaryDirectory(self):
+        """When the per-user cache directory cannot be created (here its
+        path is a regular file), a warning names it, and the download goes
+        to a private temporary directory for this run instead."""
+        self._track_temp_fallback()
+        os.makedirs(self.cache_home)
+        with open(self.cache_dir, "wb") as f:
+            f.write(b"not a directory")
+        with (
+            patch(
+                "parsedmarc.utils.httpx.get",
+                return_value=self._response(self.bundled_bytes()),
+            ),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            parsedmarc.utils.load_ip_db()
+        fallback = self._assert_temp_fallback(cm)
+        self.assertIn("cannot be created", "\n".join(cm.output))
+        self.assertEqual(
+            parsedmarc.utils._IP_DB_PATH, os.path.join(fallback, "ipinfo_lite.mmdb")
+        )
+        if os.name != "nt":
+            self.assertEqual(os.stat(fallback).st_mode & 0o777, 0o700)
+
+        # A second call in the same process reuses that directory without
+        # repeating the warning.
+        with (
+            patch(
+                "parsedmarc.utils.httpx.get",
+                side_effect=httpx.ConnectError("no network"),
+            ),
+            self.assertLogs("parsedmarc.log", level="INFO") as cm2,
+        ):
+            parsedmarc.utils.load_ip_db()
+        self.assertFalse(any("Not using" in m for m in cm2.output), cm2.output)
+        self.assertEqual(
+            parsedmarc.utils._IP_DB_PATH, os.path.join(fallback, "ipinfo_lite.mmdb")
+        )
+
+    def testTemporaryDirectoryFailureFallsBackToBundledCopy(self):
+        """If even the temporary directory cannot be created, load_ip_db()
+        warns and uses the bundled db rather than crashing startup."""
+        os.makedirs(self.cache_home)
+        with open(self.cache_dir, "wb") as f:
+            f.write(b"not a directory")
+        with (
+            patch(
+                "parsedmarc.utils.tempfile.mkdtemp",
+                side_effect=OSError("no temp space"),
+            ),
+            patch("parsedmarc.utils.httpx.get") as mock_get,
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            parsedmarc.utils.load_ip_db()
+        mock_get.assert_not_called()
+        self.assertTrue(
+            any(
+                "Failed to create a temporary IP database cache: no temp space" in m
+                for m in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    @unittest.skipIf(os.name == "nt", "POSIX symlink semantics")
+    def testSymlinkAtCachedPathIsReplacedNotFollowed(self):
+        """A symlink planted at the cached path does not redirect the
+        download into the file it points at: the victim file is unchanged
+        and the cached path becomes a regular file holding the download."""
+        os.makedirs(self.cache_dir, mode=0o700)
+        victim = os.path.join(self.tmp_dir, "victim.ini")
+        with open(victim, "w") as f:
+            f.write("[general]\noriginal\n")
+        os.symlink(victim, self.cached_path)
+        body = self.bundled_bytes()
+        with patch("parsedmarc.utils.httpx.get", return_value=self._response(body)):
+            parsedmarc.utils.load_ip_db()
+        with open(victim) as f:
+            self.assertEqual(f.read(), "[general]\noriginal\n")
+        self.assertTrue(stat.S_ISREG(os.lstat(self.cached_path).st_mode))
+        with open(self.cached_path, "rb") as f:
+            self.assertEqual(f.read(), body)
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.cached_path)
+
+    @unittest.skipIf(os.name == "nt", "POSIX symlink semantics")
+    def testOfflineIgnoresSymlinkAtCachedPath(self):
+        """Offline, a symlink at the cached path is not used; the bundled
+        db is."""
+        os.makedirs(self.cache_dir, mode=0o700)
+        planted = os.path.join(self.tmp_dir, "planted.mmdb")
+        with open(planted, "wb") as f:
+            f.write(self.bundled_bytes()[:16])
+        os.symlink(planted, self.cached_path)
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            parsedmarc.utils.load_ip_db(offline=True)
+        self.assertTrue(
+            any(
+                f"Ignoring the cached IP database at {self.cached_path}: "
+                "it is a symlink" in m
+                for m in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    def testOfflineIgnoresNonRegularCachedPath(self):
+        """A directory at the cached path is not a usable cached copy."""
+        os.makedirs(self.cached_path, mode=0o700)
+        with self.assertLogs("parsedmarc.log", level="WARNING") as cm:
+            parsedmarc.utils.load_ip_db(offline=True)
+        self.assertTrue(
+            any("it is not a regular file" in m for m in cm.output), cm.output
+        )
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    @unittest.skipIf(not hasattr(os, "geteuid"), "POSIX ownership")
+    def testOfflineIgnoresCachedCopyOwnedByAnotherUser(self):
+        """A cached copy owned by another user is not used. Creating a file
+        owned by someone else needs root, so the effective uid is reported
+        as a different one instead: from the code's side the two are the
+        same observation (st_uid != geteuid()). The cache directory is
+        created first, under the real uid, so only the file check sees the
+        mismatch."""
+        os.makedirs(self.cache_dir, mode=0o700)
+        with open(self.cached_path, "wb") as f:
+            f.write(b"someone else's db")
+        parsedmarc.utils._IP_DB_CACHE_DIR = (self.cache_dir, self.cache_dir)
+        with (
+            patch("parsedmarc.utils.os.geteuid", return_value=os.geteuid() + 1),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            parsedmarc.utils.load_ip_db(offline=True)
+        self.assertTrue(
+            any("it is owned by another user" in m for m in cm.output), cm.output
+        )
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    def testInvalidDownloadIsDiscarded(self):
+        """A download that is not an MMDB is not cached: a warning is
+        logged, no file is left in the cache directory, and the bundled db
+        is used."""
+        with (
+            patch(
+                "parsedmarc.utils.httpx.get",
+                return_value=self._response(b"not a database"),
+            ),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            parsedmarc.utils.load_ip_db()
+        self.assertTrue(
+            any(
+                "Downloaded IP database is not a valid MMDB file" in m
+                for m in cm.output
+            ),
+            cm.output,
+        )
+        self.assertEqual(os.listdir(self.cache_dir), [])
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    def testInvalidDownloadKeepsPreviousCachedCopy(self):
+        """An invalid download neither replaces nor hides a valid cached
+        copy from an earlier run."""
+        os.makedirs(self.cache_dir, mode=0o700)
+        with open(self.cached_path, "wb") as f:
+            f.write(b"earlier download")
+        with patch(
+            "parsedmarc.utils.httpx.get",
+            return_value=self._response(b"not a database"),
+        ):
+            parsedmarc.utils.load_ip_db()
+        with open(self.cached_path, "rb") as f:
+            self.assertEqual(f.read(), b"earlier download")
+        self.assertEqual(os.listdir(self.cache_dir), ["ipinfo_lite.mmdb"])
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.cached_path)
+
+    @unittest.skipIf(not hasattr(os, "geteuid"), "POSIX permissions")
+    def testWorldWritableCacheDirIsNotUsed(self):
+        """A world-writable cache directory (which another user could have
+        filled) is rejected and left as it is: a database planted in it is
+        not selected, and the download goes to a temporary directory."""
+        self._track_temp_fallback()
+        os.makedirs(self.cache_dir)
+        os.chmod(self.cache_dir, 0o777)
+        with open(self.cached_path, "wb") as f:
+            f.write(b"PLANTED")
+        with (
+            patch(
+                "parsedmarc.utils.httpx.get",
+                return_value=self._response(self.bundled_bytes()),
+            ),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            parsedmarc.utils.load_ip_db()
+        fallback = self._assert_temp_fallback(cm)
+        self.assertIn("writable by its group or by others", "\n".join(cm.output))
+        self.assertEqual(
+            parsedmarc.utils._IP_DB_PATH, os.path.join(fallback, "ipinfo_lite.mmdb")
+        )
+        # Not repaired: the directory may belong to someone else.
+        self.assertEqual(os.stat(self.cache_dir).st_mode & 0o777, 0o777)
+        with open(self.cached_path, "rb") as f:
+            self.assertEqual(f.read(), b"PLANTED")
+
+    def _parsedmarc_temp_dirs(self) -> set[str]:
+        return {
+            name
+            for name in os.listdir(tempfile.gettempdir())
+            if name.startswith("parsedmarc-")
+        }
+
+    def _load_with_failed_download(self):
+        """Runs load_ip_db() online with the download failing, capturing
+        warnings; a rejected cache directory is still replaced by a
+        temporary one, because a download was attempted."""
+        with (
+            patch(
+                "parsedmarc.utils.httpx.get",
+                side_effect=httpx.ConnectError("no network"),
+            ),
+            self.assertLogs("parsedmarc.log", level="WARNING") as cm,
+        ):
+            parsedmarc.utils.load_ip_db()
+        return cm
+
+    @unittest.skipIf(not hasattr(os, "geteuid"), "POSIX permissions")
+    def testWorldWritableCacheDirOfflineUsesBundledCopy(self):
+        """Offline (and with always_use_local_file) nothing is downloaded,
+        so a rejected cache directory is not replaced: the planted database
+        in it is not selected, the bundled db is, no temporary directory is
+        created, and no warning claims the database "will be downloaded
+        again on every run"."""
+        self._track_temp_fallback()
+        os.makedirs(self.cache_dir)
+        os.chmod(self.cache_dir, 0o777)
+        with open(self.cached_path, "wb") as f:
+            f.write(b"PLANTED")
+        for offline, always_use_local_file in ((True, False), (False, True)):
+            with self.subTest(
+                offline=offline, always_use_local_file=always_use_local_file
+            ):
+                parsedmarc.utils._IP_DB_PATH = None
+                before = self._parsedmarc_temp_dirs()
+                with (
+                    patch("parsedmarc.utils.httpx.get") as mock_get,
+                    self.assertNoLogs("parsedmarc.log", level="WARNING"),
+                    self.assertLogs("parsedmarc.log", level="DEBUG") as cm,
+                ):
+                    parsedmarc.utils.load_ip_db(
+                        offline=offline, always_use_local_file=always_use_local_file
+                    )
+                mock_get.assert_not_called()
+                self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+                self.assertIsNone(parsedmarc.utils._IP_DB_CACHE_DIR)
+                self.assertEqual(self._parsedmarc_temp_dirs(), before)
+                self.assertNotIn("downloaded again", "\n".join(cm.output))
+
+    def testOfflineDoesNotCreateTheCacheDir(self):
+        """Offline, a missing per-user cache directory is not created."""
+        parsedmarc.utils.load_ip_db(offline=True)
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+        self.assertFalse(os.path.exists(self.cache_home))
+
+    def testOfflineReusesTheDirectoryChosenEarlier(self):
+        """Offline after an online load in the same process, a copy in the
+        temporary directory that replaced a rejected candidate is used."""
+        chosen = os.path.join(self.tmp_dir, "chosen")
+        os.makedirs(chosen, mode=0o700)
+        with open(os.path.join(chosen, "ipinfo_lite.mmdb"), "wb") as f:
+            f.write(b"earlier download")
+        parsedmarc.utils._IP_DB_CACHE_DIR = (self.cache_dir, chosen)
+        parsedmarc.utils.load_ip_db(offline=True)
+        self.assertEqual(
+            parsedmarc.utils._IP_DB_PATH, os.path.join(chosen, "ipinfo_lite.mmdb")
+        )
+
+    @unittest.skipIf(not hasattr(os, "geteuid"), "POSIX ownership")
+    def testCacheDirOwnedByAnotherUserIsNotUsed(self):
+        """A cache directory owned by another user is rejected. As in
+        testOfflineIgnoresCachedCopyOwnedByAnotherUser, a directory really
+        owned by someone else needs root, so the effective uid is reported
+        as a different one."""
+        self._track_temp_fallback()
+        os.makedirs(self.cache_dir, mode=0o700)
+        with open(self.cached_path, "wb") as f:
+            f.write(b"PLANTED")
+        with patch("parsedmarc.utils.os.geteuid", return_value=os.geteuid() + 1):
+            cm = self._load_with_failed_download()
+        self._assert_temp_fallback(cm)
+        self.assertIn("it is owned by another user", "\n".join(cm.output))
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    @unittest.skipIf(
+        not hasattr(os, "geteuid") or os.geteuid() == 0,
+        "POSIX permissions, which root bypasses",
+    )
+    def testReadOnlyCacheDirIsNotUsed(self):
+        """A cache directory the user cannot write to is rejected."""
+        self._track_temp_fallback()
+        os.makedirs(self.cache_dir, mode=0o700)
+        os.chmod(self.cache_dir, 0o500)
+        self.addCleanup(os.chmod, self.cache_dir, 0o700)
+        cm = self._load_with_failed_download()
+        self._assert_temp_fallback(cm)
+        self.assertIn("it is not writable", "\n".join(cm.output))
+
+    @unittest.skipIf(os.name == "nt", "POSIX symlink semantics")
+    def testSymlinkedCacheDirIsNotUsed(self):
+        """A cache directory that is a symlink (here to a directory holding
+        a planted database) is rejected, and the planted file not used,
+        online or offline."""
+        self._track_temp_fallback()
+        target = os.path.join(self.tmp_dir, "elsewhere")
+        os.makedirs(target, mode=0o700)
+        with open(os.path.join(target, "ipinfo_lite.mmdb"), "wb") as f:
+            f.write(b"PLANTED")
+        os.makedirs(self.cache_home)
+        os.symlink(target, self.cache_dir)
+        parsedmarc.utils.load_ip_db(offline=True)
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+        cm = self._load_with_failed_download()
+        self._assert_temp_fallback(cm)
+        self.assertIn("it is not a directory", "\n".join(cm.output))
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    @unittest.skipIf(os.name == "nt", "POSIX cache location")
+    def testHomelessCacheDirUsesTemporaryDirectory(self):
+        """With HOME unset and no passwd entry for the uid,
+        os.path.expanduser() returns "~/.cache/parsedmarc" unchanged, a
+        relative path, which would have put the cache under the current
+        directory. It is now rejected like any unsafe directory, and
+        nothing is created in the current directory."""
+        self._track_temp_fallback()
+        workdir = os.path.join(self.tmp_dir, "cwd")
+        os.makedirs(workdir)
+        old_cwd = os.getcwd()
+        os.chdir(workdir)
+        self.addCleanup(os.chdir, old_cwd)
+        env = {k: v for k, v in os.environ.items() if k != "XDG_CACHE_HOME"}
+        with (
+            patch.dict(os.environ, env, clear=True),
+            patch("parsedmarc.utils.os.path.expanduser", side_effect=lambda p: p),
+        ):
+            cm = self._load_with_failed_download()
+        output = "\n".join(cm.output)
+        self.assertIn("for the IP database cache: it is not an absolute path", output)
+        self.assertIn("will be downloaded again on every run", output)
+        chosen = parsedmarc.utils._IP_DB_CACHE_DIR
+        assert chosen is not None
+        self.assertTrue(os.path.isabs(chosen[1]))
+        self.assertEqual(os.listdir(workdir), [])
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, self.bundled)
+
+    @unittest.skipIf(os.name == "nt", "POSIX cache location")
+    def testRelativeXdgCacheHomeIsIgnored(self):
+        """A relative XDG_CACHE_HOME is invalid per the XDG Base Directory
+        specification and ignored in favor of ~/.cache/parsedmarc."""
+        home = os.path.join(self.tmp_dir, "home")
+        with patch.dict(os.environ, {"XDG_CACHE_HOME": "relative/cache", "HOME": home}):
+            with patch(
+                "parsedmarc.utils.httpx.get",
+                return_value=self._response(self.bundled_bytes()),
+            ):
+                parsedmarc.utils.load_ip_db()
+        expected = os.path.join(home, ".cache", "parsedmarc", "ipinfo_lite.mmdb")
+        self.assertEqual(parsedmarc.utils._IP_DB_PATH, expected)
+        self.assertTrue(os.path.isfile(expected))
+        self.assertFalse(os.path.exists("relative"))
+
+    def testWindowsCacheLocation(self):
+        """On Windows the cache lives under %LOCALAPPDATA%, or under
+        ~/AppData/Local when that variable is unset."""
+        home = os.path.join(self.tmp_dir, "home")
+        with (
+            patch("parsedmarc.utils.os.name", "nt"),
+            patch.dict(
+                os.environ,
+                {"LOCALAPPDATA": "/lad", "HOME": home, "USERPROFILE": home},
+            ),
+        ):
+            with_var = parsedmarc.utils._ip_db_cache_dir_candidate()
+            del os.environ["LOCALAPPDATA"]
+            without_var = parsedmarc.utils._ip_db_cache_dir_candidate()
+        self.assertEqual(with_var, os.path.join("/lad", "parsedmarc", "cache"))
+        self.assertEqual(
+            without_var,
+            os.path.join(home, "AppData", "Local", "parsedmarc", "cache"),
+        )
 
 
 class TestConfigureIpinfoApiProbe(unittest.TestCase):

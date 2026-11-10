@@ -10,6 +10,8 @@ import email.errors
 import email.message
 import email.utils
 import functools
+import hashlib
+import ipaddress
 import json
 import logging
 import mailbox
@@ -18,6 +20,7 @@ import quopri
 import re
 import shutil
 import tempfile
+import time
 import traceback
 import xml.parsers.expat as expat
 import zipfile
@@ -26,6 +29,7 @@ from base64 import b64decode
 from collections import deque
 from collections.abc import Callable, Sequence
 from csv import DictWriter
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone, tzinfo
 from io import BytesIO, StringIO
 from typing import (
@@ -52,6 +56,10 @@ from parsedmarc.config import (
 from parsedmarc.constants import (
     DEFAULT_DNS_MAX_RETRIES,
     DEFAULT_DNS_TIMEOUT,
+    MAX_FAILED_REVERSE_DNS_SECONDS_PER_REPORT,
+    MAX_REVERSE_DNS_SECONDS_PER_REPORT,
+    SLOW_REVERSE_DNS_SECONDS,
+    MAX_MESSAGE_COUNT,
     MAX_NORMALIZED_RECORDS,
     MAX_REPORT_FUTURE_DAYS,
     MAX_REPORT_SPAN_DAYS,
@@ -78,6 +86,7 @@ from parsedmarc.types import (
     SMTPTLSReport,
 )
 from parsedmarc.utils import (
+    IPAddressInfo,
     convert_outlook_msg,
     get_base_domain,
     get_filename_safe_string,
@@ -751,11 +760,143 @@ def _scalarize_report(report: dict[str, Any]) -> None:
         _scalar_fields(policy, _POLICY_PUBLISHED_SCALARS)
 
 
+def _strip_zone_id(value: str, field_name: str) -> str:
+    """Return an IP address without its IPv6 zone ID, if it has one.
+
+    A zone ID (``fe80::1%eth0``) is local to the reporting host, and the
+    PostgreSQL ``inet`` type cannot hold one (GHSA-fxr7-7h9q-v949). ``%``
+    appears in no other form of an IP address, so everything from the
+    first ``%`` is removed (``fe80::1%25eth0`` and ``fe80::1%`` also give
+    ``fe80::1``), and a warning naming the field is logged. The remaining
+    text is not checked here; the caller's own handling of an invalid IP
+    address applies to it.
+
+    Args:
+        value: The address, as the report gives it
+        field_name: The report field that gave it, for the warning
+
+    Returns:
+        str: ``value`` up to its first ``%``
+    """
+    address, sep, _zone = value.partition("%")
+    if sep:
+        logger.warning(
+            f"Removed the IPv6 zone ID from {field_name}: {sanitize_for_log(value)}"
+        )
+    return address
+
+
+@dataclass
+class _ReverseDNSBudget:
+    """Per-report state that bounds the time an aggregate report spends in
+    reverse DNS lookups (GHSA-rwfh-ww9c-jm9m).
+
+    Attributes:
+        seconds_left: Seconds of failed or slow lookups the report may still
+            spend (``MAX_FAILED_REVERSE_DNS_SECONDS_PER_REPORT``)
+        total_seconds_left: Seconds of lookups of any kind the report may
+            still spend (``MAX_REVERSE_DNS_SECONDS_PER_REPORT``)
+        memo: Source information already produced in this report, by
+            lowercase IP address, so each distinct IP is looked up at most
+            once per report
+        exhausted: Whether either budget is spent; the report's remaining
+            IPs are then enriched from the local IP database and reverse
+            DNS map only
+    """
+
+    seconds_left: float = field(
+        default_factory=lambda: MAX_FAILED_REVERSE_DNS_SECONDS_PER_REPORT
+    )
+    total_seconds_left: float = field(
+        default_factory=lambda: MAX_REVERSE_DNS_SECONDS_PER_REPORT
+    )
+    memo: dict[str, IPAddressInfo] = field(default_factory=dict)
+    exhausted: bool = False
+
+
+_REVERSE_DNS_BUDGET_FALLBACK = (
+    "; the remaining records are enriched from the local IP database and "
+    "reverse DNS map only"
+)
+
+
+def _enrich_record_source(
+    source_ip: str, config: ParserConfig, budget: _ReverseDNSBudget
+) -> IPAddressInfo:
+    """Return the source information for one record's ``source_ip``.
+
+    A record's source IP is chosen by the report's sender, and a reverse
+    zone that never answers costs the whole DNS lifetime (8 s with the
+    default nameservers), so the time of every online lookup is charged to
+    ``budget``. The time of a lookup that returns no PTR, or that takes at
+    least ``SLOW_REVERSE_DNS_SECONDS`` even though it found one (the sender
+    may control the reverse zone and answer every query just before the
+    timeout), is charged to the failed-or-slow budget; the time of every
+    lookup, however fast, is charged to the total budget as well, because a
+    zone that answers just under the slow threshold is otherwise never
+    charged and the number of records is not bounded. A lookup answered
+    from the IP address cache is charged too, but takes microseconds. Once
+    either budget is spent, one warning names the limit reached, and the
+    remaining IPs are enriched from the local IP database and reverse DNS
+    map only; those results are not cached, because the IP may well have a
+    PTR. An IP already seen in this report is answered from ``budget.memo``
+    and not charged.
+    """
+    ip = source_ip.lower()
+    if ip in budget.memo:
+        return budget.memo[ip]
+    common: dict[str, Any] = dict(
+        ip_db_path=config.ip_db_path,
+        always_use_local_files=config.always_use_local_files,
+        reverse_dns_map_path=config.reverse_dns_map_path,
+        reverse_dns_map_url=config.reverse_dns_map_url,
+        reverse_dns_map=config.reverse_dns_map,
+        nameservers=config.nameservers,
+        timeout=config.dns_timeout,
+        retries=config.dns_retries,
+        psl_overrides_path=config.psl_overrides_path,
+        psl_overrides_url=config.psl_overrides_url,
+    )
+    if budget.exhausted or config.offline:
+        result = get_ip_address_info(
+            ip,
+            offline=True,
+            cache=None if budget.exhausted else config.ip_address_cache,
+            **common,
+        )
+    else:
+        start = time.monotonic()
+        result = get_ip_address_info(
+            ip, offline=False, cache=config.ip_address_cache, **common
+        )
+        elapsed = time.monotonic() - start
+        budget.total_seconds_left -= elapsed
+        if result["reverse_dns"] is None or elapsed >= SLOW_REVERSE_DNS_SECONDS:
+            budget.seconds_left -= elapsed
+        if budget.seconds_left <= 0:
+            budget.exhausted = True
+            logger.warning(
+                "Reverse DNS lookups for this report failed or were slow for "
+                f"{MAX_FAILED_REVERSE_DNS_SECONDS_PER_REPORT:.0f} seconds"
+                + _REVERSE_DNS_BUDGET_FALLBACK
+            )
+        elif budget.total_seconds_left <= 0:
+            budget.exhausted = True
+            logger.warning(
+                "Reverse DNS lookups for this report took more than "
+                f"{MAX_REVERSE_DNS_SECONDS_PER_REPORT:.0f} seconds"
+                + _REVERSE_DNS_BUDGET_FALLBACK
+            )
+    budget.memo[ip] = result
+    return result
+
+
 def _parse_report_record(
     record: dict[str, Any],
     *,
     config: ParserConfig,
     is_rfc_9990: bool = False,
+    dns_budget: _ReverseDNSBudget | None = None,
 ) -> dict[str, Any]:
     """
     Converts a record from a DMARC aggregate report into a more consistent
@@ -766,9 +907,16 @@ def _parse_report_record(
         config (ParserConfig): Parsing and enrichment options, plus caches
         is_rfc_9990 (bool): Whether the enclosing report was detected as
             RFC 9990-shaped, for RFC 9990-aware validation warnings
+        dns_budget (_ReverseDNSBudget | None): The enclosing report's
+            reverse DNS budget; ``None`` gives the record a budget of its own
 
     Returns:
         dict: The converted record
+
+    Raises:
+        ValueError: If the source IP is empty or not an IP address (after
+            its IPv6 zone ID, if any, is removed), or the count is not an
+            integer between 0 and ``MAX_MESSAGE_COUNT``
     """
     record = record.copy()
     new_record: dict[str, Any] = {}
@@ -777,25 +925,19 @@ def _parse_report_record(
     _scalar_fields(record["row"], ("source_ip",))
     if record["row"]["source_ip"] is None:
         raise ValueError("Source IP address is empty")
-    new_record_source = get_ip_address_info(
-        record["row"]["source_ip"],
-        cache=config.ip_address_cache,
-        ip_db_path=config.ip_db_path,
-        always_use_local_files=config.always_use_local_files,
-        reverse_dns_map_path=config.reverse_dns_map_path,
-        reverse_dns_map_url=config.reverse_dns_map_url,
-        reverse_dns_map=config.reverse_dns_map,
-        offline=config.offline,
-        nameservers=config.nameservers,
-        timeout=config.dns_timeout,
-        retries=config.dns_retries,
-        psl_overrides_path=config.psl_overrides_path,
-        psl_overrides_url=config.psl_overrides_url,
-    )
-    new_record["source"] = new_record_source
+    source_ip = _strip_zone_id(record["row"]["source_ip"], "source_ip")
     # A <count> with no text of its own (child elements only, or repeated)
     # becomes "", so int() raises the ValueError of a non-numeric count.
-    new_record["count"] = int(_scalar(record["row"]["count"]) or "")
+    count = int(_scalar(record["row"]["count"]) or "")
+    # A count no output's 32-bit integer column can hold is rejected here,
+    # not by the output (GHSA-fxr7-7h9q-v949), and before the reverse DNS
+    # lookup, which a record that is dropped anyway should not wait on.
+    if not 0 <= count <= MAX_MESSAGE_COUNT:
+        raise ValueError(f"count {count} is outside 0..{MAX_MESSAGE_COUNT}")
+    if dns_budget is None:
+        dns_budget = _ReverseDNSBudget()
+    new_record["source"] = _enrich_record_source(source_ip, config, dns_budget)
+    new_record["count"] = count
     policy_evaluated = record["row"]["policy_evaluated"].copy()
     _scalar_fields(policy_evaluated, ("disposition", "dkim", "spf"))
     new_policy_evaluated: dict[str, Any] = {
@@ -1019,17 +1161,26 @@ def _smtp_tls_mx_host_patterns(value: Any, field: str) -> list[str]:
 
 
 def _smtp_tls_count(value: Any, field: str) -> int | None:
-    """Return ``value`` if it is an integer or null.
+    """Return ``value`` if it is null or an integer from 0 to
+    ``MAX_MESSAGE_COUNT``.
 
     RFC 8460 §4.4 encodes each session count as "an integer, encoded as a
     JSON number". ``null`` is tolerated as an unreported count. A JSON
     ``true``/``false`` is rejected even though ``bool`` subclasses ``int``.
+    A count outside ``0..MAX_MESSAGE_COUNT`` is rejected because the
+    PostgreSQL, Elasticsearch and OpenSearch outputs store counts as 32-bit
+    integers (GHSA-fxr7-7h9q-v949). Raises ``InvalidSMTPTLSReport``
+    otherwise.
     """
-    if value is None or (isinstance(value, int) and not isinstance(value, bool)):
+    if value is None:
         return value
-    raise InvalidSMTPTLSReport(
-        f"{field} must be an integer, not {type(value).__name__}"
-    )
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise InvalidSMTPTLSReport(
+            f"{field} must be an integer, not {type(value).__name__}"
+        )
+    if not 0 <= value <= MAX_MESSAGE_COUNT:
+        raise InvalidSMTPTLSReport(f"{field} must be between 0 and {MAX_MESSAGE_COUNT}")
+    return value
 
 
 def _smtp_tls_datetime(value: Any, field: str) -> str:
@@ -1040,11 +1191,12 @@ def _smtp_tls_datetime(value: Any, field: str) -> str:
     Elasticsearch, OpenSearch and S3 outputs (a UTC ``datetime``) and the
     Splunk output (a UNIX timestamp) make later. dateutil also accepts a
     partial date such as ``"2016"``, which PostgreSQL may still reject; that
-    failure is raised as ``PostgreSQLError`` and recorded as an output
-    error. A ``start-datetime`` more than ``MAX_REPORT_FUTURE_DAYS`` days in
-    the future is also rejected, because it names the dated index (#947);
-    ``end-datetime`` is not checked. Raises ``InvalidSMTPTLSReport``
-    otherwise.
+    failure is raised as ``PostgreSQLRejectedReport``, which skips the
+    report in the PostgreSQL output only (an output error with
+    ``fail_on_output_error``). A ``start-datetime`` more than
+    ``MAX_REPORT_FUTURE_DAYS`` days in the future is also rejected, because
+    it names the dated index (#947); ``end-datetime`` is not checked. Raises
+    ``InvalidSMTPTLSReport`` otherwise.
     """
     value = _smtp_tls_string(value, field)
     if len(value) > _SMTP_TLS_MAX_DATETIME_LENGTH:
@@ -1088,6 +1240,34 @@ def _parse_smtp_tls_failure_details(failure_details: dict[str, Any]):
             value = _non_blank(failure_details.get(src_key))
             if value is not None:
                 new_failure_details[dest_key] = _smtp_tls_string(value, src_key)
+
+        # RFC 8460 §4.4 defines both as the IP address of the sending or
+        # receiving MTA, and both are optional. Drop a value that is not an
+        # IP address, which the PostgreSQL inet column and the
+        # Elasticsearch/OpenSearch ip mappings reject (GHSA-fxr7-7h9q-v949).
+        # An IPv6 zone ID (fe80::1%eth0) is local to the reporting host and
+        # the inet type cannot hold one, and ipaddress.ip_address() accepts
+        # it, so such a value is dropped as well. The aggregate and failure
+        # paths strip the zone ID instead (_strip_zone_id()), because the
+        # source IP is required there; these fields are optional, so
+        # dropping one loses nothing a report needs.
+        for src_key, dest_key in (
+            ("sending-mta-ip", "sending_mta_ip"),
+            ("receiving-ip", "receiving_ip"),
+        ):
+            value = new_failure_details.get(dest_key)
+            if value is None:
+                continue
+            try:
+                if "%" in value:
+                    raise ValueError("zone ID")
+                ipaddress.ip_address(value)
+            except ValueError:
+                logger.warning(
+                    f"Ignoring {src_key} that is not an IP address: "
+                    f"{sanitize_for_log(value)}"
+                )
+                del new_failure_details[dest_key]
 
         # RFC 8460 §4.4 names the JSON key "additional-information" (its
         # value is described as an "additional-info-uri"). Some reporters
@@ -1583,10 +1763,15 @@ def _parse_report_records(
     end_dt: datetime,
     normalize: bool,
     keep_alive: Callable | None,
+    dns_budget: _ReverseDNSBudget | None = None,
 ) -> list[dict[str, Any]]:
     """Parse an aggregate report's ``<record>`` elements (a list, or one
     record) into output records, split per day when ``normalize`` is set.
-    A record of a list that fails to parse is skipped with a warning."""
+    A record of a list that fails to parse is skipped with a warning.
+    ``dns_budget`` is shared by every record (``None`` creates one); see
+    :class:`_ReverseDNSBudget`."""
+    if dns_budget is None:
+        dns_budget = _ReverseDNSBudget()
     records: list[dict[str, Any]] = []
     if type(xml_records) is list:
         for i in range(len(xml_records)):
@@ -1599,6 +1784,7 @@ def _parse_report_records(
                     xml_records[i],
                     config=config,
                     is_rfc_9990=is_rfc_9990,
+                    dns_budget=dns_budget,
                 )
                 _append_parsed_record(
                     parsed_record=report_record,
@@ -1615,6 +1801,7 @@ def _parse_report_records(
             xml_records,
             config=config,
             is_rfc_9990=is_rfc_9990,
+            dns_budget=dns_budget,
         )
         _append_parsed_record(
             parsed_record=report_record,
@@ -1898,6 +2085,7 @@ def parse_aggregate_report_xml(
             end_dt=end_dt,
             normalize=normalize_timespan,
             keep_alive=keep_alive,
+            dns_budget=_ReverseDNSBudget(),
         )
 
         new_report["records"] = records
@@ -2472,7 +2660,9 @@ def parse_failure_report(
         arrival_utc = arrival_utc.strftime("%Y-%m-%d %H:%M:%S")
         parsed_report["arrival_date_utc"] = arrival_utc
 
-        ip_address = re.split(r"\s", parsed_report["source_ip"]).pop(0)
+        ip_address = _strip_zone_id(
+            re.split(r"\s", parsed_report["source_ip"]).pop(0), "Source-IP"
+        )
         parsed_report_source = get_ip_address_info(
             ip_address,
             cache=cfg.ip_address_cache,
@@ -3327,7 +3517,10 @@ def _aggregate_report_dedup_key(report: AggregateReport) -> str:
     domain. ASCII domain letters are compared without case per RFC 4343 §3,
     without changing the domain in the report itself. A JSON array encodes
     the three fields without the ambiguity of a delimiter that a field could
-    contain.
+    contain, and the key is the SHA-256 hex digest of that JSON, so it is 64
+    characters long whatever the sender puts in the three fields
+    (GHSA-9fw6-mwqr-p43m: the JSON itself was the key, so a report with a
+    multi-megabyte Report-ID cost that much memory in the cache).
 
     Every writer of the shared cache must build its key here -- the mbox and
     mailbox classifier and the CLI's direct-file path -- or a report read
@@ -3340,7 +3533,8 @@ def _aggregate_report_dedup_key(report: AggregateReport) -> str:
     # The existing XML parser returns None for an empty <domain/>.
     if isinstance(report_domain, str):
         report_domain = report_domain.translate(_ASCII_UPPER_TO_LOWER)
-    return json.dumps((report_org, report_id, report_domain))
+    encoded = json.dumps((report_org, report_id, report_domain))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def _classify_parsed_email(

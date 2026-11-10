@@ -203,6 +203,53 @@ def _missing_extra_hint(section: str, extra: str) -> str:
     )
 
 
+class _HostsSettingError(RuntimeError):
+    """A search client could not be built from its ``hosts`` setting.
+
+    The message is fixed and carries none of the SDK's text; see
+    :func:`_set_search_hosts`.
+    """
+
+
+def _set_search_hosts(label: str, set_hosts, hosts, **kwargs):
+    """Call a search output's ``set_hosts()`` without leaking its hosts.
+
+    When a password in a ``hosts`` URL contains an unencoded ``/``, ``?``
+    or ``#``, the SDK fails to parse the URL and raises a ``ValueError``
+    that quotes the URL or the start of the password
+    (GHSA-74xv-rmpx-2pjm): elastic_transport's ``url_to_node_config()``
+    (``elastic_transport/client_utils.py``) raises
+    ``ValueError("Could not parse URL '<url>'")``, and opensearch-py's
+    ``_normalize_hosts()`` (``opensearchpy/client/utils.py``) reads
+    ``urllib.parse``'s ``port``, which raises ``ValueError("Port could not
+    be cast to integer value as '<password prefix>'")``. Any such error is
+    replaced by one with a fixed message, raised outside the ``except``
+    block so the original is neither its cause nor its context.
+
+    Args:
+        label (str): The output's display name, e.g. ``"Elasticsearch"``.
+        set_hosts: The output module's ``set_hosts`` function.
+        hosts (str | list[str]): The ``hosts`` setting.
+        **kwargs: Passed through to ``set_hosts``.
+
+    Returns:
+        The client ``set_hosts`` returned.
+
+    Raises:
+        _HostsSettingError: If ``set_hosts`` raised a ``ValueError``.
+    """
+    try:
+        return set_hosts(hosts, **kwargs)
+    except ValueError:
+        pass
+    raise _HostsSettingError(
+        f"{label}: could not build a client from the hosts setting (details "
+        "withheld because they may include credentials; URL-encode special "
+        "characters in the password, or use the separate user and password "
+        "settings)"
+    )
+
+
 def _normalize_graph_auth_method(value: str) -> str:
     """Return the canonical :class:`AuthMethod` member name for *value*.
 
@@ -1556,6 +1603,15 @@ def _parse_config(config: ConfigParser, opts):
                 "host (or connection_string) setting missing from the "
                 "postgresql config section"
             )
+        if "sslmode" in pg_config:
+            sslmode = pg_config["sslmode"].strip().lower()
+            if sslmode not in postgres.SSL_MODES:
+                raise ConfigurationError(
+                    f"postgresql sslmode must be one of {', '.join(postgres.SSL_MODES)}"
+                )
+            opts.postgresql_sslmode = sslmode
+        if "sslrootcert" in pg_config:
+            opts.postgresql_sslrootcert = _expand_path(pg_config["sslrootcert"])
 
     if "syslog" in config.sections():
         syslog_config = config["syslog"]
@@ -2121,8 +2177,13 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
 
     Raises:
         ConfigurationError: If a required output client cannot be created.
-        RuntimeError: If constructing an output client fails, chained to the
-            error the SDK raised.
+        RuntimeError: If constructing an output client fails, naming the
+            output. For outputs whose SDK errors can carry credentials
+            (Elasticsearch, OpenSearch and PostgreSQL), the SDK's original
+            error is not chained, and its text has URL credentials masked,
+            or is withheld entirely when the ``hosts`` setting cannot be
+            parsed (GHSA-74xv-rmpx-2pjm) and, for PostgreSQL, whenever
+            ``connection_string`` is set (GHSA-xvp7-7762-gx9g).
     """
     # Each check below is deliberately outside the try/except that wraps
     # its constructor: those handlers re-raise everything as RuntimeError,
@@ -2163,11 +2224,24 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
                 user=opts.postgresql_user,
                 password=opts.postgresql_password,
                 database=opts.postgresql_database,
+                sslmode=opts.postgresql_sslmode,
+                sslrootcert=opts.postgresql_sslrootcert,
             )
             pg_client.create_tables()
             clients["postgresql_client"] = pg_client
-    except Exception as e:
-        raise RuntimeError(f"PostgreSQL: {e}") from e
+    # A PostgreSQLError's text is built by postgres.py: a fixed message, the
+    # driver's text with URL credentials masked, or, with a connection
+    # string, withheld (GHSA-xvp7-7762-gx9g). Any other error is replaced,
+    # since its text can quote a setting. Neither is chained, because the
+    # SIGHUP reload path logs it with logger.exception, which would print a
+    # chained original in full.
+    except postgres.PostgreSQLError as e:
+        raise RuntimeError(f"PostgreSQL: {e}") from None
+    except Exception:
+        raise RuntimeError(
+            "PostgreSQL: the client could not be created (details withheld "
+            "because they may include the password)"
+        ) from None
 
     try:
         if opts.syslog_server:
@@ -2354,7 +2428,9 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
                     if opts.elasticsearch_timeout is not None
                     else 60.0
                 )
-                elasticsearch_connection = elastic.set_hosts(
+                elasticsearch_connection = _set_search_hosts(
+                    "Elasticsearch",
+                    elastic.set_hosts,
                     opts.elasticsearch_hosts,
                     use_ssl=opts.elasticsearch_ssl,
                     ssl_cert_path=opts.elasticsearch_ssl_cert_path,
@@ -2382,8 +2458,17 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
                 clients["elasticsearch"] = _ElasticsearchHandle(
                     elasticsearch_connection
                 )
+        # A rejected hosts value already has its fixed, secret-free message
+        # (GHSA-74xv-rmpx-2pjm). Any other error is wrapped with URL
+        # credentials masked, and from None, because the SIGHUP reload path
+        # logs it with logger.exception, which would print a chained
+        # original in full.
+        except _HostsSettingError:
+            raise
         except Exception as e:
-            raise RuntimeError(f"Elasticsearch: {e}") from e
+            raise RuntimeError(
+                f"Elasticsearch: {redact_url_credentials(str(e))}"
+            ) from None
 
         try:
             if opts.opensearch_hosts:
@@ -2425,7 +2510,9 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
                     if opts.opensearch_timeout is not None
                     else 60.0
                 )
-                opensearch_connection = opensearch.set_hosts(
+                opensearch_connection = _set_search_hosts(
+                    "OpenSearch",
+                    opensearch.set_hosts,
                     opts.opensearch_hosts,
                     use_ssl=opts.opensearch_ssl,
                     ssl_cert_path=opts.opensearch_ssl_cert_path,
@@ -2453,8 +2540,13 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
                     legacy_fo_indexes=os_legacy_fo_indexes,
                 )
                 clients["opensearch"] = _OpenSearchHandle(opensearch_connection)
+        # See the Elasticsearch block above (GHSA-74xv-rmpx-2pjm).
+        except _HostsSettingError:
+            raise
         except Exception as e:
-            raise RuntimeError(f"OpenSearch: {e}") from e
+            raise RuntimeError(
+                f"OpenSearch: {redact_url_credentials(str(e))}"
+            ) from None
 
     return clients
 
@@ -2489,8 +2581,13 @@ def _init_output_clients(opts, index_prefix_domain_map=None):
 
     Raises:
         ConfigurationError: If a required output client cannot be created.
-        RuntimeError: If constructing an output client fails, chained to the
-            error the SDK raised.
+        RuntimeError: If constructing an output client fails, naming the
+            output. For outputs whose SDK errors can carry credentials
+            (Elasticsearch, OpenSearch and PostgreSQL), the SDK's original
+            error is not chained, and its text has URL credentials masked,
+            or is withheld entirely when the ``hosts`` setting cannot be
+            parsed (GHSA-74xv-rmpx-2pjm) and, for PostgreSQL, whenever
+            ``connection_string`` is set (GHSA-xvp7-7762-gx9g).
     """
     previous_search_state = _search_alias_snapshot()
     clients: dict[str, Any] = {}
@@ -2788,6 +2885,14 @@ def _main():
                         pg_client.save_aggregate_report_to_postgresql(report)
                 except postgres.AlreadySaved as warning:
                     logger.warning(warning.__str__())
+                except postgres.PostgreSQLRejectedReport as error_:
+                    # PostgreSQL rejected a value of this one report; the
+                    # connection is fine, so it does not hold the batch
+                    # (GHSA-fxr7-7h9q-v949).
+                    if opts.fail_on_output_error:
+                        log_output_error("PostgreSQL", error_.__str__())
+                    else:
+                        logger.error(error_.__str__())
                 except postgres.PostgreSQLError as error_:
                     log_output_error("PostgreSQL", error_.__str__())
                 except Exception as error_:
@@ -2897,6 +3002,14 @@ def _main():
                         pg_client.save_failure_report_to_postgresql(report)
                 except postgres.AlreadySaved as warning:
                     logger.warning(warning.__str__())
+                except postgres.PostgreSQLRejectedReport as error_:
+                    # PostgreSQL rejected a value of this one report; the
+                    # connection is fine, so it does not hold the batch
+                    # (GHSA-fxr7-7h9q-v949).
+                    if opts.fail_on_output_error:
+                        log_output_error("PostgreSQL", error_.__str__())
+                    else:
+                        logger.error(error_.__str__())
                 except postgres.PostgreSQLError as error_:
                     log_output_error("PostgreSQL", error_.__str__())
                 except Exception as error_:
@@ -3006,6 +3119,14 @@ def _main():
                         pg_client.save_smtp_tls_report_to_postgresql(report)
                 except postgres.AlreadySaved as warning:
                     logger.warning(warning.__str__())
+                except postgres.PostgreSQLRejectedReport as error_:
+                    # PostgreSQL rejected a value of this one report; the
+                    # connection is fine, so it does not hold the batch
+                    # (GHSA-fxr7-7h9q-v949).
+                    if opts.fail_on_output_error:
+                        log_output_error("PostgreSQL", error_.__str__())
+                    else:
+                        logger.error(error_.__str__())
                 except postgres.PostgreSQLError as error_:
                     log_output_error("PostgreSQL", error_.__str__())
                 except Exception as error_:
@@ -3382,6 +3503,8 @@ def _main():
         postgresql_password=None,
         postgresql_database=None,
         postgresql_connection_string=None,
+        postgresql_sslmode=None,
+        postgresql_sslrootcert=None,
         fail_on_output_error=False,
     )
 
@@ -4192,7 +4315,7 @@ def _main():
                 # db path/URL in the config take effect. Assigns
                 # parsedmarc.utils._IP_DB_PATH, which the utils snapshot
                 # covers, and -- when the download succeeds -- rewrites the
-                # shared cache file, which nothing can cover. Last but one
+                # cached download, which nothing can cover. Last but one
                 # for that reason.
                 load_ip_db(
                     always_use_local_file=new_opts.always_use_local_files,
@@ -4224,8 +4347,8 @@ def _main():
                 # it is put back here, in that order.
                 #
                 # One side effect is outside them and cannot be undone: a
-                # load_ip_db() whose download succeeds rewrites the shared
-                # cache file at <tmp>/parsedmarc/ipinfo_lite.mmdb before it
+                # load_ip_db() whose download succeeds rewrites the cached
+                # ipinfo_lite.mmdb in the per-user cache directory before it
                 # assigns _IP_DB_PATH. Phase 1 runs that step last but one
                 # so that as little as possible can fail behind it, and the
                 # file it leaves is the same refresh startup performs on

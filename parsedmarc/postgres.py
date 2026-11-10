@@ -2,25 +2,39 @@
 
 from __future__ import annotations
 
+import ipaddress
+import os
+import re
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     # LiteralString requires Python >= 3.11, so only import it for type checking
     from typing import LiteralString
 
     import psycopg
+    from psycopg import conninfo as psycopg_conninfo
+    from psycopg.abc import Buffer
     from psycopg.types import json as psycopg_json
+    from psycopg.types import string as psycopg_string
 else:
     try:
         import psycopg
+        from psycopg import conninfo as psycopg_conninfo
         from psycopg.types import json as psycopg_json
+        from psycopg.types import string as psycopg_string
     except ImportError:
         psycopg = None
+        psycopg_conninfo = None
         psycopg_json = None
+        psycopg_string = None
 
 from parsedmarc.log import logger
-from parsedmarc.utils import human_timestamp_to_datetime, redact_url_credentials
+from parsedmarc.utils import (
+    human_timestamp_to_datetime,
+    redact_url_credentials,
+    sanitize_for_log,
+)
 
 # psycopg is an optional dependency (the PostgreSQL backend is opt-in). The
 # pure helper functions below work without it; only PostgreSQLClient needs a
@@ -30,6 +44,177 @@ _PSYCOPG_INSTALL_HINT = (
     "The PostgreSQL backend requires the 'psycopg' package. "
     "Install it with: pip install parsedmarc[postgresql]"
 )
+
+# libpq's sslmode values, weakest first. libpq's own default is "prefer",
+# which falls back to plain TCP when the server (or an on-path attacker)
+# declines TLS, so parsedmarc defaults to "require" (GHSA-xvp7-7762-gx9g).
+SSL_MODES = ("disable", "allow", "prefer", "require", "verify-ca", "verify-full")
+DEFAULT_SSL_MODE = "require"
+_VERIFYING_SSL_MODES = ("verify-ca", "verify-full")
+
+_WITHHELD_CONNECTION_STRING_ERROR = (
+    "Invalid PostgreSQL connection_string (details withheld "
+    "because they may include the password)"
+)
+
+_UNENCODED_AT_CONNECTION_STRING_ERROR = (
+    'PostgreSQL connection_string appears to have an unencoded "@" or "/" '
+    "in its user name, password or database name (details withheld because "
+    'they may include the password); percent-encode "@" as %40 and "/" as '
+    "%2F, or use the separate host, port, user, password and database "
+    "settings"
+)
+
+# With a connection string, a connection failure is reported with this fixed
+# text and not libpq's: libpq's message can quote any value parsed from the
+# string (a port, a host, an sslmode), and when the string's user name or
+# password holds an unencoded "@" or "/", such a value is a fragment of the
+# password. See PostgreSQLClient._connect().
+_WITHHELD_CONNECTION_FAILURE_ERROR = (
+    "PostgreSQL connection failed (details withheld because the "
+    "connection string may include the password; use the separate host, "
+    "port, user, password and database settings to see the driver's "
+    "message)"
+)
+
+# With the separate settings, an error that is not the driver's own (a
+# password the driver cannot encode, say) is reported with this fixed text:
+# such an error quotes the value it could not handle, or the whole
+# connection string psycopg built from the settings, password included.
+_WITHHELD_CONNECTION_SETTING_ERROR = (
+    "PostgreSQL connection failed: a connection setting could not be passed "
+    "to the driver (details withheld because they may include the password)"
+)
+
+# A SQLSTATE is five digits or upper-case letters (PostgreSQL docs, Appendix
+# A, "PostgreSQL Error Codes"); anything else is not included.
+_SQLSTATE_PATTERN = re.compile(r"[0-9A-Z]{5}")
+
+
+def _sqlstate_suffix(exc: BaseException) -> str:
+    """Return `` [SQLSTATE xxxxx]`` for a driver error that carries a
+    well-formed SQLSTATE, else an empty string.
+
+    psycopg sets ``sqlstate`` when the server answered with an error (for
+    example ``28P01``, a failed password). It is a fixed code chosen by the
+    server, not text taken from the connection string, so it is safe to
+    show even when the driver's message is withheld.
+    """
+    sqlstate = getattr(exc, "sqlstate", None)
+    if isinstance(sqlstate, str) and _SQLSTATE_PATTERN.fullmatch(sqlstate):
+        return f" [SQLSTATE {sqlstate}]"
+    return ""
+
+
+def _is_local_host(host: str) -> bool:
+    """Return whether one libpq ``host`` entry is a Unix socket or loopback.
+
+    An empty entry means libpq's default Unix socket, and a value starting
+    with ``/`` (a socket directory) or ``@`` (a Linux abstract socket) is a
+    socket as well.
+    """
+    if not host or host.startswith(("/", "@")) or host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _log_safe_host(host: str) -> str:
+    """Return a libpq ``host`` (or ``hostaddr``) value safe to log.
+
+    Each entry of a comma-separated list is credential-masked with
+    ``redact_url_credentials()`` (``pw@db.example`` becomes
+    ``***@db.example``), and the result is escaped for the log.
+    """
+    entries = [str(redact_url_credentials(entry)) for entry in host.split(",")]
+    return sanitize_for_log(",".join(entries))
+
+
+_URI_PREFIXES = ("postgresql://", "postgres://")
+
+
+def _is_uri(connection_string: str) -> bool:
+    """Return whether a connection string is in libpq's URI form.
+
+    libpq itself recognizes only the exact lowercase prefixes
+    ``postgresql://`` and ``postgres://`` at the very start of the string,
+    and parses anything else as keyword/value pairs. The check here also
+    ignores case and leading whitespace: such a string fails libpq's
+    keyword/value parse anyway, so treating it as a URI only refuses it
+    with a different fixed message.
+    """
+    return connection_string.lstrip().lower().startswith(_URI_PREFIXES)
+
+
+def _port_is_numeric(entry: str) -> bool:
+    """Return whether one ``host[:port]`` entry of a URI authority has no
+    port or an all-digit one. A bracketed IPv6 address is skipped first, so
+    its colons are not taken for a port separator."""
+    entry = entry.strip()
+    if entry.startswith("["):
+        entry = entry.partition("]")[2]
+    if ":" not in entry:
+        return True
+    port = entry.rpartition(":")[2]
+    return port.isascii() and port.isdigit()
+
+
+def _has_unencoded_at(connection_string: str) -> bool:
+    """Return whether a URI connection string looks like its user name or
+    password holds an unencoded ``@`` or ``/``.
+
+    The scan mirrors libpq's URI parser. libpq looks for the userinfo by
+    scanning the text after ``://`` up to the first ``@`` or ``/``; when it
+    meets ``@`` first, everything before it is the user name and password,
+    the host list runs to the next ``/`` or ``?``, and the database name
+    from that ``/`` to the next ``?``. So the rest of a password containing
+    an unencoded ``@`` lands in the host
+    (``postgresql://u:s3c@pw@db.example/d`` has host ``pw@db.example``),
+    the port, the database name or a query parameter, and a password
+    containing an unencoded ``/`` ends the authority early
+    (``postgresql://u:SECRET/x@db.example/d`` has no userinfo, host ``u``,
+    port ``SECRET`` and dbname ``x@db.example/d``).
+
+    The string is refused when, with userinfo, the text from it to the next
+    ``/`` holds another ``@`` (the host list, or a query parameter written
+    before any ``/``), or the database name holds an ``@``; and, without
+    userinfo, when the database name holds an ``@``, or an ``@`` follows an
+    authority whose port is not a number (``u:pa?sslmode=SECRET/x@db/d``
+    has port ``pa`` and sslmode ``SECRET/x@db/d``). A URI never needs an
+    unencoded ``@`` in those places: libpq decodes ``%40`` and ``%2F`` in
+    every component. An ``@`` in a query value after a ``/``
+    (``?sslrootcert=/home/a@b/ca.pem``) is not refused, because nothing
+    tells it apart from a legitimate one. For the same reason two shapes
+    are not recognized: an all-digit password before a ``/``, followed by
+    an ``@`` only in a query value (``u:12345/x?sslrootcert=a@b``), and a
+    password with an ``@``, then a ``?``, then a ``/``
+    (``u:s3c@pw?sslmode=SECRET/x@db``).
+
+    This refusal is a convenience that names the common mistake; it does
+    not keep the password out of the logs. That is done by withholding
+    every value parsed from a connection string from the startup warning
+    and the connection error (``PostgreSQLClient._connect()``), whatever
+    shape the string has.
+    """
+    rest = connection_string.partition("://")[2]
+    first = next((i for i, char in enumerate(rest) if char in "@/"), -1)
+    if first == -1:
+        return False
+    if rest[first] == "@":
+        segment, slash, tail = rest[first + 1 :].partition("/")
+        if "@" in segment:
+            return True
+        # A "?" before the "/" puts that "/" in a query value.
+        return bool(slash) and "?" not in segment and "@" in tail.partition("?")[0]
+    authority, question, _ = rest[:first].partition("?")
+    tail = rest[first + 1 :]
+    if not question and "@" in tail.partition("?")[0]:
+        return True
+    return "@" in tail and not all(
+        _port_is_numeric(entry) for entry in authority.split(",")
+    )
 
 
 # Two timestamp conventions coexist in parsed reports, so two helpers are
@@ -114,8 +299,91 @@ def _contact_info_to_text(
     return str(value)
 
 
+# PostgreSQL cannot store a NUL character in text or jsonb, and a sender can
+# plant one in a failure report's sample through an RFC 2047 encoded-word
+# (=?utf-8?q?a=00b?=). It is replaced with U+FFFD, the replacement character,
+# which keeps the text searchable and marks the spot (GHSA-fxr7-7h9q-v949).
+_NUL_REPLACEMENT = "\ufffd"
+
+
+def _strip_nul(value: Any) -> Any:
+    """Return ``value`` with every NUL in its strings replaced by U+FFFD.
+
+    Dict keys and values and list items are replaced recursively; any
+    other value is returned unchanged. Used for the values wrapped in
+    ``Jsonb``, which the server rejects when they contain ``\\u0000``.
+    """
+    if isinstance(value, str):
+        return value.replace("\x00", _NUL_REPLACEMENT)
+    if isinstance(value, dict):
+        return {_strip_nul(k): _strip_nul(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_strip_nul(item) for item in value]
+    return value
+
+
+def _nul_safe_dumper_classes() -> tuple[type, type]:
+    """Return the text and binary ``str`` dumpers that replace NUL.
+
+    psycopg dumps a ``str`` parameter with ``StrDumperUnknown`` (text
+    format) or ``StrBinaryDumper`` (binary format); the first raises
+    ``DataError`` on a NUL and the server rejects the second. ``list[str]``
+    parameters (``TEXT[]`` columns) dump each item with the same dumpers.
+    The subclasses replace NUL with U+FFFD first.
+    """
+
+    class _NulSafeStrDumper(psycopg_string.StrDumperUnknown):
+        def dump(self, obj: str) -> Buffer | None:
+            return super().dump(obj.replace("\x00", _NUL_REPLACEMENT))
+
+    class _NulSafeStrBinaryDumper(psycopg_string.StrBinaryDumper):
+        def dump(self, obj: str) -> Buffer | None:
+            return super().dump(obj.replace("\x00", _NUL_REPLACEMENT))
+
+    return _NulSafeStrDumper, _NulSafeStrBinaryDumper
+
+
+def _register_nul_safe_dumpers(conn: psycopg.Connection) -> None:
+    """Make ``conn`` dump every ``str`` parameter with NUL replaced.
+
+    psycopg uses the dumper registered last for a type as its default, so
+    the binary dumper is registered first and the text one last, the order
+    psycopg's own ``register_default_adapters`` uses.
+    """
+    text_dumper, binary_dumper = _nul_safe_dumper_classes()
+    conn.adapters.register_dumper(str, binary_dumper)
+    conn.adapters.register_dumper(str, text_dumper)
+
+
+# Most characters of a driver message that a PostgreSQLRejectedReport quotes:
+# a DataError can quote the rejected value, which the sender chose.
+_MAX_REJECTION_DETAIL_CHARS = 200
+
+
+def _rejection_detail(exc: BaseException) -> str:
+    """Return the driver's message for a rejected value, cut to
+    ``_MAX_REJECTION_DETAIL_CHARS`` characters with an ellipsis and then
+    escaped for the log (cutting first means the cut cannot split an
+    escape sequence)."""
+    detail = str(exc)
+    suffix = ""
+    if len(detail) > _MAX_REJECTION_DETAIL_CHARS:
+        detail = detail[:_MAX_REJECTION_DETAIL_CHARS]
+        suffix = "..."
+    return sanitize_for_log(detail) + suffix
+
+
 class PostgreSQLError(RuntimeError):
     """Raised when a PostgreSQL-level error occurs"""
+
+
+class PostgreSQLRejectedReport(PostgreSQLError):
+    """Raised when PostgreSQL rejected a value of one report.
+
+    psycopg raised ``DataError`` (a value the column type cannot hold) and
+    that report's transaction was rolled back. The connection and the
+    schema are fine, so the next report will save.
+    """
 
 
 class AlreadySaved(ValueError):
@@ -138,6 +406,8 @@ class PostgreSQLClient:
         user: str | None = None,
         password: str | None = None,
         database: str | None = None,
+        sslmode: str | None = None,
+        sslrootcert: str | None = None,
     ) -> None:
         """
         Initializes the PostgreSQLClient and opens a database connection.
@@ -145,16 +415,25 @@ class PostgreSQLClient:
         Args:
             connection_string: A libpq connection string or URI
                 (e.g. ``postgresql://user:pass@host/dbname``).  When
-                present, individual keyword arguments are ignored.
+                present, *host*, *port*, *user*, *password* and *database*
+                are ignored; *sslmode* and *sslrootcert* still apply and
+                override the string's own values.
             host: Database server hostname or IP address.
             port: Database server port (default: 5432).
             user: Database user name.
             password: Database user password.
             database: Database name to connect to.
+            sslmode (str | None): A libpq sslmode, one of ``SSL_MODES``.
+                ``None`` keeps an ``sslmode`` set in *connection_string* or
+                the ``PGSSLMODE`` environment variable, and otherwise uses
+                ``require``.
+            sslrootcert: Path to the CA certificate file that
+                ``verify-ca`` and ``verify-full`` check the server's
+                certificate against.
 
         Raises:
-            PostgreSQLError: If psycopg is not installed or the connection
-                attempt fails.
+            PostgreSQLError: If psycopg is not installed, the connection
+                string is malformed, or the connection attempt fails.
         """
         if psycopg is None:
             raise PostgreSQLError(_PSYCOPG_INSTALL_HINT)
@@ -166,20 +445,160 @@ class PostgreSQLClient:
         self._user = user
         self._password = password
         self._database = database
+        self._sslmode = sslmode
+        self._sslrootcert = sslrootcert
 
         self._conn: psycopg.Connection | None = None
+        self._warn_if_server_unverified()
         self._connect()
+
+    def _connection_string_params(self) -> dict[str, Any]:
+        """Return the parameters set in the connection string, if any.
+
+        Raises:
+            PostgreSQLError: If the connection string is malformed. libpq
+                words its parse errors with the string or a fragment of it,
+                which can contain the password, so the detail is withheld
+                (any error from the parse is replaced). Also, as a
+                convenience that names the common mistake, if a URI looks
+                like its user name or password holds an unencoded ``@`` or
+                ``/`` (``_has_unencoded_at()``). That check runs before
+                anything is logged, but it recognizes shapes and is not
+                what keeps the password out of the logs; the startup
+                warning and the connection error withhold every value
+                parsed from the string instead. A keyword/value string is
+                not checked: its password is a keyword of its own, which
+                an ``@`` or ``/`` does not end.
+        """
+        if not self._connection_string:
+            return {}
+        if _is_uri(self._connection_string) and _has_unencoded_at(
+            self._connection_string
+        ):
+            raise PostgreSQLError(_UNENCODED_AT_CONNECTION_STRING_ERROR) from None
+        try:
+            params = psycopg_conninfo.conninfo_to_dict(self._connection_string)
+        except Exception:
+            raise PostgreSQLError(_WITHHELD_CONNECTION_STRING_ERROR) from None
+        return params
+
+    def _ssl_connect_kwargs(self) -> dict[str, Any]:
+        """Return the TLS keyword arguments for ``psycopg.connect()``.
+
+        An explicit *sslmode* wins. Without one, an ``sslmode`` in the
+        connection string or the ``PGSSLMODE`` environment variable, both
+        of which libpq reads itself, is left in effect, and otherwise
+        ``require`` replaces libpq's ``prefer`` default.
+        """
+        kwargs: dict[str, Any] = {}
+        if self._sslmode:
+            kwargs["sslmode"] = self._sslmode
+        elif not (
+            self._connection_string_params().get("sslmode")
+            or os.environ.get("PGSSLMODE")
+        ):
+            kwargs["sslmode"] = DEFAULT_SSL_MODE
+        if self._sslrootcert:
+            kwargs["sslrootcert"] = self._sslrootcert
+        return kwargs
+
+    def _warn_if_server_unverified(self) -> None:
+        """Log a warning when a remote server's certificate is not checked.
+
+        Below ``verify-ca``, anyone who can impersonate a TCP host can
+        receive the password. A Unix socket, ``localhost`` or a loopback
+        address is not warned about, and neither is an unset host (libpq's
+        default socket).
+        The host is the one libpq connects to: the connection string's
+        ``hostaddr`` (else the ``PGHOSTADDR`` environment variable) when
+        set, since libpq connects to it and uses ``host`` only to name the
+        server, and otherwise the *host* argument or the connection
+        string's ``host``, else the ``PGHOST`` environment variable. Every
+        entry of a comma-separated host list is considered.
+
+        With a connection string, the warning names no host and no other
+        value from the string, whatever its shape: when the string's user
+        name or password holds an unencoded ``@`` or ``/``, libpq parses a
+        fragment of the password as the host, the port or a query
+        parameter such as ``sslmode``. The mode is printed only when it is
+        one of ``SSL_MODES``. With the separate *host* argument (or
+        ``PGHOST``/``PGHOSTADDR``, which the operator sets), the warning
+        names the host, credential-masked and escaped, which covers a host
+        with an ``@``.
+
+        With ``sslmode=require`` and a root certificate file that exists,
+        libpq verifies the server as ``verify-ca`` does ("if a root CA file
+        exists, the behavior of sslmode=require will be the same as that of
+        verify-ca", PostgreSQL docs, libpq SSL support), so that is not
+        warned about either.
+        """
+        params = self._connection_string_params()
+        if self._connection_string:
+            host = params.get("host")
+            hostaddr = params.get("hostaddr")
+        else:
+            host = self._host
+            hostaddr = None
+        host = (
+            hostaddr or os.environ.get("PGHOSTADDR") or host or os.environ.get("PGHOST")
+        )
+        if not host or all(_is_local_host(h.strip()) for h in host.split(",")):
+            return
+        mode = (
+            self._ssl_connect_kwargs().get("sslmode")
+            or params.get("sslmode")
+            or os.environ.get("PGSSLMODE")
+        )
+        if mode in _VERIFYING_SSL_MODES:
+            return
+        rootcert = (
+            self._sslrootcert
+            or params.get("sslrootcert")
+            or os.environ.get("PGSSLROOTCERT")
+        )
+        if mode == "require" and rootcert and os.path.isfile(rootcert):
+            return
+        if self._connection_string:
+            shown_mode = mode if mode in SSL_MODES else "not a recognized value"
+            logger.warning(
+                "The PostgreSQL connection_string does not verify the server "
+                f"certificate (sslmode is {shown_mode}); set [postgresql] "
+                "sslmode = verify-full and sslrootcert to protect the password "
+                "from an impersonated server"
+            )
+            return
+        logger.warning(
+            f"PostgreSQL connection to {_log_safe_host(host)} uses "
+            f"sslmode={sanitize_for_log(str(mode))}, which does not verify the "
+            "server certificate; set [postgresql] sslmode = verify-full and "
+            "sslrootcert to protect the password from an impersonated server"
+        )
 
     def _connect(self) -> psycopg.Connection:
         """Open a new database connection using stored parameters.
 
         Raises:
-            PostgreSQLError: If the connection attempt fails.
+            PostgreSQLError: If the connection string is malformed or the
+                connection attempt fails. With a connection string, the
+                driver's message is withheld (only a well-formed SQLSTATE
+                is kept); with the separate arguments, it is passed on with
+                URL credentials masked. Any other error raised between
+                reading the settings and holding a configured connection
+                (a password the driver cannot encode, a host name the
+                resolver rejects) is replaced with a fixed message, since
+                its text can quote the password or the whole connection
+                string. Either way the original error is not chained.
         """
         logger.debug("Connecting to PostgreSQL")
         try:
+            # Parse the connection string first, on every path (the sslmode
+            # lookup below skips it when sslmode is set), so a malformed
+            # string or one the early refusal recognizes never reaches the
+            # driver.
+            self._connection_string_params()
+            ssl_kwargs = self._ssl_connect_kwargs()
             if self._connection_string:
-                conn = psycopg.connect(self._connection_string)
+                conn = psycopg.connect(self._connection_string, **ssl_kwargs)
             else:
                 conn = psycopg.connect(
                     host=self._host,
@@ -187,19 +606,50 @@ class PostgreSQLClient:
                     user=self._user,
                     password=self._password,
                     dbname=self._database,
+                    **ssl_kwargs,
                 )
             conn.autocommit = False
+            _register_nul_safe_dumpers(conn)
+        except PostgreSQLError:
+            # Already a fixed, secret-free message (_connection_string_params).
+            raise
         except psycopg.Error as exc:
-            # libpq reports a malformed connection string by echoing the
-            # whole string, or the fragment it could not parse, and either
-            # can contain the password. psycopg raises ProgrammingError for
-            # those parse failures, so withhold their detail entirely.
-            if self._connection_string and isinstance(exc, psycopg.ProgrammingError):
+            # Chaining would print the driver's own text, unredacted,
+            # wherever the error is logged with its traceback (the SIGHUP
+            # reload path does that), so every branch raises from None.
+            if self._connection_string:
+                # libpq reports a malformed connection string by echoing the
+                # whole string, or the fragment it could not parse. psycopg
+                # raises ProgrammingError for those parse failures. The
+                # string was already parsed once (_connection_string_params),
+                # so this guards the same failure if it surfaces here.
+                if isinstance(exc, psycopg.ProgrammingError):
+                    raise PostgreSQLError(_WITHHELD_CONNECTION_STRING_ERROR) from None
+                # Any other failure can quote a value parsed from the string
+                # (libpq: 'invalid integer value "..." for connection option
+                # "port"'), and with an unencoded "@" or "/" in the user
+                # name or password, that value is part of the password. No
+                # check of the string's shape can rule that out, so the text
+                # is withheld whatever the string looks like.
                 raise PostgreSQLError(
-                    "Invalid PostgreSQL connection_string (details withheld "
-                    "because they may include the password)"
+                    _WITHHELD_CONNECTION_FAILURE_ERROR + _sqlstate_suffix(exc)
                 ) from None
-            raise PostgreSQLError(redact_url_credentials(str(exc))) from exc
+            # With the separate arguments, the text names the host, and a
+            # host from the argument or PGHOST can hold anything, so it is
+            # credential-masked.
+            raise PostgreSQLError(redact_url_credentials(str(exc))) from None
+        except Exception:
+            # Not the driver's own error: psycopg encodes the connection
+            # string it builds from the separate arguments, so a password
+            # holding a lone surrogate (an environment variable with invalid
+            # UTF-8) raises UnicodeEncodeError carrying that whole string,
+            # and on Python 3.15 a host label over 63 characters raises
+            # UnicodeEncodeError('idna', '<host>', ...) from name resolution,
+            # which psycopg does not wrap. Such text is never passed on.
+            # KeyboardInterrupt and SystemExit are not Exceptions and pass.
+            if self._connection_string:
+                raise PostgreSQLError(_WITHHELD_CONNECTION_FAILURE_ERROR) from None
+            raise PostgreSQLError(_WITHHELD_CONNECTION_SETTING_ERROR) from None
         self._conn = conn
         return conn
 
@@ -486,7 +936,9 @@ class PostgreSQLClient:
 
         Raises:
             AlreadySaved: If an identical report is already present.
-            PostgreSQLError: If a database error occurs.
+            PostgreSQLRejectedReport: If PostgreSQL rejected a value of the
+                report.
+            PostgreSQLError: If another database error occurs.
         """
         conn = self._ensure_connected()
         meta = report.get("report_metadata", {})
@@ -651,6 +1103,13 @@ class PostgreSQLClient:
 
         except AlreadySaved:
             raise
+        except psycopg.DataError as exc:
+            raise PostgreSQLRejectedReport(
+                "PostgreSQL rejected a value of the aggregate report from "
+                f"{sanitize_for_log(str(meta.get('org_name')))} with ID "
+                f"{sanitize_for_log(str(meta.get('report_id')))}: "
+                f"{_rejection_detail(exc)}"
+            ) from exc
         except psycopg.Error as exc:
             raise PostgreSQLError(str(exc)) from exc
 
@@ -663,7 +1122,9 @@ class PostgreSQLClient:
 
         Raises:
             AlreadySaved: If a matching failure report is already present.
-            PostgreSQLError: If a database error occurs.
+            PostgreSQLRejectedReport: If PostgreSQL rejected a value of the
+                report.
+            PostgreSQLError: If another database error occurs.
         """
         conn = self._ensure_connected()
         sample = report.get("parsed_sample", {}) or {}
@@ -671,11 +1132,21 @@ class PostgreSQLClient:
         arrival_date_utc = _ensure_utc_suffix(report.get("arrival_date_utc"))
         sample_subject = sample.get("subject")
         # JSONB values are reused by both the dedup check and the INSERT.
+        # jsonb cannot hold \u0000, so NUL is replaced before wrapping. The
+        # str dumpers registered in _connect() cover the text columns.
         sample_headers = (
-            psycopg_json.Jsonb(sample["headers"]) if sample.get("headers") else None
+            psycopg_json.Jsonb(_strip_nul(sample["headers"]))
+            if sample.get("headers")
+            else None
         )
-        sample_from = psycopg_json.Jsonb(sample["from"]) if sample.get("from") else None
-        sample_to = psycopg_json.Jsonb(sample["to"]) if sample.get("to") else None
+        sample_from = (
+            psycopg_json.Jsonb(_strip_nul(sample["from"]))
+            if sample.get("from")
+            else None
+        )
+        sample_to = (
+            psycopg_json.Jsonb(_strip_nul(sample["to"])) if sample.get("to") else None
+        )
 
         try:
             with conn.transaction():
@@ -790,6 +1261,13 @@ class PostgreSQLClient:
 
         except AlreadySaved:
             raise
+        except psycopg.DataError as exc:
+            raise PostgreSQLRejectedReport(
+                "PostgreSQL rejected a value of the failure report for "
+                f"{sanitize_for_log(str(report.get('reported_domain')))} "
+                f"arriving at {sanitize_for_log(str(arrival_date_utc))}: "
+                f"{_rejection_detail(exc)}"
+            ) from exc
         except psycopg.Error as exc:
             raise PostgreSQLError(str(exc)) from exc
 
@@ -802,7 +1280,9 @@ class PostgreSQLClient:
 
         Raises:
             AlreadySaved: If an identical report is already present.
-            PostgreSQLError: If a database error occurs.
+            PostgreSQLRejectedReport: If PostgreSQL rejected a value of the
+                report.
+            PostgreSQLError: If another database error occurs.
         """
         conn = self._ensure_connected()
         try:
@@ -889,5 +1369,12 @@ class PostgreSQLClient:
 
         except AlreadySaved:
             raise
+        except psycopg.DataError as exc:
+            raise PostgreSQLRejectedReport(
+                "PostgreSQL rejected a value of the SMTP TLS report from "
+                f"{sanitize_for_log(str(report.get('organization_name')))} with ID "
+                f"{sanitize_for_log(str(report.get('report_id')))}: "
+                f"{_rejection_detail(exc)}"
+            ) from exc
         except psycopg.Error as exc:
             raise PostgreSQLError(str(exc)) from exc

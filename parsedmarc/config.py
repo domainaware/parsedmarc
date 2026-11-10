@@ -23,6 +23,8 @@ circular, since ``parsedmarc/__init__.py`` imports from this module.
 
 from __future__ import annotations
 
+import time
+from collections import OrderedDict
 from dataclasses import dataclass, field, fields
 
 from expiringdict import ExpiringDict
@@ -36,9 +38,51 @@ def _new_ip_address_cache() -> ExpiringDict:
     return ExpiringDict(max_len=10000, max_age_seconds=14400)
 
 
+class SeenReportCache(ExpiringDict):
+    """An :class:`~expiringdict.ExpiringDict` that drops expired entries
+    whenever an entry is added.
+
+    ``ExpiringDict`` removes an expired entry only when that same key is
+    read again (``in``, ``[]``, ``get()``), and otherwise only drops its
+    oldest entry once it holds ``max_len`` entries. The seen-aggregate-report
+    cache is read only with the key of the report being classified, so the
+    key of a report that is never seen again stays in memory for the life of
+    the process, not for ``max_age`` seconds (GHSA-9fw6-mwqr-p43m: in watch
+    mode every distinct report was kept indefinitely).
+
+    ``ExpiringDict`` stores entries in insertion order as ``(value,
+    set_time)`` tuples, so the expired entries are at the head. Before
+    adding an entry, this subclass removes entries from the head until it
+    reaches one that has not expired, which keeps the cache bounded by the
+    number of reports seen in the last ``max_age`` seconds. The removal
+    uses the plain :class:`~collections.OrderedDict` methods, as
+    ``ExpiringDict`` does internally, so it neither re-enters the expiring
+    accessors nor changes their behaviour. A key that is set again while
+    still stored is moved to the tail first, because ``OrderedDict`` would
+    otherwise refresh its time in place and leave a fresh entry at the head
+    that stops the sweep before the expired entries behind it.
+    """
+
+    def __setitem__(self, key, value, set_time=None) -> None:
+        with self.lock:
+            now = time.time()
+            while len(self):
+                first_key = next(iter(OrderedDict.keys(self)))
+                if now - OrderedDict.__getitem__(self, first_key)[1] < self.max_age:
+                    break
+                OrderedDict.__delitem__(self, first_key)
+            if OrderedDict.__contains__(self, key):
+                self.move_to_end(key)
+            super().__setitem__(key, value, set_time)
+
+
 def _new_seen_aggregate_report_ids() -> ExpiringDict:
-    """Build a fresh seen-aggregate-report-ID cache (1 hour expiry)."""
-    return ExpiringDict(max_len=100000000, max_age_seconds=3600)
+    """Build a fresh seen-aggregate-report-ID cache (1 hour expiry).
+
+    Expired entries are removed on each insert (see :class:`SeenReportCache`),
+    and ``max_len`` is a hard ceiling on the number of entries kept.
+    """
+    return SeenReportCache(max_len=100_000, max_age_seconds=3600)
 
 
 # Canonical default caches. parsedmarc/__init__.py re-exports these three

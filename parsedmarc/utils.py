@@ -4,7 +4,9 @@
 
 from __future__ import annotations
 
+import atexit
 import base64
+import contextlib
 import csv
 import hashlib
 import io
@@ -13,6 +15,7 @@ import logging
 import mailbox
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -719,6 +722,125 @@ _IP_DB_PATH: str | None = None
 # selection is logged when it changes rather than on every lookup.
 _LAST_LOGGED_IP_DB_PATH: str | None = None
 
+# The directory _ip_db_cache_dir() chose, keyed by the candidate path it
+# checked, so a rejected candidate is warned about once per process and
+# the temporary directory that replaces it is reused rather than recreated.
+_IP_DB_CACHE_DIR: tuple[str, str] | None = None
+
+
+def _ip_db_cache_dir_candidate() -> str:
+    """Returns the per-user directory the IP database download is cached
+    in: ``%LOCALAPPDATA%\\parsedmarc\\cache`` on Windows, otherwise
+    ``$XDG_CACHE_HOME/parsedmarc`` when ``XDG_CACHE_HOME`` is set to an
+    absolute path (the XDG Base Directory specification says a relative one
+    is invalid and must be ignored), else ``~/.cache/parsedmarc``."""
+    if os.name == "nt":
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser(
+            os.path.join("~", "AppData", "Local")
+        )
+        return os.path.join(base, "parsedmarc", "cache")
+    xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
+    if xdg_cache_home and os.path.isabs(xdg_cache_home):
+        return os.path.join(xdg_cache_home, "parsedmarc")
+    return os.path.join(os.path.expanduser("~"), ".cache", "parsedmarc")
+
+
+def _ip_db_cache_dir_problem(path: str, *, create: bool = True) -> str | None:
+    """Creates ``path`` (mode 0700) if it does not exist and ``create`` is
+    true, and returns why it is unsafe to cache the IP database in, or
+    ``None`` if it is safe: it must be an absolute path, a directory and not
+    a symlink, writable, and on POSIX owned by the current user and not
+    writable by its group or by others. An existing directory's mode is
+    never changed, since it may belong to someone else.
+
+    A relative path is refused before anything is created: it is what
+    ``os.path.expanduser()`` returns, unchanged, when ``HOME`` is unset and
+    the user has no passwd entry, and it would put the cache under the
+    current directory. With ``create`` false, a missing directory is
+    reported as a problem rather than created.
+    """
+    if not os.path.isabs(path):
+        return "it is not an absolute path"
+    try:
+        if create:
+            # mode applies only to directories this call creates.
+            os.makedirs(path, mode=0o700, exist_ok=True)
+        st = os.lstat(path)
+    except OSError as e:
+        if create:
+            return f"it cannot be created ({e.__class__.__name__}: {e.strerror or e})"
+        return f"it cannot be read ({e.__class__.__name__}: {e.strerror or e})"
+    if not stat.S_ISDIR(st.st_mode):
+        # makedirs() or os.path.isabs() accepted it, so this is a symlink
+        # (lstat() does not follow it), another kind of file, or a
+        # directory replaced since.
+        return "it is not a directory (a symlink, or another kind of file)"
+    if hasattr(os, "geteuid"):
+        if st.st_uid != os.geteuid():
+            return "it is owned by another user"
+        if st.st_mode & 0o022:
+            return "it is writable by its group or by others"
+    if not os.access(path, os.W_OK):
+        return "it is not writable"
+    return None
+
+
+def _ip_db_cache_dir() -> str:
+    """Returns the directory to cache the downloaded IP database in: the
+    per-user directory from :func:`_ip_db_cache_dir_candidate` when
+    :func:`_ip_db_cache_dir_problem` finds nothing wrong with it, otherwise
+    a new private temporary directory (mode 0700, unpredictable name) that
+    lasts only for this process, so the database is downloaded again on
+    every run. The choice is remembered for the process."""
+    global _IP_DB_CACHE_DIR
+    candidate = _ip_db_cache_dir_candidate()
+    if _IP_DB_CACHE_DIR is not None and _IP_DB_CACHE_DIR[0] == candidate:
+        return _IP_DB_CACHE_DIR[1]
+    chosen = candidate
+    problem = _ip_db_cache_dir_problem(candidate)
+    if problem is not None:
+        chosen = tempfile.mkdtemp(prefix="parsedmarc-")
+        atexit.register(shutil.rmtree, chosen, ignore_errors=True)
+        logger.warning(
+            f"Not using {candidate} for the IP database cache: {problem}; "
+            f"using a temporary directory for this run, so the IP database "
+            f"will be downloaded again on every run"
+        )
+    _IP_DB_CACHE_DIR = (candidate, chosen)
+    return chosen
+
+
+def _existing_ip_db_cache_dir() -> str | None:
+    """Returns the directory to look for a cached IP database in when no
+    download will happen, or ``None`` if there is none to look in.
+
+    This is the directory :func:`_ip_db_cache_dir` already chose in this
+    process for the current candidate, else the per-user candidate if it
+    exists and :func:`_ip_db_cache_dir_problem` finds nothing wrong with
+    it. Nothing is created and nothing is warned about: with no download,
+    an unusable candidate only means there is no cached copy to use."""
+    candidate = _ip_db_cache_dir_candidate()
+    if _IP_DB_CACHE_DIR is not None and _IP_DB_CACHE_DIR[0] == candidate:
+        return _IP_DB_CACHE_DIR[1]
+    problem = _ip_db_cache_dir_problem(candidate, create=False)
+    if problem is not None:
+        logger.debug(f"Not looking for a cached IP database in {candidate}: {problem}")
+        return None
+    return candidate
+
+
+def _cached_ip_db_problem(st: os.stat_result) -> str | None:
+    """Returns why the cached IP database whose ``os.lstat()`` result is
+    ``st`` must not be used, or ``None`` if it may: it must be a regular
+    file (not a symlink) and, on POSIX, owned by the current user."""
+    if stat.S_ISLNK(st.st_mode):
+        return "it is a symlink"
+    if not stat.S_ISREG(st.st_mode):
+        return "it is not a regular file"
+    if hasattr(os, "geteuid") and st.st_uid != os.geteuid():
+        return "it is owned by another user"
+    return None
+
 
 def load_ip_db(
     *,
@@ -732,6 +854,22 @@ def load_ip_db(
     locally. An existing ``local_file_path`` is used as-is, with no
     download. On download failure (or when offline), a previously cached
     download is used if available, falling back to the bundled copy.
+
+    The download is cached as ``ipinfo_lite.mmdb`` in a per-user directory
+    chosen by :func:`_ip_db_cache_dir` (``$XDG_CACHE_HOME/parsedmarc`` or
+    ``~/.cache/parsedmarc``; ``%LOCALAPPDATA%\\parsedmarc\\cache`` on
+    Windows), which must be a real directory, not a symlink, writable, and
+    on POSIX owned by the current user and not group- or world-writable;
+    otherwise a private temporary directory is used for this process only.
+    With ``offline`` or ``always_use_local_file`` nothing is downloaded, so
+    no directory is created: a cached copy is looked for only in the
+    directory an earlier download in this process used, else in the
+    per-user directory if it already exists and passes the same checks.
+    The download is written to a new file created exclusively in that
+    directory, opened with ``maxminddb`` to check that it is a valid MMDB,
+    and only then renamed over the cached copy. A cached copy is used only
+    if it is a regular file (not a symlink) and, on POSIX, owned by the
+    current user.
 
     Args:
         always_use_local_file: Always use a local/bundled database file
@@ -753,10 +891,28 @@ def load_ip_db(
         logger.info(f"Using local IP database at {local_file_path}")
         return
 
-    cache_dir = os.path.join(tempfile.gettempdir(), "parsedmarc")
+    download = not (offline or always_use_local_file)
+    if download:
+        try:
+            cache_dir: str | None = _ip_db_cache_dir()
+        except OSError as e:
+            # Only the temporary-directory fallback can raise.
+            logger.warning(f"Failed to create a temporary IP database cache: {e}")
+            cache_dir = None
+    else:
+        # No download, so nothing to cache: look for an earlier download
+        # without creating a directory or warning about one.
+        cache_dir = _existing_ip_db_cache_dir()
+    if cache_dir is None:
+        _IP_DB_PATH = str(
+            files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb")
+        )
+        logger.info("Using bundled IP database")
+        return
     cached_path = os.path.join(cache_dir, "ipinfo_lite.mmdb")
 
-    if not (offline or always_use_local_file):
+    if download:
+        tmp_path: str | None = None
         try:
             logger.debug(
                 f"Trying to fetch IP database from {redact_url_credentials(url)}..."
@@ -766,24 +922,50 @@ def load_ip_db(
                 url, headers=headers, timeout=60, follow_redirects=True
             )
             response.raise_for_status()
-            os.makedirs(cache_dir, exist_ok=True)
-            tmp_path = cached_path + ".tmp"
-            with open(tmp_path, "wb") as f:
+            # mkstemp() creates a new file with O_CREAT | O_EXCL, so it never
+            # opens (or follows a symlink to) a file that already exists.
+            fd, tmp_path = tempfile.mkstemp(
+                dir=cache_dir, prefix="ipinfo_lite.", suffix=".tmp"
+            )
+            with os.fdopen(fd, "wb") as f:
                 f.write(response.content)
-            shutil.move(tmp_path, cached_path)
-            _IP_DB_PATH = cached_path
-            logger.info("IP database updated successfully")
-            return
+            try:
+                reader = maxminddb.open_database(tmp_path)
+                reader.close()
+            except Exception:
+                # maxminddb raises InvalidDatabaseError (a RuntimeError) for
+                # a file that is not an MMDB; anything else it raises means
+                # the same here, so the body never becomes the cached copy.
+                logger.warning("Downloaded IP database is not a valid MMDB file")
+            else:
+                # An atomic rename: a symlink at cached_path is replaced as a
+                # directory entry, not followed.
+                os.replace(tmp_path, cached_path)
+                tmp_path = None
+                _IP_DB_PATH = cached_path
+                logger.info("IP database updated successfully")
+                return
         except (httpx.HTTPError, httpx.InvalidURL) as e:
             logger.warning(f"Failed to fetch IP database: {_describe_http_error(e)}")
         except Exception as e:
             logger.warning(f"Failed to save IP database: {e}")
+        finally:
+            if tmp_path is not None:
+                with contextlib.suppress(OSError):
+                    os.remove(tmp_path)
 
     # Fall back to a previously cached copy if available
-    if os.path.isfile(cached_path):
-        _IP_DB_PATH = cached_path
-        logger.info("Using cached IP database")
-        return
+    try:
+        cached_st: os.stat_result | None = os.lstat(cached_path)
+    except OSError:
+        cached_st = None  # No cached copy
+    if cached_st is not None:
+        problem = _cached_ip_db_problem(cached_st)
+        if problem is None:
+            _IP_DB_PATH = cached_path
+            logger.info("Using cached IP database")
+            return
+        logger.warning(f"Ignoring the cached IP database at {cached_path}: {problem}")
 
     # Final fallback: bundled copy
     _IP_DB_PATH = str(files(parsedmarc.resources.ipinfo).joinpath("ipinfo_lite.mmdb"))
