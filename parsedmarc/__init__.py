@@ -830,14 +830,16 @@ def _parse_report_record(
             reasons = policy_evaluated["reason"]
         else:
             reasons = [policy_evaluated["reason"]]
+    normalized_reasons = []
     for reason in reasons:
         # `comment` and `type` are strings in both schemas, but a sender can
         # give them child elements (a dict) or repeat them (a list), and the
         # CSV writer joins them as strings (GHSA-4272-4r8g-6c5h). They follow
         # the rule of every other string field: see _scalar().
-        reason["comment"] = _scalar(reason.get("comment"))
-        reason["type"] = _scalar(reason.get("type"))
-        reason_type = reason["type"]
+        reason_type = _scalar(reason.get("type"))
+        normalized_reasons.append(
+            {"type": reason_type, "comment": _scalar(reason.get("comment"))}
+        )
         if is_rfc_9990 and reason_type in RFC_7489_REMOVED_POLICY_OVERRIDE_TYPES:
             logger.warning(
                 "Policy override reason type %r was removed in RFC 9990; "
@@ -856,15 +858,16 @@ def _parse_report_record(
                 reason_type,
                 sorted(RFC_9990_POLICY_OVERRIDE_TYPES),
             )
-    new_policy_evaluated["policy_override_reasons"] = reasons
+    new_policy_evaluated["policy_override_reasons"] = normalized_reasons
     new_record["policy_evaluated"] = new_policy_evaluated
-    if "identities" in record:
-        new_record["identifiers"] = record["identities"].copy()
-    else:
-        new_record["identifiers"] = record["identifiers"].copy()
-    _scalar_fields(
-        new_record["identifiers"], ("header_from", "envelope_from", "envelope_to")
+    raw_identifiers = (
+        record["identities"] if "identities" in record else record["identifiers"]
     )
+    new_record["identifiers"] = {
+        key: _scalar(value)
+        for key, value in raw_identifiers.items()
+        if key in ("header_from", "envelope_from", "envelope_to")
+    }
     new_record["auth_results"] = {"dkim": [], "spf": []}
     if type(new_record["identifiers"]["header_from"]) is str:
         lowered_from = new_record["identifiers"]["header_from"].lower()
