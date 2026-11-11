@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 11.3.0
 
 ### Security
 
