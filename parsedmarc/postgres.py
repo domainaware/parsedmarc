@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import ipaddress
 import os
 import re
@@ -74,6 +75,17 @@ _WITHHELD_CONNECTION_FAILURE_ERROR = (
     "PostgreSQL connection failed (details withheld because the "
     "connection string may include the password; use the separate host, "
     "port, user, password and database settings to see the driver's "
+    "message)"
+)
+
+# With a connection string, a table creation failure is reported with this
+# fixed text and not the server's: the server's message can quote a session
+# setting taken from the string's options (for "-c default_tablespace=X",
+# 'tablespace "X" does not exist'). See PostgreSQLClient.create_tables().
+_WITHHELD_TABLE_CREATION_ERROR = (
+    "PostgreSQL table creation failed (details withheld because the "
+    "connection string may include the password; use the separate host, "
+    "port, user, password and database settings to see the server's "
     "message)"
 )
 
@@ -150,15 +162,16 @@ def _is_uri(connection_string: str) -> bool:
 
 def _port_is_numeric(entry: str) -> bool:
     """Return whether one ``host[:port]`` entry of a URI authority has no
-    port or an all-digit one. A bracketed IPv6 address is skipped first, so
-    its colons are not taken for a port separator."""
+    port, an empty one (``db:``, which libpq parses as no port) or an
+    all-digit one. A bracketed IPv6 address is skipped first, so its colons
+    are not taken for a port separator."""
     entry = entry.strip()
     if entry.startswith("["):
         entry = entry.partition("]")[2]
     if ":" not in entry:
         return True
     port = entry.rpartition(":")[2]
-    return port.isascii() and port.isdigit()
+    return not port or (port.isascii() and port.isdigit())
 
 
 def _has_unencoded_at(connection_string: str) -> bool:
@@ -187,8 +200,9 @@ def _has_unencoded_at(connection_string: str) -> bool:
     every component. An ``@`` in a query value after a ``/``
     (``?sslrootcert=/home/a@b/ca.pem``) is not refused, because nothing
     tells it apart from a legitimate one. For the same reason two shapes
-    are not recognized: an all-digit password before a ``/``, followed by
-    an ``@`` only in a query value (``u:12345/x?sslrootcert=a@b``), and a
+    are not recognized: an empty or all-digit password before a ``/``,
+    followed by an ``@`` only in a query value
+    (``u:12345/x?sslrootcert=a@b``, ``u:/x?sslrootcert=a@b``), and a
     password with an ``@``, then a ``?``, then a ``/``
     (``u:s3c@pw?sslmode=SECRET/x@db``).
 
@@ -587,9 +601,14 @@ class PostgreSQLClient:
                 (a password the driver cannot encode, a host name the
                 resolver rejects) is replaced with a fixed message, since
                 its text can quote the password or the whole connection
-                string. Either way the original error is not chained.
+                string. Either way the original error is not chained. A
+                connection opened before its setup failed is closed.
         """
         logger.debug("Connecting to PostgreSQL")
+        # A connection that fails its setup (autocommit, the dumpers) is
+        # closed before the error propagates; nothing else holds it.
+        opened: psycopg.Connection | None = None
+        configured = False
         try:
             # Parse the connection string first, on every path (the sslmode
             # lookup below skips it when sslmode is set), so a malformed
@@ -608,8 +627,10 @@ class PostgreSQLClient:
                     dbname=self._database,
                     **ssl_kwargs,
                 )
+            opened = conn
             conn.autocommit = False
             _register_nul_safe_dumpers(conn)
+            configured = True
         except PostgreSQLError:
             # Already a fixed, secret-free message (_connection_string_params).
             raise
@@ -650,6 +671,12 @@ class PostgreSQLClient:
             if self._connection_string:
                 raise PostgreSQLError(_WITHHELD_CONNECTION_FAILURE_ERROR) from None
             raise PostgreSQLError(_WITHHELD_CONNECTION_SETTING_ERROR) from None
+        finally:
+            # Also on KeyboardInterrupt and SystemExit. An error from
+            # close() is dropped so the original failure is the one raised.
+            if opened is not None and not configured:
+                with contextlib.suppress(Exception):
+                    opened.close()
         self._conn = conn
         return conn
 
@@ -684,7 +711,13 @@ class PostgreSQLClient:
         This method is idempotent and safe to call on every startup.
 
         Raises:
-            PostgreSQLError: If table creation fails.
+            PostgreSQLError: If table creation fails. With a connection
+                string, the server's message is withheld (only a
+                well-formed SQLSTATE is kept): it can quote a session
+                setting from the string's ``options``, such as a
+                ``default_tablespace``. With the separate arguments, it is
+                passed on with URL credentials masked. Either way the
+                original error is not chained.
         """
         conn = self._ensure_connected()
         ddl_statements: list[LiteralString] = [
@@ -925,7 +958,14 @@ class PostgreSQLClient:
                         cur.execute(stmt)
             logger.debug("PostgreSQL tables verified / created")
         except psycopg.Error as exc:
-            raise PostgreSQLError(str(exc)) from exc
+            # Raised from None, as in _connect(): a chain would print the
+            # server's own text wherever the error is logged with its
+            # traceback.
+            if self._connection_string:
+                raise PostgreSQLError(
+                    _WITHHELD_TABLE_CREATION_ERROR + _sqlstate_suffix(exc)
+                ) from None
+            raise PostgreSQLError(redact_url_credentials(str(exc))) from None
 
     def save_aggregate_report_to_postgresql(self, report: dict) -> None:
         """Saves a parsed aggregate DMARC report to PostgreSQL.

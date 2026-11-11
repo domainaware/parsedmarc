@@ -6062,6 +6062,52 @@ class TestPostgreSQLClientBuildErrorsDoNotLeakCredentials(unittest.TestCase):
         )
         self._assert_clean(exc, trace, output)
 
+    def test_client_is_closed_when_create_tables_fails(self):
+        """Follow-up to GHSA-xvp7-7762-gx9g: a client whose create_tables()
+        raised was not yet in ``clients``, so the rollback did not close
+        it and its connection stayed open. It is now closed once (an
+        error from close() does not replace the original), and the
+        RuntimeError carries no chain."""
+        for close_error in (None, OSError("close failed SECRETX")):
+            with self.subTest(close_error=close_error):
+                opts = _output_client_opts(postgresql_host="db.invalid")
+                client = MagicMock()
+                client.create_tables.side_effect = (
+                    parsedmarc.cli.postgres.PostgreSQLError(
+                        "PostgreSQL table creation failed"
+                    )
+                )
+                client.close.side_effect = close_error
+                with (
+                    patch.object(parsedmarc.cli.postgres, "psycopg", MagicMock()),
+                    patch.object(
+                        parsedmarc.cli.postgres,
+                        "PostgreSQLClient",
+                        return_value=client,
+                    ),
+                ):
+                    exc, trace, output = self._init_error(opts)
+                client.close.assert_called_once_with()
+                self.assertEqual(
+                    str(exc), "PostgreSQL: PostgreSQL table creation failed"
+                )
+                self._assert_clean(exc, trace, output)
+
+    def test_client_is_kept_open_when_create_tables_succeeds(self):
+        """A client whose tables were created is returned, not closed."""
+        opts = _output_client_opts(postgresql_host="db.invalid")
+        client = MagicMock()
+        with (
+            patch.object(parsedmarc.cli.postgres, "psycopg", MagicMock()),
+            patch.object(
+                parsedmarc.cli.postgres, "PostgreSQLClient", return_value=client
+            ),
+        ):
+            clients = parsedmarc.cli._init_output_clients(opts)
+        self.assertIs(clients["postgresql_client"], client)
+        client.create_tables.assert_called_once_with()
+        client.close.assert_not_called()
+
 
 class TestHttpxLogRedaction(unittest.TestCase):
     """GHSA-hjr3-rx4c-24cv: httpx logs the full request URL at INFO."""
