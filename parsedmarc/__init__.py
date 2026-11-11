@@ -1168,9 +1168,8 @@ def _smtp_tls_count(value: Any, field: str) -> int | None:
     JSON number". ``null`` is tolerated as an unreported count. A JSON
     ``true``/``false`` is rejected even though ``bool`` subclasses ``int``.
     A count outside ``0..MAX_MESSAGE_COUNT`` is rejected because the
-    PostgreSQL, Elasticsearch and OpenSearch outputs store counts as 32-bit
-    integers (GHSA-fxr7-7h9q-v949). Raises ``InvalidSMTPTLSReport``
-    otherwise.
+    PostgreSQL output stores counts as 32-bit integers
+    (GHSA-fxr7-7h9q-v949). Raises ``InvalidSMTPTLSReport`` otherwise.
     """
     if value is None:
         return value

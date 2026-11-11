@@ -1531,11 +1531,13 @@ _AT_RULE_CASES = (
     ("u/x:SECRETX@db.invalid/d", True, "SECRETX"),
     ("u:/SECRETX@db.invalid/d", True, "SECRETX"),
     ("u:12345/x@db.invalid/d", True, "12345"),
-    # Not recognized, because each reads like a legitimate string: an
-    # all-digit password before a "/", with the "@" only in a query value
-    # (host "u", port 12345), and an "@", "?" and "/" in a password (host
-    # "pw" and an sslmode after a "?", like a certificate path after one).
+    # Not recognized, because each reads like a legitimate string: an empty
+    # or all-digit password before a "/", with the "@" only in a query
+    # value (host "u", port 12345 or none), and an "@", "?" and "/" in a
+    # password (host "pw" and an sslmode after a "?", like a certificate
+    # path after one).
     ("u:12345/x?sslrootcert=a@b", False, "12345"),
+    ("u:/x?sslrootcert=SECRET@b", False, "SECRET"),
     ("u:s3c@pw?sslmode=SECRET/x@db", False, "SECRET"),
     ("u:p%40w@db/d", False, None),
     ("u@db/d", False, None),
@@ -1549,6 +1551,10 @@ _AT_RULE_CASES = (
     ("u:p@db.invalid/d%40x", False, None),
     ("[::1]:5432/d", False, None),
     ("[::1]:5432/d?sslrootcert=/a@b/c", False, None),
+    # An empty port is no port to libpq (host "db", sslrootcert "/a@b").
+    ("db:/d?sslrootcert=/a@b", False, None),
+    ("h1:,h2:5433/d?sslrootcert=/a@b", False, None),
+    ("[::1]:/d?sslrootcert=/a@b", False, None),
     ("u:p@[::1]:5432/d", False, None),
     ("u:pa?x@db/d", False, None),
     ("u:p@h1:5432,h2:5433/d", False, None),
@@ -1802,6 +1808,150 @@ class TestConnectionStringDetailsWithheld(unittest.TestCase):
             mock_psycopg.connect.side_effect = KeyboardInterrupt
             with self.assertRaises(KeyboardInterrupt):
                 PostgreSQLClient(host="db.invalid", sslmode="verify-full")
+
+    def _setup_failure(self, failure, stage, close_error=None):
+        """Construct a client whose connect succeeds and whose *stage*
+        (``autocommit`` or ``dumpers``) raises *failure*; return (the
+        exception raised, the connection mock). For an error made by
+        ``_driver_error()``, ``psycopg.Error`` is its base class, so it
+        takes the driver branch; any other error is not the driver's."""
+        with contextlib.ExitStack() as stack:
+            mock_psycopg = stack.enter_context(patch("parsedmarc.postgres.psycopg"))
+            stack.enter_context(_without_libpq_env())
+            if hasattr(type(failure), "sqlstate"):
+                mock_psycopg.Error = type(failure).__mro__[1]
+            else:
+                mock_psycopg.Error = type("Error", (Exception,), {})
+            mock_psycopg.ProgrammingError = type(
+                "ProgrammingError", (mock_psycopg.Error,), {}
+            )
+            conn = MagicMock()
+            if close_error is not None:
+                conn.close.side_effect = close_error
+            if stage == "autocommit":
+                type(conn).autocommit = property(
+                    lambda self: False,
+                    lambda self, value: (_ for _ in ()).throw(failure),
+                )
+            else:
+                conn.adapters.register_dumper.side_effect = failure
+            mock_psycopg.connect.return_value = conn
+            with self.assertRaises(BaseException) as ctx:
+                PostgreSQLClient(
+                    connection_string="host=db.invalid password=SECRETX",
+                    sslmode="verify-full",
+                )
+        return ctx.exception, conn
+
+    def test_connection_is_closed_when_its_setup_fails(self):
+        """Follow-up to GHSA-xvp7-7762-gx9g: when psycopg.connect succeeded
+        but setting autocommit or registering the dumpers raised, the open
+        connection was dropped without close(), so the server kept the
+        session until the process exited. It is now closed once, and the
+        raised error is still the fixed message with no chain."""
+        withheld = (
+            "PostgreSQL connection failed (details withheld because the "
+            "connection string may include the password; use the "
+            "separate host, port, user, password and database settings "
+            "to see the driver's message)"
+        )
+        for stage in ("autocommit", "dumpers"):
+            for failure, message in (
+                (ValueError("SECRETX"), withheld),
+                (
+                    self._driver_error("SECRETX", "25001"),
+                    withheld + " [SQLSTATE 25001]",
+                ),
+            ):
+                with self.subTest(stage=stage, failure=type(failure).__name__):
+                    exc, conn = self._setup_failure(failure, stage)
+                    conn.close.assert_called_once_with()
+                    self.assertIsInstance(exc, PostgreSQLError)
+                    self.assertEqual(str(exc), message)
+                    self._assert_no_secret_anywhere(exc, [])
+
+    def test_close_error_after_a_setup_failure_is_dropped(self):
+        """An error from close() does not replace the setup failure."""
+        exc, conn = self._setup_failure(
+            ValueError("SECRETX"), "dumpers", close_error=OSError("close SECRETX")
+        )
+        conn.close.assert_called_once_with()
+        self.assertIsInstance(exc, PostgreSQLError)
+        self._assert_no_secret_anywhere(exc, [])
+
+    def test_connection_is_closed_on_keyboard_interrupt_during_setup(self):
+        """A Ctrl-C during the setup propagates as KeyboardInterrupt and the
+        connection is still closed."""
+        exc, conn = self._setup_failure(KeyboardInterrupt(), "autocommit")
+        self.assertIsInstance(exc, KeyboardInterrupt)
+        conn.close.assert_called_once_with()
+
+    def test_connection_is_not_closed_when_setup_succeeds(self):
+        """A connection whose setup succeeded is kept open as the client's."""
+        with patch("parsedmarc.postgres.psycopg") as mock_psycopg, _without_libpq_env():
+            mock_psycopg.Error = type("Error", (Exception,), {})
+            conn = MagicMock()
+            mock_psycopg.connect.return_value = conn
+            client = PostgreSQLClient(
+                connection_string="host=db.invalid password=p", sslmode="verify-full"
+            )
+        conn.close.assert_not_called()
+        self.assertIs(client._conn, conn)
+
+    def _create_tables_error(self, client_kwargs, driver_error):
+        """Construct a client, make its DDL raise *driver_error*, and return
+        (the PostgreSQLError create_tables() raised, log lines)."""
+        with contextlib.ExitStack() as stack:
+            mock_psycopg = stack.enter_context(patch("parsedmarc.postgres.psycopg"))
+            stack.enter_context(_without_libpq_env())
+            logs = stack.enter_context(_captured_log_text())
+            mock_psycopg.Error = type(driver_error).__mro__[1]
+            conn = MagicMock()
+            conn.closed = False
+            mock_psycopg.connect.return_value = conn
+            client = PostgreSQLClient(**client_kwargs, sslmode="verify-full")
+            cur = _mock_cursor(conn, [])
+            cur.execute.side_effect = driver_error
+            with self.assertRaises(PostgreSQLError) as ctx:
+                client.create_tables()
+        return ctx.exception, logs
+
+    def test_create_tables_error_withheld_with_a_connection_string(self):
+        """Follow-up to GHSA-xvp7-7762-gx9g: create_tables() raised
+        PostgreSQLError(str(exc)) from exc, and a server error can quote a
+        session setting from the string's options (``tablespace "X" does
+        not exist`` for ``-c default_tablespace=X``). With a connection
+        string the message is now fixed, with a well-formed SQLSTATE and
+        no chain."""
+        dsn = "host=db.invalid password=pw options='-c default_tablespace=SECRETX'"
+        for sqlstate, suffix in (("42704", " [SQLSTATE 42704]"), ("bad", "")):
+            with self.subTest(sqlstate=sqlstate):
+                exc, logs = self._create_tables_error(
+                    {"connection_string": dsn},
+                    self._driver_error('tablespace "SECRETX" does not exist', sqlstate),
+                )
+                self.assertEqual(
+                    str(exc),
+                    "PostgreSQL table creation failed (details withheld because "
+                    "the connection string may include the password; use the "
+                    "separate host, port, user, password and database settings "
+                    "to see the server's message)" + suffix,
+                )
+                self._assert_no_secret_anywhere(exc, logs)
+
+    def test_create_tables_error_kept_with_the_separate_settings(self):
+        """With the separate settings the server's message is passed on,
+        URL credentials masked, and still not chained."""
+        exc, _ = self._create_tables_error(
+            {"host": "db.invalid", "user": "u", "password": "pw"},
+            self._driver_error(
+                'tablespace "t" does not exist (postgresql://u:SECRETX@db/d)', "42704"
+            ),
+        )
+        self.assertEqual(
+            str(exc), 'tablespace "t" does not exist (postgresql://u:***@db/d)'
+        )
+        self._assert_no_secret_anywhere(exc, [])
 
     @unittest.skipUnless(PSYCOPG_INSTALLED, "psycopg is not installed")
     def test_real_psycopg_surrogate_password_is_withheld(self):

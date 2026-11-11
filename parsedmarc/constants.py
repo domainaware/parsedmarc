@@ -79,9 +79,10 @@ SLOW_REVERSE_DNS_SECONDS = 1.0
 MAX_REVERSE_DNS_SECONDS_PER_REPORT = 600.0
 
 # Largest message or session count a report may give (GHSA-fxr7-7h9q-v949).
-# It matches the PostgreSQL output's INTEGER count columns and the
-# Elasticsearch/OpenSearch integer mapping of the SMTP TLS session counts,
-# all signed 32-bit, so a larger count was rejected by those outputs. (The
-# aggregate message_count is not in the Elasticsearch/OpenSearch mapping,
-# so it is mapped dynamically as long.) No real reporter approaches it.
+# It matches the PostgreSQL output's INTEGER count columns, signed 32-bit,
+# so a larger count was rejected by that output. (The Elasticsearch and
+# OpenSearch outputs do not install their document classes' mappings, and
+# the mappings they do install declare no counts, so the clusters map every
+# count dynamically as long; the aggregate document class declares
+# message_count as Long() to match.) No real reporter approaches it.
 MAX_MESSAGE_COUNT = 2**31 - 1

@@ -15,6 +15,7 @@ from opensearchpy import (
     Integer,
     Ip,
     Keyword,
+    Long,
     Nested,
     NotFoundError,
     Object,
@@ -376,7 +377,7 @@ class _AggregateReportDoc(Document):
     date_begin = Date()
     date_end = Date()
     normalized_timespan = Boolean()
-    original_timespan_seconds = Integer
+    original_timespan_seconds = Long()
     errors = Text()
     published_policy = Object(_PublishedPolicy)
     source_ip_address = Ip()
@@ -388,7 +389,7 @@ class _AggregateReportDoc(Document):
     source_asn = Integer()
     source_as_name = Text()
     source_as_domain = Text()
-    message_count = Integer
+    message_count = Long()
     disposition = Text()
     dkim_aligned = Boolean()
     spf_aligned = Boolean()

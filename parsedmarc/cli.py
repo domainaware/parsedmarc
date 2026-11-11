@@ -4,6 +4,7 @@
 """A CLI for parsing DMARC and SMTP TLS reports"""
 
 import atexit
+import contextlib
 import functools
 import http.client
 import json
@@ -2227,7 +2228,15 @@ def _build_output_clients(opts, clients, index_prefix_domain_map=None):
                 sslmode=opts.postgresql_sslmode,
                 sslrootcert=opts.postgresql_sslrootcert,
             )
-            pg_client.create_tables()
+            try:
+                pg_client.create_tables()
+            except BaseException:
+                # Not yet in clients, so the rollback in _init_output_clients
+                # would not close its connection. An error from close() is
+                # dropped so the create_tables() failure is the one raised.
+                with contextlib.suppress(Exception):
+                    pg_client.close()
+                raise
             clients["postgresql_client"] = pg_client
     # A PostgreSQLError's text is built by postgres.py: a fixed message, the
     # driver's text with URL credentials masked, or, with a connection

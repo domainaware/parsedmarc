@@ -1108,6 +1108,52 @@ class TestAggregateDocCombinedResults(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 
+class TestAggregateDocCountFields(unittest.TestCase):
+    """``message_count`` and ``original_timespan_seconds`` were declared
+    ``= Integer`` without parentheses, which binds the field class and
+    declares no field: they were missing from the document mapping, and
+    reading either attribute returned the class instead of the value. They
+    are ``Long()``, the type dynamic mapping has always given them in the
+    cluster (parsedmarc does not install the document classes' mappings,
+    and the mappings it does install declare no counts)."""
+
+    def test_count_fields_are_mapped_as_long(self):
+        properties = opensearch_module._AggregateReportDoc._doc_type.mapping.to_dict()[
+            "properties"
+        ]
+        for name in ("message_count", "original_timespan_seconds"):
+            with self.subTest(field=name):
+                self.assertEqual(properties[name], {"type": "long"})
+
+    def test_count_fields_read_back_as_values(self):
+        doc = opensearch_module._AggregateReportDoc(
+            message_count=3, original_timespan_seconds=86400
+        )
+        self.assertEqual(doc.message_count, 3)
+        self.assertEqual(doc.original_timespan_seconds, 86400)
+        body = doc.to_dict()
+        self.assertEqual(body["message_count"], 3)
+        self.assertEqual(body["original_timespan_seconds"], 86400)
+
+    def test_no_document_class_binds_a_bare_field_class(self):
+        """Every field on every document class is a field instance; a
+        class attribute that is a opensearchpy Field subclass itself is a
+        declaration missing its parentheses."""
+        from opensearchpy.helpers.field import Field
+
+        checked = 0
+        for owner in vars(opensearch_module).values():
+            if not (isinstance(owner, type) and hasattr(owner, "_doc_type")):
+                continue
+            checked += 1
+            for name, value in vars(owner).items():
+                with self.subTest(cls=owner.__name__, field=name):
+                    self.assertFalse(
+                        isinstance(value, type) and issubclass(value, Field)
+                    )
+        self.assertGreater(checked, 5)
+
+
 class TestSaveFailureReport(unittest.TestCase):
     def test_save_emits_one_document(self):
         with (

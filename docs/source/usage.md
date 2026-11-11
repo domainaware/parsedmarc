@@ -807,10 +807,12 @@ The full set of configuration options is:
     not put the password in the connection string: a malformed
     connection string can make the driver echo it back in an error
     message. With a connection string, parsedmarc withholds the
-    driver's message for a connection failure (keeping only the
-    server's SQLSTATE code, when there is one) and does not name the
-    server in its startup warning, because either could repeat part of
-    a password; the separate settings give full diagnostics. An `@` or
+    driver's message for a connection failure and the server's message
+    for a table creation failure (keeping only the server's SQLSTATE
+    code, when there is one) and does not name the server in its
+    startup warning, because any of them could repeat part of a
+    password or a setting from the string; the separate settings give
+    full diagnostics. An `@` or
     `/` in a URI's user name or password must be percent-encoded (`@`
     as `%40`, `/` as `%2F`): libpq ends the user name and password at
     the first `@` or `/`, so the rest of the password would be parsed
@@ -818,8 +820,8 @@ The full set of configuration options is:
     convenience, a URI that libpq would parse that way is refused with a
     fixed error before anything is logged: one with an unencoded `@` in
     its host list or database name, or in a query value written before
-    the first `/`, or with an `@` after a host whose port is not a
-    number. An `@` in such a place is written `%40` (an abstract socket
+    the first `/`, or with an `@` after a host whose port is neither
+    empty nor a number. An `@` in such a place is written `%40` (an abstract socket
     host as `%40sock`, a database name `d@x` as `d%40x`); an `@` in a
     query value after a `/`, such as a certificate path, is accepted as
     written. A keyword/value connection string is not checked: its
