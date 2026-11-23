@@ -191,9 +191,8 @@ class TestMMDBNonStringRecordValues(unittest.TestCase):
 
     Each test feeds one record whose ``as_domain`` or ``as_name`` is not a
     string beside a normal record. On the old code this raised
-    ``AttributeError``, or, for ``bytes`` values and for
-    ``classify_unknown_domains.py``'s ``as_name``, silently stored the
-    non-string value in the result."""
+    ``AttributeError`` or ``TypeError``, or silently stored the non-string
+    value in the result."""
 
     def _records(self, bad: dict):
         import ipaddress
