@@ -9787,7 +9787,7 @@ def _load_mmdb_as_names(mmdb_path: str) -> dict:
                 continue
             d = rec.get("as_domain")
             n = rec.get("as_name")
-            if d and n:
+            if isinstance(d, str) and isinstance(n, str) and d and n:
                 key = d.lower()
                 if key not in out:
                     out[key] = n

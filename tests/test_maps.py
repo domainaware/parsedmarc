@@ -170,6 +170,111 @@ class TestFindUnknownBaseReverseDNS(unittest.TestCase):
         )
 
 
+class _FakeMMDBReader:
+    """Stand-in for ``maxminddb.open_database()``: a context manager that
+    yields ``(network, record)`` pairs, like the real reader does."""
+
+    def __init__(self, records):
+        self._records = records
+
+    def __enter__(self):
+        return iter(self._records)
+
+    def __exit__(self, *exc_info):
+        return False
+
+
+class TestMMDBNonStringRecordValues(unittest.TestCase):
+    """The IPinfo records are untyped (maxminddb 3.3.0 types a value as
+    ``str | bytes | bytearray | bool | float | int | list | dict``), so the
+    scripts must not call string methods on a value that is not a ``str``.
+
+    Each test feeds one record whose ``as_domain`` or ``as_name`` is not a
+    string beside a normal record. On the old code this raised
+    ``AttributeError``, or, for ``bytes`` values and for
+    ``classify_unknown_domains.py``'s ``as_name``, silently stored the
+    non-string value in the result."""
+
+    def _records(self, bad: dict):
+        import ipaddress
+
+        return [
+            (ipaddress.ip_network("192.0.2.0/24"), bad),
+            (
+                ipaddress.ip_network("198.51.100.0/24"),
+                {"as_domain": "Example.COM ", "as_name": " Example  Net "},
+            ),
+        ]
+
+    def test_classify_load_mmdb_as_names_skips_non_string_values(self):
+        import parsedmarc.resources.maps.classify_unknown_domains as cud
+
+        for bad in (
+            {"as_domain": 64500, "as_name": "Bad Net"},
+            {"as_domain": ["bad.example"], "as_name": "Bad Net"},
+            {"as_domain": b"bad.example", "as_name": "Bad Net"},
+            {"as_domain": "bad.example", "as_name": 64500},
+            {"as_domain": "bad.example", "as_name": ["Bad Net"]},
+            {"as_domain": "bad.example", "as_name": b"Bad Net"},
+        ):
+            with self.subTest(bad=bad):
+                with mock.patch(
+                    "maxminddb.open_database",
+                    return_value=_FakeMMDBReader(self._records(bad)),
+                ):
+                    result = cud._load_mmdb_as_names("unused.mmdb")
+                self.assertEqual(result, {"example.com ": " Example  Net "})
+
+    def test_find_unknown_load_as_name_index_skips_non_string_values(self):
+        import parsedmarc.resources.maps.find_unknown_base_reverse_dns as fu
+
+        for bad in (
+            {"as_domain": 64500, "as_name": "Bad Net"},
+            {"as_domain": ["bad.example"], "as_name": "Bad Net"},
+            {"as_domain": b"bad.example", "as_name": "Bad Net"},
+            {"as_domain": "bad.example", "as_name": 64500},
+            {"as_domain": "bad.example", "as_name": ["Bad Net"]},
+            {"as_domain": "bad.example", "as_name": b"Bad Net"},
+        ):
+            with self.subTest(bad=bad):
+                with mock.patch(
+                    "maxminddb.open_database",
+                    return_value=_FakeMMDBReader(self._records(bad)),
+                ):
+                    result = fu._load_as_name_index("unused.mmdb")
+                self.assertEqual(result, {"example net": "example.com"})
+
+    def test_find_unmapped_footprints_skip_bad_domain_and_blank_bad_name(self):
+        import parsedmarc.resources.maps.find_unmapped_as_domains as fa
+
+        for bad_domain in (64500, ["bad.example"], b"bad.example"):
+            with self.subTest(as_domain=bad_domain):
+                records = self._records({"as_domain": bad_domain, "as_name": "Bad"})
+                with mock.patch(
+                    "maxminddb.open_database",
+                    return_value=_FakeMMDBReader(records),
+                ):
+                    result = fa._load_as_domain_footprints("unused.mmdb")
+                self.assertEqual(result, {"example.com": (256, "Example  Net")})
+
+        # A non-string as_name is treated as "", not as a reason to drop the
+        # record: the domain still counts its addresses.
+        for bad_name in (64500, ["Bad"], b"Bad"):
+            with self.subTest(as_name=bad_name):
+                records = self._records(
+                    {"as_domain": "bad.example", "as_name": bad_name}
+                )
+                with mock.patch(
+                    "maxminddb.open_database",
+                    return_value=_FakeMMDBReader(records),
+                ):
+                    result = fa._load_as_domain_footprints("unused.mmdb")
+                self.assertEqual(
+                    result,
+                    {"bad.example": (256, ""), "example.com": (256, "Example  Net")},
+                )
+
+
 class TestDetectPSLOverrides(unittest.TestCase):
     """Cluster detection, brand-tail extraction, and full-pipeline behaviour
     for `detect_psl_overrides.py`."""
