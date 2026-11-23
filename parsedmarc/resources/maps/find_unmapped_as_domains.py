@@ -68,10 +68,11 @@ def _load_as_domain_footprints(mmdb_path: str) -> dict[str, tuple[int, str]]:
             if net.version != 4 or not isinstance(rec, dict):
                 continue
             as_domain = rec.get("as_domain")
-            if not as_domain:
+            if not isinstance(as_domain, str) or not as_domain:
                 continue
             as_domain = as_domain.lower().strip()
-            as_name = (rec.get("as_name") or "").strip()
+            raw_as_name = rec.get("as_name")
+            as_name = raw_as_name.strip() if isinstance(raw_as_name, str) else ""
             counts[(as_domain, as_name)] += net.num_addresses
 
     totals: dict[str, int] = defaultdict(int)

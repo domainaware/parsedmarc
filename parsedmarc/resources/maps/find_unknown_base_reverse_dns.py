@@ -77,7 +77,12 @@ def _load_as_name_index(mmdb_path: str) -> dict[str, str]:
                 continue
             as_name = rec.get("as_name")
             as_domain = rec.get("as_domain")
-            if not as_name or not as_domain:
+            if (
+                not isinstance(as_name, str)
+                or not isinstance(as_domain, str)
+                or not as_name
+                or not as_domain
+            ):
                 continue
             counts[(_normalize_as_name(as_name), as_domain.lower().strip())] += (
                 net.num_addresses

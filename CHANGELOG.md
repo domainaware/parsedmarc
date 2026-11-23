@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Bug fixes
+
+- **The map-maintenance scripts `classify_unknown_domains.py`, `find_unknown_base_reverse_dns.py` and `find_unmapped_as_domains.py` no longer fail type checking against maxminddb 3.3.0, and skip IPinfo records whose `as_domain` is not a string.** maxminddb 3.3.0 types a record value as `str | bytes | bytearray | bool | float | int` (or a list or dict of them), so the scripts now check that each value is a `str` before calling string methods on it. `classify_unknown_domains.py` and `find_unknown_base_reverse_dns.py` also skip a record whose `as_name` is not a string; `find_unmapped_as_domains.py` keeps such a record and treats its name as empty. Records with string values behave as before.
+
 ## 11.3.0
 
 ### Security
